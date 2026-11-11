@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MigAce — Provable schema migrations for PostgreSQL &amp; Hibernate</title>
+<meta name="description" content="MigAce is an open-source migration framework for PostgreSQL and Hibernate that proves every migration produces exactly the schema your application expects.">
+<style>
+  :root{
+    --bg:#0b1020; --bg2:#111831; --card:#141c38; --line:#25305a;
+    --text:#e7ebf7; --muted:#9aa5c8; --accent:#4fd1c5; --accent2:#7c8cff; --warn:#f6c177;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,Inter,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--text);font-family:var(--sans);line-height:1.6}
+  a{color:var(--accent);text-decoration:none} a:hover{text-decoration:underline}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 24px}
+  .banner{background:var(--warn);color:#2a1d05;text-align:center;font-size:14px;padding:6px 12px;font-weight:600}
+  header{display:flex;align-items:center;justify-content:space-between;padding:22px 0}
+  .logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:20px;letter-spacing:.3px}
+  .logo svg{width:30px;height:30px}
+  nav a{color:var(--muted);margin-left:22px;font-size:15px} nav a:hover{color:var(--text)}
+  .hero{padding:70px 0 60px;display:grid;grid-template-columns:1.1fr .9fr;gap:48px;align-items:center}
+  .eyebrow{display:inline-block;font-family:var(--mono);font-size:13px;color:var(--accent);border:1px solid var(--line);border-radius:999px;padding:4px 12px;margin-bottom:18px}
+  h1{font-size:48px;line-height:1.1;margin:0 0 18px;letter-spacing:-.5px}
+  h1 em{font-style:normal;background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .lead{font-size:19px;color:var(--muted);margin:0 0 28px}
+  .cta{display:flex;gap:12px;flex-wrap:wrap}
+  .btn{display:inline-block;padding:12px 20px;border-radius:10px;font-weight:600;font-size:15px}
+  .btn.primary{background:var(--accent);color:#04211e}
+  .btn.ghost{border:1px solid var(--line);color:var(--text)}
+  .btn:hover{text-decoration:none;filter:brightness(1.08)}
+  pre{margin:0;background:var(--bg2);border:1px solid var(--line);border-radius:14px;padding:20px;overflow:auto;font-family:var(--mono);font-size:13.5px;line-height:1.55;color:#cdd5f3}
+  .k{color:var(--accent2)} .s{color:#a6e3a1} .c{color:#6c7699} .o{color:var(--accent)}
+  section{padding:56px 0;border-top:1px solid var(--line)}
+  h2{font-size:30px;margin:0 0 10px} .sub{color:var(--muted);margin:0 0 32px;max-width:720px}
+  .loop{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;align-items:stretch}
+  .step{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;font-size:14px}
+  .step b{display:block;font-family:var(--mono);color:var(--accent);font-size:12px;margin-bottom:6px}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px}
+  .card h3{margin:0 0 8px;font-size:17px}
+  .card p{margin:0;color:var(--muted);font-size:15px}
+  .ico{font-size:22px;margin-bottom:10px;display:block}
+  .split{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+  table{width:100%;border-collapse:collapse;font-size:15px}
+  th,td{text-align:left;padding:12px 10px;border-bottom:1px solid var(--line)}
+  th{color:var(--muted);font-weight:600;font-size:13px;text-transform:uppercase;letter-spacing:.6px}
+  td.y{color:var(--accent);font-weight:700} td.n{color:#6c7699}
+  footer{padding:36px 0 50px;color:var(--muted);font-size:14px;border-top:1px solid var(--line);display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
+  @media (max-width:860px){
+    .hero,.split{grid-template-columns:1fr} .grid{grid-template-columns:1fr 1fr} .loop{grid-template-columns:1fr 1fr}
+    h1{font-size:36px} nav{display:none}
+  }
+  @media (max-width:560px){ .grid,.loop{grid-template-columns:1fr} }
+</style>
+</head>
+<body>
+<div class="banner">Mockup — MigAce is in early development. Nothing here is released yet.</div>
+
+<div class="wrap">
+  <header>
+    <div class="logo">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><defs><linearGradient id="g" x1="0" x2="1"><stop offset="0" stop-color="#4fd1c5"/><stop offset="1" stop-color="#7c8cff"/></linearGradient></defs><path d="M16 2 L29 26 L16 20 L3 26 Z" fill="url(#g)"/></svg>
+      MigAce
+    </div>
+    <nav>
+      <a href="#how">How it works</a>
+      <a href="#features">Features</a>
+      <a href="#compare">Compare</a>
+      <a href="https://github.com/borisbrodski/migace">GitHub</a>
+    </nav>
+  </header>
+
+  <div class="hero">
+    <div>
+      <span class="eyebrow">PostgreSQL · Hibernate · Kotlin · Gradle</span>
+      <h1>Schema migrations you can <em>prove</em>.</h1>
+      <p class="lead">MigAce migrates a database with real data and then proves the result is identical to the schema your application expects, down to the last constraint. No drift, no surprises in production.</p>
+      <div class="cta">
+        <a class="btn primary" href="#how">See how it works</a>
+        <a class="btn ghost" href="https://github.com/borisbrodski/migace">Star on GitHub</a>
+      </div>
+    </div>
+<pre><span class="c"># migrations/2026-11-11-add-customer-email.yaml</span>
+<span class="k">id</span>: <span class="s">add-customer-email</span>
+<span class="k">parts</span>:
+  - <span class="k">sql</span>: <span class="s">ALTER TABLE customer ADD COLUMN email text</span>
+  - <span class="k">data</span>: <span class="s">UPDATE customer SET email = legacy_mail</span>
+  - <span class="k">sql</span>: <span class="s">ALTER TABLE customer ALTER email SET NOT NULL</span>
+
+<span class="c">$ ./gradlew migaceVerify</span>
+<span class="o">✔</span> schema A  generated from Hibernate model
+<span class="o">✔</span> schema B  restored from dump + 214 snippets applied
+<span class="o">✔</span> A ≡ B     0 differences  (digest 9f3c…e1a7)
+<span class="o">✔</span> HA check  compatible with release 4.12</pre>
+  </div>
+
+  <section id="how">
+    <h2>The proof loop</h2>
+    <p class="sub">Every build runs the same loop. If a migration doesn't produce exactly the expected schema on a database that already contains data, the build fails, long before production.</p>
+    <div class="loop">
+      <div class="step"><b>01 · TARGET</b>Generate schema A from your Hibernate model.</div>
+      <div class="step"><b>02 · RESTORE</b>Load an older production-like dump with data into schema B.</div>
+      <div class="step"><b>03 · MIGRATE</b>Apply all pending snippets to B, part by part, fully logged.</div>
+      <div class="step"><b>04 · COMPARE</b>Diff A and B: tables, columns, constraints, indexes, routines.</div>
+      <div class="step"><b>05 · SEAL</b>Store the schema digest. The app refuses to start on a mismatch.</div>
+    </div>
+  </section>
+
+  <section id="features">
+    <h2>Built for real enterprise databases</h2>
+    <p class="sub">Born in a long-running Java EE project and rebuilt from scratch for PostgreSQL.</p>
+    <div class="grid">
+      <div class="card"><span class="ico">🎯</span><h3>Zero-drift guarantee</h3><p>Production schema matches the Hibernate-generated DDL exactly, verified on every build.</p></div>
+      <div class="card"><span class="ico">🔁</span><h3>Re-runnable snippets</h3><p>YAML snippets made of small parts. Each part is logged and skipped once applied, so a failed run simply resumes.</p></div>
+      <div class="card"><span class="ico">📦</span><h3>Migrations on real data</h3><p>Adding NOT NULL or unique constraints is tested against data, not just an empty schema.</p></div>
+      <div class="card"><span class="ico">🧮</span><h3>Data migrations</h3><p>First-class data and repair snippets, separate from schema changes and fully traceable.</p></div>
+      <div class="card"><span class="ico">🚦</span><h3>HA &amp; rolling updates</h3><p>Classifies every change as compatible or breaking, so older app versions keep running during a Kubernetes rollout.</p></div>
+      <div class="card"><span class="ico">🔐</span><h3>Schema digest at startup</h3><p>The app checks a hash of the live schema and refuses to start against an unexpected database.</p></div>
+      <div class="card"><span class="ico">🧪</span><h3>Test data generation</h3><p>Generate realistic data for every new table and column so each snippet is exercised.</p></div>
+      <div class="card"><span class="ico">⚙️</span><h3>Gradle-native</h3><p>A Kotlin Gradle plugin with Testcontainers built in. One task: <code>migaceVerify</code>.</p></div>
+      <div class="card"><span class="ico">☸️</span><h3>Runs where you deploy</h3><p>Execute from an init container or job, or export a plain SQL script for your DBAs.</p></div>
+    </div>
+  </section>
+
+  <section id="compare">
+    <h2>How MigAce compares</h2>
+    <p class="sub">Indicative comparison for planned features. MigAce is not released yet.</p>
+    <table>
+      <tr><th>Capability</th><th>MigAce</th><th>Typical versioned tools</th></tr>
+      <tr><td>Proves migrated schema = ORM model</td><td class="y">Yes</td><td class="n">Manual / partial</td></tr>
+      <tr><td>Tests migrations against existing data</td><td class="y">Built in</td><td class="n">Up to you</td></tr>
+      <tr><td>Resumable, part-level execution log</td><td class="y">Yes</td><td class="n">Per-file</td></tr>
+      <tr><td>Rolling-update compatibility check</td><td class="y">Yes</td><td class="n">Rare</td></tr>
+      <tr><td>Schema digest check at app startup</td><td class="y">Yes</td><td class="n">Rare</td></tr>
+    </table>
+  </section>
+
+  <section>
+    <div class="split">
+      <div>
+        <h2>Get started (preview)</h2>
+        <p class="sub">The plugin is not published yet. This is what using it will look like.</p>
+      </div>
+<pre><span class="c">// build.gradle.kts</span>
+<span class="k">plugins</span> {
+    id(<span class="s">"org.migace"</span>) version <span class="s">"0.1.0"</span>
+}
+
+<span class="k">migace</span> {
+    database = postgres(<span class="s">"17"</span>)
+    snapshot = file(<span class="s">"db/baseline.dump"</span>)
+    snippets = file(<span class="s">"db/migrations"</span>)
+}</pre>
+    </div>
+  </section>
+
+  <footer>
+    <span>MigAce · an <a href="https://openbrod.org">OpenBrod</a> project · open source</span>
+    <span><a href="https://github.com/borisbrodski/migace">github.com/borisbrodski/migace</a></span>
+  </footer>
+</div>
+</body>
+</html>
