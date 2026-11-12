@@ -117,11 +117,11 @@
       <div class="card"><span class="ico">🔁</span><h3>Re-runnable snippets</h3><p>YAML snippets made of small parts. Each part is logged and skipped once applied, so a failed run simply resumes.</p></div>
       <div class="card"><span class="ico">📦</span><h3>Migrations on real data</h3><p>Adding NOT NULL or unique constraints is tested against data, not just an empty schema.</p></div>
       <div class="card"><span class="ico">🧮</span><h3>Data migrations</h3><p>First-class data and repair snippets, separate from schema changes and fully traceable.</p></div>
-      <div class="card"><span class="ico">🚦</span><h3>HA &amp; rolling updates</h3><p>Classifies every change as compatible or breaking, so older app versions keep running during a Kubernetes rollout.</p></div>
+      <div class="card"><span class="ico">🚦</span><h3>Breaking-change detection</h3><p>Define the oldest app version you still support. MigAce classifies every change as compatible or breaking against its schema, so rolling updates stay safe.</p></div>
       <div class="card"><span class="ico">🔐</span><h3>Schema digest at startup</h3><p>The app checks a hash of the live schema and refuses to start against an unexpected database.</p></div>
       <div class="card"><span class="ico">🧪</span><h3>Test data generation</h3><p>Generate realistic data for every new table and column so each snippet is exercised.</p></div>
-      <div class="card"><span class="ico">⚙️</span><h3>Gradle-native</h3><p>A Kotlin Gradle plugin with Testcontainers built in. One task: <code>migaceVerify</code>.</p></div>
-      <div class="card"><span class="ico">☸️</span><h3>Runs where you deploy</h3><p>Execute from an init container or job, or export a plain SQL script for your DBAs.</p></div>
+      <div class="card"><span class="ico">⚙️</span><h3>Gradle-native, no containers needed</h3><p>A Kotlin Gradle plugin that works against any PostgreSQL you point it at, even on locked-down build machines. One task, <code>migaceVerify</code>; ship by running migrations directly or as a plain SQL script for your DBAs.</p></div>
+      <div class="card"><span class="ico">🌿</span><h3>Branch-friendly</h3><p>Snippets from parallel branches merge automatically; conflicts surface as a failing proof in CI, not in production.</p></div>
     </div>
   </section>
 
@@ -146,11 +146,11 @@
       </div>
 <pre><span class="c">// build.gradle.kts</span>
 <span class="k">plugins</span> {
-    id(<span class="s">"org.migace"</span>) version <span class="s">"0.1.0"</span>
+    id(<span class="s">"org.openbrod.migace"</span>) version <span class="s">"0.1.0"</span>
 }
 
 <span class="k">migace</span> {
-    database = postgres(<span class="s">"17"</span>)
+    database = jdbc(<span class="s">"jdbc:postgresql://localhost/migace_ci"</span>)
     snapshot = file(<span class="s">"db/baseline.dump"</span>)
     snippets = file(<span class="s">"db/migrations"</span>)
 }</pre>
