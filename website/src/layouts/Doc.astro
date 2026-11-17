@@ -48,7 +48,7 @@ const next = index >= 0 && index < docsFlat.length - 1 ? docsFlat[index + 1] : u
 
   <style>
     .doc-grid { display: grid; grid-template-columns: 230px minmax(0, 1fr); gap: 56px; padding-top: 44px; padding-bottom: 40px; }
-    .doc-side { position: sticky; top: 86px; align-self: start; max-height: calc(100vh - 110px); overflow-y: auto; }
+    .doc-side { position: sticky; top: 86px; align-self: start; max-height: calc(100vh - 110px); overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
     .doc-menu summary { display: none; }
     .doc-group { margin-bottom: 20px; }
     .doc-group-title { font-size: .82rem; font-weight: 650; color: var(--text); margin-bottom: 6px; }
