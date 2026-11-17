@@ -320,8 +320,6 @@ parts:
         then mark this snippet as done.
 ```
 
-## 7. Ordering, changes and releases
-
 ### 6.9 Snippet generation
 
 MIG-Ace generates snippets for most simple schema changes. This is a main feature, not a convenience. **[decided]**
@@ -333,6 +331,8 @@ MIG-Ace generates snippets for most simple schema changes. This is a main featur
 - In `--batch` mode, or when no console is attached, it does not ask. It writes a `todo` into the snippet and reports it clearly. **[decided]**
 - While a `todo` is present, building the migration script fails. **[decided]**
 - A possible rename (one column removed, a similar one added) is asked about, not guessed. **[direction]**
+
+## 7. Ordering, changes and releases
 
 ### 7.1 Ordering and branching
 
