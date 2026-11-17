@@ -1,0 +1,223 @@
+---
+import Base from '../layouts/Base.astro';
+import { Code } from 'astro:components';
+
+const themes = { light: 'github-light', dark: 'one-dark-pro' } as const;
+
+const snippet = `migration: 20260302-0900-customer-loyalty
+uid: 01JF2A6QW3ZK8M4T7R9B5X0C1D
+doc: Every customer gets a loyalty level
+
+parts:
+  - add-column:
+      do: |
+        alter table customer
+        add column loyalty_level varchar(10)
+
+  - fill-existing:
+      do: update customer set loyalty_level = 'BRONZE'
+
+  - make-mandatory:
+      do: |
+        alter table customer
+        alter column loyalty_level set not null`;
+
+const proof = `$ mig test
+
+schema A    built from schema/               ok
+schema B    release 1.0.0 with data loaded   ok
+migrate     1 snippet, 3 parts               ok
+test data   customer rows present            ok
+compare     A = B, no differences            ok
+run again   nothing left to do               ok
+
+Proven. Fingerprint 9f3c…e1a7`;
+
+const steps = [
+  ['Build the schema you want', 'MIG-Ace runs your schema scripts, including the one Hibernate generates, on an empty PostgreSQL database.'],
+  ['Load an older database', 'A copy of an earlier release, with data in it, is loaded next to it.'],
+  ['Run your migrations', 'The migration script runs on the older database, part by part, with test data in the tables.'],
+  ['Compare both', 'Tables, columns, constraints, indexes, views and functions must be identical. One difference fails the build.'],
+  ['Check at start-up', 'The application checks the schema fingerprint when it starts and refuses to run on the wrong schema.'],
+];
+
+const features = [
+  ['🎯', 'Proven, not assumed', 'Every build migrates a real older database and compares the result with the schema your application expects.', '/docs/proof-loop/'],
+  ['📄', 'Readable snippets', 'A migration is a small YAML file with named parts. Each part is one statement in familiar SQL.', '/docs/snippets/'],
+  ['🧮', 'Data migrations', 'Update millions of rows in batches, and state what must be true before and after.', '/docs/data-migrations/'],
+  ['🧪', 'Test data built in', 'Each snippet brings rows that exercise it, so a NOT NULL column fails in the build and not in production.', '/docs/test-data/'],
+  ['🩹', 'Made for mistakes', 'Fix a released snippet, repair the databases that already ran it, and keep an exact record of both.', '/docs/fixing-mistakes/'],
+  ['🌿', 'Branches and hotfixes', 'Snippets from parallel branches merge as plain files. Release files remember what each release shipped.', '/docs/releases-and-branches/'],
+  ['🚦', 'Zero-downtime checks', 'MIG-Ace tells you when a change would break an older application version that is still running.', '/docs/zero-downtime/'],
+  ['📜', 'One script to run', 'The build produces a single SQL script. Run it with a small runner; no library is needed in your application.', '/docs/running-migrations/'],
+  ['✍️', 'Editor support', 'Completion for tables and columns as they exist at that point in history, in VS Code and IntelliJ IDEA.', '/docs/editor-support/'],
+];
+---
+<Base title="MIG-Ace · Provable schema migrations for PostgreSQL and Hibernate">
+
+  <section class="hero">
+    <div class="hero-glow" aria-hidden="true"></div>
+    <div class="container hero-grid">
+      <div class="hero-copy">
+        <div class="badges">
+          <span class="badge">PostgreSQL</span>
+          <span class="badge">Hibernate · Jakarta EE</span>
+          <span class="badge warm">Under construction</span>
+        </div>
+        <h1>Schema migrations,<br /><span class="brand-text">proven on real data.</span></h1>
+        <p class="hero-sub">
+          MIG-Ace migrates a PostgreSQL database that already contains data and
+          then <b>proves</b> that the result is exactly the schema your Hibernate application expects.
+          If a migration would fail or leave a difference, your build fails, long before production.
+        </p>
+        <div class="hero-cta">
+          <a class="btn btn-primary" href="/docs/getting-started/">Get started</a>
+          <a class="btn btn-ghost" href="/docs/">See how it works</a>
+        </div>
+      </div>
+      <div class="hero-demo">
+        <div class="codebox">
+          <div class="codebox-head"><span>migrations/20260302-0900-customer-loyalty.mig.yaml</span></div>
+          <Code code={snippet} lang="yaml" themes={themes} />
+        </div>
+        <div class="codebox">
+          <div class="codebox-head"><span>Terminal</span></div>
+          <Code code={proof} lang="text" themes={themes} />
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="sep" />
+
+  <section class="section" id="why">
+    <div class="container">
+      <h2>Three ways a migration goes wrong</h2>
+      <p class="lead">If you have shipped a Java application with a database, you have probably met at least one of them.</p>
+      <div class="grid3">
+        <div class="card"><h3>“It worked on my empty database.”</h3>
+          <p>Adding a mandatory column is easy when the table is empty. In production the table has rows,
+          and the statement fails. MIG-Ace runs every migration on a database with data.</p></div>
+        <div class="card"><h3>“Hibernate expects something else.”</h3>
+          <p>The migration script and the entity classes are written by hand, separately. They drift apart.
+          MIG-Ace compares the migrated database with the schema built from your entities.</p></div>
+        <div class="card"><h3>“Which version ran where?”</h3>
+          <p>Someone fixes an old migration. Now some databases ran the old version and some the new one.
+          MIG-Ace records what really ran and lets you repair exactly those databases.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="sep" />
+
+  <section class="section" id="how">
+    <div class="container">
+      <h2>How the proof works</h2>
+      <p class="lead">The same five steps run in every build. They need no containers and no shared test server.</p>
+      <ol class="steps">
+        {steps.map(([title, text], i) => (
+          <li><span class="num">{i + 1}</span><div><b>{title}</b><p>{text}</p></div></li>
+        ))}
+      </ol>
+      <p class="after"><a href="/docs/proof-loop/">Read how the proof loop works</a></p>
+    </div>
+  </section>
+
+  <hr class="sep" />
+
+  <section class="section" id="features">
+    <div class="container">
+      <h2>What you get</h2>
+      <p class="lead">Each topic has its own page with short examples.</p>
+      <div class="grid3">
+        {features.map(([ico, title, text, href]) => (
+          <a class="card" href={href}><h3><span class="ico">{ico}</span>{title}</h3><p>{text}</p></a>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <hr class="sep" />
+
+  <section class="section" id="example">
+    <div class="container split">
+      <div>
+        <h2>One example, used everywhere</h2>
+        <p>All examples on this site come from the same small application: an online bookshop
+          built with Jakarta EE and Hibernate. It is installed at three book stores, and each store
+          upgrades when it wants to.</p>
+        <p>Over four releases the bookshop gets loyalty levels, reviews, an order status table,
+          a renamed column, a hotfix and one migration that went wrong.</p>
+        <p><a class="btn btn-ghost" href="/docs/bookshop/">Meet the bookshop</a></p>
+      </div>
+      <div>
+        <h2>How it compares</h2>
+        <p>Flyway and Liquibase run the scripts you write and trust that they are right.
+          Atlas and Django can write a migration for you. MIG-Ace adds the proof on a database with data,
+          and tools for the day a migration turns out to be wrong.</p>
+        <p>The comparison page also lists what the other tools do better.</p>
+        <p><a class="btn btn-ghost" href="/compare/">Compare with other tools</a></p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section-tight">
+    <div class="container">
+      <div class="card db-note">
+        <div>
+          <h3>PostgreSQL today</h3>
+          <p>This site describes MIG-Ace for PostgreSQL. Snippets are written in a database-neutral
+            statement language, so support for other databases can be added later.</p>
+        </div>
+        <a class="btn btn-primary" href="/docs/getting-started/">Write your first snippet</a>
+      </div>
+    </div>
+  </section>
+
+  <style>
+    .hero { position: relative; overflow: hidden; }
+    :root[data-theme='light'] .hero-glow { display: none; }
+    .hero-glow {
+      position: absolute; inset: 0; pointer-events: none;
+      background:
+        radial-gradient(600px 320px at 78% 30%, rgba(79,156,247,.13), transparent 65%),
+        radial-gradient(520px 300px at 88% 80%, rgba(45,212,191,.09), transparent 60%),
+        radial-gradient(700px 400px at 12% 8%, rgba(124,108,255,.09), transparent 60%);
+    }
+    .hero-grid {
+      position: relative; display: grid; grid-template-columns: minmax(0, 1.12fr) minmax(0, .88fr);
+      gap: 44px; align-items: center; padding-top: 72px; padding-bottom: 76px;
+    }
+    .badges { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 22px; }
+    .hero h1 { font-size: clamp(2.1rem, 4.3vw, 3rem); }
+    .hero-sub { font-size: 1.13rem; max-width: 520px; margin: 18px 0 28px; }
+    .hero-sub b { color: var(--text); }
+    .hero-cta { display: flex; gap: 14px; flex-wrap: wrap; }
+    .hero-demo { display: grid; gap: 14px; min-width: 0; }
+    .hero-demo .codebox { font-size: .8rem; }
+    @media (max-width: 980px) { .hero-grid { grid-template-columns: 1fr; padding-top: 48px; padding-bottom: 52px; } }
+
+    .steps { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; }
+    .steps li {
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 18px; display: flex; flex-direction: column; gap: 10px;
+    }
+    .steps .num {
+      width: 28px; height: 28px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
+      background: var(--brand-grad); color: #fff; font-weight: 700; font-size: .85rem;
+    }
+    .steps b { display: block; margin-bottom: 4px; }
+    .steps p { margin: 0; font-size: .88rem; }
+    @media (max-width: 1000px) { .steps { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 600px) { .steps { grid-template-columns: 1fr; } }
+    .after { margin: 22px 0 0; }
+
+    .split { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; }
+    @media (max-width: 900px) { .split { grid-template-columns: 1fr; gap: 36px; } }
+    .split p { max-width: 520px; }
+
+    .db-note { display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap; }
+    .db-note h3 { margin-bottom: 6px; }
+    .db-note p { max-width: 640px; }
+  </style>
+</Base>

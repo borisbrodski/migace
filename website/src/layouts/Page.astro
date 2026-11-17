@@ -1,0 +1,20 @@
+---
+import Base from './Base.astro';
+// Layout for stand-alone Markdown pages without the documentation sidebar.
+const fm = Astro.props.frontmatter ?? Astro.props;
+const { title, description, lead } = fm;
+---
+<Base title={`${title} · MIG-Ace`} description={description}>
+  <div class="container page">
+    <main class="prose wide">
+      <h1>{title}</h1>
+      {lead && <p class="lead">{lead}</p>}
+      <slot />
+    </main>
+  </div>
+  <style>
+    .page { padding-top: 48px; padding-bottom: 40px; }
+    .prose.wide { max-width: 980px; }
+    .prose.wide :global(p), .prose.wide :global(ul), .prose.wide :global(.lead) { max-width: 760px; }
+  </style>
+</Base>

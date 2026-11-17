@@ -1,0 +1,82 @@
+---
+import Base from './Base.astro';
+import { docsNav, docsFlat } from '../lib/nav';
+
+// Used as the layout of Markdown pages (frontmatter) and directly by .astro pages (props).
+const fm = Astro.props.frontmatter ?? Astro.props;
+const { title, description, lead } = fm;
+
+const here = Astro.url.pathname.endsWith('/') ? Astro.url.pathname : Astro.url.pathname + '/';
+const index = docsFlat.findIndex((i) => i.href === here);
+const prev = index > 0 ? docsFlat[index - 1] : undefined;
+const next = index >= 0 && index < docsFlat.length - 1 ? docsFlat[index + 1] : undefined;
+---
+<Base title={`${title} · MIG-Ace`} description={description}>
+  <div class="container doc-grid">
+    <aside class="doc-side">
+      <details class="doc-menu" open>
+        <summary>Documentation</summary>
+        <nav aria-label="Documentation">
+          {docsNav.map((group) => (
+            <div class="doc-group">
+              <div class="doc-group-title">{group.title}</div>
+              {group.items.map((item) => (
+                <a href={item.href} class:list={{ current: item.href === here }}
+                   aria-current={item.href === here ? 'page' : undefined}>{item.title}</a>
+              ))}
+            </div>
+          ))}
+        </nav>
+      </details>
+    </aside>
+
+    <main class="prose">
+      <h1>{title}</h1>
+      {lead && <p class="lead">{lead}</p>}
+      <slot />
+
+      <nav class="doc-pager" aria-label="Previous and next page">
+        {prev ? <a class="pager prev" href={prev.href}><span>Previous</span><b>{prev.title}</b></a> : <span />}
+        {next ? <a class="pager next" href={next.href}><span>Next</span><b>{next.title}</b></a> : <span />}
+      </nav>
+    </main>
+  </div>
+
+  <style>
+    .doc-grid { display: grid; grid-template-columns: 230px minmax(0, 1fr); gap: 56px; padding-top: 44px; padding-bottom: 40px; }
+    .doc-side { position: sticky; top: 86px; align-self: start; max-height: calc(100vh - 110px); overflow-y: auto; }
+    .doc-menu summary { display: none; }
+    .doc-group { margin-bottom: 20px; }
+    .doc-group-title { font-size: .82rem; font-weight: 650; color: var(--text); margin-bottom: 6px; }
+    .doc-group a {
+      display: block; padding: 4px 10px; margin-left: -10px; border-radius: 6px;
+      color: var(--text-2); font-size: .9rem; border-left: 2px solid transparent;
+    }
+    .doc-group a:hover { color: var(--text); background: var(--surface); }
+    .doc-group a.current { color: var(--text); background: var(--surface); border-left-color: var(--blue); font-weight: 600; }
+
+    .doc-pager { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 56px; }
+    .pager {
+      display: flex; flex-direction: column; gap: 2px; padding: 14px 16px;
+      border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface);
+      text-decoration: none !important;
+    }
+    .pager:hover { border-color: var(--blue); }
+    .pager span { font-size: .78rem; color: var(--text-3); }
+    .pager b { color: var(--text); font-weight: 600; }
+    .pager.next { text-align: right; }
+
+    @media (max-width: 900px) {
+      .doc-grid { grid-template-columns: 1fr; gap: 18px; padding-top: 22px; }
+      .doc-side { position: static; max-height: none; }
+      .doc-menu { border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); padding: 0 14px; }
+      .doc-menu summary { display: block; cursor: pointer; padding: 11px 0; font-weight: 600; font-size: .92rem; }
+      .doc-menu nav { padding-bottom: 8px; }
+    }
+  </style>
+  <script>
+    // On small screens the documentation menu starts collapsed.
+    const menu = document.querySelector('.doc-menu');
+    if (menu && matchMedia('(max-width: 900px)').matches) menu.removeAttribute('open');
+  </script>
+</Base>
