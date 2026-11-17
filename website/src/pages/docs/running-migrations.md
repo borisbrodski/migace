@@ -17,6 +17,8 @@ It is safe to run the script at any time, on any release of your database:
 
 The Gradle plugin puts the script into your JAR or WAR under `/migace/`. `mig compile` writes it as a separate file.
 
+The same script also sets up a new, empty database, and it creates its own ledger tables. See [New and existing databases](/docs/first-run/).
+
 ## Run it from Java
 
 Add the runner library:
@@ -96,7 +98,8 @@ $ java -jar migace-runner.jar \
 20260525-1100-orders-ship-by
   add-column            done
   fill-ship-by          done   1,203,455 rows in 61 batches
-Views, functions and triggers recreated.
+Views, functions and triggers
+  v_order_totals        replaced
 Schema fingerprint 4be1…07c2 matches.
 ```
 
@@ -120,7 +123,7 @@ MIG-Ace keeps its records in a few tables in your database. Their names start wi
 | Table | What it holds |
 |---|---|
 | `mig_run` | One row per run: when, by whom, with what result. |
-| `mig_snippet` | The state of every snippet: done, failed, skipped or retired. |
+| `mig_snippet` | The state of every snippet: done, failed, skipped, retired or included. |
 | `mig_part_run` | Every attempt of every part, with the statement, the duration and the full error. |
 | `mig_log` | Messages written during a run. |
 | `mig_meta` | The current fingerprint and the fingerprints this database is compatible with. |
@@ -135,6 +138,12 @@ order by started_at desc;
 ```
 
 The ledger travels with the database. A backup that you restore elsewhere still knows its own history.
+
+You do not create these tables. The script creates them on the first run, see [New and existing databases](/docs/first-run/).
+
+## Views, functions and triggers
+
+After the last snippet, the script replaces the views, functions and triggers that changed. You write no snippets for them. See [Views, functions and triggers](/docs/views-functions-triggers/).
 
 ## The check at the end
 

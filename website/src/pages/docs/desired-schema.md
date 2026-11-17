@@ -79,7 +79,7 @@ If two objects have the same definition and different names, MIG-Ace reports tha
 
 ## Views, functions and triggers
 
-These objects are replaced as a whole, never altered step by step. So you only keep their current definition in the schema folder.
+These objects hold no data. They are replaced as a whole, never altered step by step. So you only keep their current definition in the schema folder, and you write no snippets for them.
 
 ```sql
 -- schema/110-views.sql
@@ -89,7 +89,7 @@ create view v_order_totals as
   group by o.customer_id;
 ```
 
-The migration script recreates all of them at the end of every run. If a snippet changes a column that a view uses, the view is dropped before the change and recreated afterwards.
+Every migration run replaces the ones that changed. [Views, functions and triggers](/docs/views-functions-triggers/) explains the details.
 
 ## A change is never silent
 

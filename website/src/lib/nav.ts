@@ -21,6 +21,7 @@ export const docsNav: NavGroup[] = [
       { title: 'Conditions', href: '/docs/conditions/' },
       { title: 'Test data', href: '/docs/test-data/' },
       { title: 'Native SQL', href: '/docs/native-sql/' },
+      { title: 'Views, functions and triggers', href: '/docs/views-functions-triggers/' },
     ],
   },
   {
@@ -34,6 +35,7 @@ export const docsNav: NavGroup[] = [
     title: 'Life after release',
     items: [
       { title: 'Running migrations', href: '/docs/running-migrations/' },
+      { title: 'New and existing databases', href: '/docs/first-run/' },
       { title: 'Fixing mistakes', href: '/docs/fixing-mistakes/' },
       { title: 'Releases and branches', href: '/docs/releases-and-branches/' },
       { title: 'Zero-downtime changes', href: '/docs/zero-downtime/' },
@@ -44,6 +46,7 @@ export const docsNav: NavGroup[] = [
     items: [
       { title: 'Complete example', href: '/docs/complete-example/' },
       { title: 'Commands', href: '/docs/commands/' },
+      { title: 'Configuration', href: '/docs/configuration/' },
       { title: 'Editor support', href: '/docs/editor-support/' },
       { title: 'Glossary', href: '/docs/glossary/' },
     ],

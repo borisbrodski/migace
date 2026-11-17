@@ -144,8 +144,9 @@ The LLM never writes a statement. The statements come from the comparison, so th
 llm:
   endpoint: https://llm.example.internal/v1   # any OpenAI-compatible endpoint
   model: your-model
-  api-key-env: MIGACE_LLM_KEY
 ```
+
+The key does not belong into the project file. Each developer sets it in the user file or in the variable `MIGACE_LLM_API_KEY`. See [Configuration](/docs/configuration/).
 
 - **Your endpoint.** You can use a model your company hosts.
 - **Only names of tables and columns are sent.** No rows, no data.

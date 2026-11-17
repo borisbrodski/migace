@@ -30,6 +30,7 @@ The same comparison also works the other way round. When the two differ because 
 | Snippets | Small YAML files, one per change. Each has named parts, and each part is one statement. | [Snippets](/docs/snippets/) |
 | `mig make` | The command that writes snippets from the difference between the expected schema and your migrations. | [Generated snippets](/docs/generated-snippets/) |
 | Editor support | A language server that knows your schema and completes tables, columns and keywords. | [Editor support](/docs/editor-support/) |
+| Views, functions and triggers | Kept in the schema folder and replaced by every run. No snippets needed. | [Views, functions and triggers](/docs/views-functions-triggers/) |
 | Test data | Rows that a snippet brings along, so it is tested on tables that are not empty. | [Test data](/docs/test-data/) |
 | Proof loop | The build step that migrates an older database and compares the result. | [The proof loop](/docs/proof-loop/) |
 | Migration script | One SQL file, produced by the build, that contains all snippets. This is what you run in production. | [Running migrations](/docs/running-migrations/) |

@@ -1,7 +1,7 @@
 ---
 layout: ../../layouts/Doc.astro
 title: Commands
-description: The mig commands and the settings file.
+description: The mig commands and the options of the runner.
 lead: MIG-Ace has a handful of commands. With the Gradle plugin, each one is also a task.
 ---
 
@@ -14,6 +14,7 @@ lead: MIG-Ace has a handful of commands. With the Gradle plugin, each one is als
 | `mig compile` | `migCompile` | Writes the migration script. |
 | `mig release <version>` | `migRelease` | Writes the release file. |
 | `mig archive` | `migArchive` | Moves old snippets to the archive and moves the starting schema forward. |
+| `mig config` | | Shows the settings in use and where each one comes from. |
 | `mig ls` | | Starts the language server for editors. |
 
 ## `mig make`
@@ -78,6 +79,10 @@ $ mig archive --up-to 1.1.0
 
 See [Releases and branches](/docs/releases-and-branches/).
 
+## `mig config`
+
+Prints every setting MIG-Ace will use, and the file or variable it comes from. See [Configuration](/docs/configuration/).
+
 ## The runner
 
 The runner is the small Java library `migace-runner`. It is the only piece that reaches the production database. Use it from your application with `MigAce.execFromJar(...)`, or as a program:
@@ -89,35 +94,9 @@ java -jar migace-runner.jar --url <jdbc-url> --user <user> [options] <script>
 | Option | Meaning |
 |---|---|
 | `--ignore "index:dba_*"` | Ignore additional objects that match the pattern in the final check. |
+| `--adopt <release>` | Put a database that existed before MIG-Ace under its control. See [New and existing databases](/docs/first-run/). |
 | `--maintenance` | Allow snippets marked `requires-downtime`. |
 
-## The settings file
+## Settings
 
-```yaml
-# migace.yaml
-dialects:
-  - postgresql
-
-postgresql:
-  version: 17             # the major version used for the proof
-
-schema: schema/
-migrations: migrations/
-releases: releases/
-
-upgrade-from: 1.1.0       # oldest release a database may still be on
-compatible-with: 1.2.0    # oldest application version that may run during an upgrade
-
-llm:                      # optional: names and groups generated snippets
-  endpoint: https://llm.example.internal/v1
-  model: your-model
-  api-key-env: MIGACE_LLM_KEY
-```
-
-| Setting | Meaning | Read more |
-|---|---|---|
-| `dialects` | The databases the project supports. | [Native SQL](/docs/native-sql/) |
-| `postgresql.version` | The PostgreSQL version of the temporary database. | [The proof loop](/docs/proof-loop/) |
-| `upgrade-from` | Every release from here on is tested as a starting point. | [Releases and branches](/docs/releases-and-branches/) |
-| `compatible-with` | Changes that break this application version are reported. | [Zero-downtime changes](/docs/zero-downtime/) |
-| `llm` | An OpenAI-compatible endpoint used by `mig make` for names and grouping. | [Generated snippets](/docs/generated-snippets/) |
+The project file `migace.yaml` and the user file in `~/.config/migace` are described on the [Configuration](/docs/configuration/) page.

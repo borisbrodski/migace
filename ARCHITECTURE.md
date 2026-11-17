@@ -65,7 +65,7 @@ At build time the tool compiles snippets into one migration script per dialect a
 
 - The desired state is the set of SQL files in `schema/`, applied in lexical order to an empty scratch database. **[decided]**
 - Generated files (for example `101-generated.sql` from Hibernate) and hand-written files (`102-…`, `103-…`) are peers. Several generated files are allowed. Whether a file was generated or written by hand makes no difference to the comparison. **[decided]**
-- Views, functions, procedures and triggers live in `schema/` and are recreated at the end of every migration run. **[decided]**
+- Views, functions, procedures and triggers live in `schema/` and are recreated at the end of every migration run. **[decided]** Details are in [4.5 Replaceable objects](#45-replaceable-objects).
 - **Staleness check:** the build fails when the committed schema snapshot no longer matches what `schema/` produces. This holds for regenerated files and for manual edits to hand-written files alike. **[decided]**
 
 ### 4.2 Meta-model
@@ -100,6 +100,39 @@ The old framework renamed all constraints and indexes after every snippet. That 
 - Because no library runs at migration time, the canonical model is produced by SQL, once per dialect, and the build uses the same SQL. **[direction]**
 - The text PostgreSQL returns for views, defaults and checks can differ between major versions. The script therefore carries one expected fingerprint per supported major version. **[direction]**
 
+### 4.5 Replaceable objects
+
+Views, functions, procedures and triggers hold no data. They are replaced as a whole and are never migrated by snippets. **[decided]** In dialects that have them, packages belong to the same group. PostgreSQL has no packages. **[direction]**
+
+The old framework dropped all views and all triggers on every run and created them again. MIG-Ace keeps the idea and changes the execution, because the script can now run at every application start and during a rolling update.
+
+**Source**
+
+- The author writes these objects in any file of `schema/`. No special file layout is required. **[direction]**
+- The migration script does not copy the text of these files. The build reads the definitions from the catalog of the desired database A, in dependency order. Function bodies are stored verbatim by PostgreSQL, so comments in them survive. View text is the form PostgreSQL stores. **[direction]**
+- `mig make` writes no snippet for a difference in a replaceable object. It lists the difference as "replaced by the next run". **[direction]**
+
+**What is replaced**
+
+- Only objects whose definition on the server differs from the expected one are replaced. An equal object is not touched, so a second run does nothing and takes no locks. **[direction]**
+- The test for "differs" runs on the target server, so both definitions are rendered by the same PostgreSQL version. **[direction]**
+- A replaceable object that is not in the desired schema is dropped, unless it matches a run-time ignore pattern. **[direction]**
+
+**Order within a run** **[direction]**
+
+1. *Before the snippets:* functions and procedures that do not exist yet are created, with body checking switched off. Snippets can then use them in index expressions, defaults, constraints and data statements.
+2. *During the snippets:* PostgreSQL refuses to drop a column, or to change its type, while a view uses it. Before such a part, the script drops the views that depend on the column, including views built on those views. Nothing else is dropped early.
+3. *After the snippets:* changed functions and procedures are replaced, missing and changed views are created in dependency order, missing and changed triggers are created, and objects that are no longer expected are dropped.
+
+**Details** **[direction]**
+
+- The replacement of one object is one transaction, so the application never sees it missing. The exception is a view dropped in step 2. The build reports that case as a finding for zero-downtime upgrades.
+- Permissions granted on a view are saved before the view is dropped and restored after it is created. A local administrator's grants therefore survive.
+- A function with a changed parameter list is a new function plus a drop of the old one. If an index, default or constraint depends on the old one, a snippet has to change that object first. The proof loop reports it.
+- Triggers that MIG-Ace creates itself for expand and contract belong to those operations and are not part of the desired schema.
+- Types, domains, extensions and sequences are not replaceable. They are changed by snippets.
+- Whether materialized views are replaceable is open, because replacing one means recomputing its data.
+
 ## 5. The proof loop
 
 The proof loop is the central test. **[decided]**
@@ -109,6 +142,7 @@ The proof loop is the central test. **[decided]**
 3. Run the compiled migration script on B, with test data inserted around each snippet.
 4. Compare the meta-models of A and B. Any difference in the logical tier fails the build.
 5. Run the script a second time. It must do nothing.
+6. Run the script on an empty database. The result of this installation must also equal A. **[direction]**
 
 Details:
 
@@ -412,7 +446,7 @@ The protocol tables of the old framework are kept and extended. **[decided]** Ta
 | Table | Content |
 |---|---|
 | run | one row per invocation: time, outcome, fingerprint before and after |
-| snippet | state per snippet: pending, running, done, failed, skipped, retired |
+| snippet | state per snippet: pending, running, done, failed, skipped, retired, included |
 | part run | every attempt of every part: executed SQL, checksum, timing, full error |
 | batch | progress of batched data statements, so an interrupted run resumes |
 | meta | current fingerprint, compatible fingerprints |
@@ -423,6 +457,40 @@ The ledger lives in the migrated schema, so a dump of the schema carries its his
 ### 8.4 Application start
 
 The application compares its expected fingerprint with the one stored by the last successful migration and refuses to start on a mismatch that is not in the compatible set. **[decided]**
+
+### 8.5 Initialisation: the start of every run
+
+The old framework had a separate script that created the `ledger` tables, a check that told old and new databases apart, and an `INCLUDED` flag for snippets that were already part of the create scripts. MIG-Ace keeps these three ideas and moves them into the migration script. There is no separate initialisation step and no second script. **[direction]**
+
+Every run starts the same way: **[direction]**
+
+1. Take a session-level advisory lock. A second runner that starts at the same time waits, and then finds nothing left to do.
+2. Look at the database and choose one of three paths.
+
+| The script finds | Path |
+|---|---|
+| A ledger | **Migrate.** Bring the ledger tables to the current format if needed, then apply what is missing. |
+| No ledger and no objects | **Install.** Create the ledger, run the content of `schema/` directly, record every snippet as `included`, store the fingerprint. |
+| No ledger, but objects | **Stop.** The database is not managed by MIG-Ace yet. It has to be adopted. |
+
+**Install** **[direction]**
+
+- A new database gets the desired schema directly. No snippet runs. Every snippet is recorded with the state `included`, so it never runs later.
+- This is safe because the proof loop shows that migrating and installing produce the same schema (step 6 of the proof loop).
+- The script therefore contains the statements of `schema/` in addition to the snippets. They are guarded by the "database was empty" result of step 2.
+- Rows that the application needs from the start (reference data) come from `insert` statements in `schema/` on this path, and from snippets on the migrate path. How the two are kept equal is open question 7.
+
+**Adopt** **[direction]**
+
+- A database that existed before MIG-Ace has objects and no ledger. The runner option `adopt <release>` creates the ledger for it.
+- The script computes the fingerprint of the real schema. It must equal the fingerprint of the named release. If it does, the snippets of that release are recorded as `included` and the run continues as a migration.
+- Adoption is never automatic. The fingerprint proves the structure, but nothing proves which data migrations a database has seen. The person who runs it states the release.
+
+**Ledger tables** **[direction]**
+
+- The ledger has a format number, stored in the meta table. The script upgrades an older format. It stops on a format that is newer than the one it knows.
+- Ledger tables live in the application's schema. They are excluded from comparison and fingerprint. Their name prefix is a project setting.
+- The role that runs the migration needs the right to create objects in the schema. The application role needs read access to the meta table for the start-up check.
 
 ## 9. High availability and compatibility
 
@@ -459,11 +527,39 @@ Names are provisional. **[direction]**
 | `mig compile` | produce the migration script per dialect |
 | `mig release <version>` | write the release file, seal `changed` markers, run the lost-hotfix check **[decided]** |
 | `mig archive` | move old snippets to the backup directory and advance the starting schema |
+| `mig config` | print the effective settings and where each one comes from |
 | `mig ls` | start the language server |
 
 ### 10.4 Build integration
 
 A thin Gradle plugin calls the tool. The Hibernate DDL generation stays a JVM task of the application build. **[direction]**
+
+### 10.5 Configuration
+
+Settings are of two kinds. **[direction]**
+
+| Kind | Answers | Examples |
+|---|---|---|
+| Project setting | *What* is proven. The same for every developer and for CI. | dialects, PostgreSQL version, folders, `upgrade-from`, `compatible-with`, ledger prefix |
+| Machine setting | *How* the tool works on this computer. It never changes a result. | where PostgreSQL binaries are, proxy, LLM endpoint and key, colours |
+
+Sources, strongest first: **[direction]**
+
+1. Command-line option.
+2. Environment variable `MIGACE_…`.
+3. `migace.local.yaml` next to the project file, not committed.
+4. `migace.yaml` in the project root, committed.
+5. The user file `~/.config/migace/config.yaml`. It follows `XDG_CONFIG_HOME`. On Windows it is `%APPDATA%\migace\config.yaml`.
+6. Built-in defaults.
+
+Rules: **[direction]**
+
+- A project setting is read from `migace.yaml` only. Finding one in any other source is an error. Two developers and CI must prove the same thing.
+- A machine setting may come from any source. `migace.yaml` may set team defaults for machine settings, for example the LLM endpoint and model.
+- Secrets are rejected in `migace.yaml`. A key comes from an environment variable or from the user file.
+- `mig config` prints every effective setting and where it came from.
+- Downloaded PostgreSQL binaries and other caches are in `~/.cache/migace` (`XDG_CACHE_HOME`; `%LOCALAPPDATA%\migace\cache` on Windows).
+- There is no settings file at run time. The production machine has no MIG-Ace tool. Run-time options (ignore patterns, `adopt`, maintenance mode) are arguments of the runner.
 
 ## 11. Multi-database support
 
@@ -473,7 +569,7 @@ A thin Gradle plugin calls the tool. The Hibernate DDL generation stays a JVM ta
 
 ## 12. Not planned
 
-- Code parts (a class executed as a migration step). A static script cannot run them, and their content cannot be checksummed reliably. **[direction]**
+- Code parts in snippets (a Java class executed as a migration step). A static script cannot run them, and their content cannot be checksummed reliably. **[direction]**
 - Automatic re-execution of a changed part. **[decided]**
 - Production rollback (down migrations). **[direction]**
 - A migration graph with merge migrations. **[decided]**
@@ -486,12 +582,15 @@ A thin Gradle plugin calls the tool. The Hibernate DDL generation stays a JVM ta
 4. **Spelling of the "any valid row" shortcut** in test data.
 5. **Reference to a released part version in a condition:** by release name or by checksum, and its spelling.
 6. **File reference form for native SQL** kept in separate files.
-7. **Seed data:** ordinary snippets as today, or a repeatable definition applied on every run.
+7. **Seed and reference data:** ordinary snippets as today, or a repeatable definition applied on every run. A new database gets these rows from `schema/` and an upgraded one from snippets (see 8.5). Proposal: tables listed as `reference-tables` are compared row by row in the proof loop.
 8. **Editor association:** whether VS Code and IntelliJ let the MIG-Ace language win over the built-in `.yaml` association for `*.mig.yaml`.
 9. **Grammar spike:** literal blocks, key-dependent lexing and error recovery in Langium need to be proven on real snippets.
 10. **Temporary procedures in the script:** whether a session-temporary procedure may commit when called at top level in PostgreSQL. If not, the logic is inlined per part.
 11. **Row-level security and grants:** deployment tier by default; confirm when a project needs them compared.
 12. **DDL from entities:** whether MIG-Ace helps to generate the DDL file from the entity classes, or whether that stays the responsibility of the application build. It needs the compiled classes, the persistence unit and exactly the Hibernate version and settings used in production.
+13. **Triggers during data migrations:** triggers of the old release stay active while snippets run. Whether a part can switch them off for its statement, and how, is not settled.
+14. **Materialized views:** replaceable like views, or changed by snippets.
+15. **Install content:** the statements of `schema/` inside the migration script, or a second script for new databases.
 
 ## 14. Decision history
 
@@ -508,6 +607,8 @@ These earlier decisions were replaced. They are listed so that old notes are not
 | Testcontainers as the default scratch database | Real binaries by default, PGlite for the editor, containers optional |
 | Rename all constraints after every snippet | Naming convention, lint, definition-first comparison |
 | Generated test rows for every new table | No test rows without an explicit `testdata` entry |
+| Separate init script for the ledger tables | The migration script creates and upgrades the ledger itself |
+| Drop and recreate all views and triggers on every run | Replace only the objects that differ |
 
 ## 15. Glossary
 
@@ -523,3 +624,7 @@ These earlier decisions were replaced. They are listed so that old notes are not
 | Release file | The file written per release with the part hashes of new and changed snippets |
 | Compatibility floor | The oldest application version that must work on the current schema |
 | Adapter | A thin program that sends the migration script to the database |
+| Replaceable object | A view, function, procedure or trigger. It is replaced as a whole, not migrated |
+| Included | Ledger state of a snippet whose effect was already part of the installed or adopted schema |
+| Adopt | Put an existing database without a ledger under MIG-Ace, at a named release |
+| Project setting, machine setting | What is proven, and how the tool works on one computer |
