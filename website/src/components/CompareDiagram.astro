@@ -1,0 +1,107 @@
+---
+// How MIG-Ace compares two databases, and what happens with the result.
+---
+<figure class="cmp" aria-label="How MIG-Ace compares the migrated database with the expected one">
+  <div class="cmp-paths">
+    <div class="cmp-path">
+      <div class="cmp-label">What you have</div>
+      <div class="cmp-box">
+        <b>An older release</b>
+        <span>a copy of the database, with data in it</span>
+      </div>
+      <div class="cmp-arrow"><i></i><span>your snippets run</span></div>
+      <div class="cmp-box cmp-db">
+        <b>Migrated database</b>
+      </div>
+    </div>
+
+    <div class="cmp-path">
+      <div class="cmp-label">What your application expects</div>
+      <div class="cmp-box">
+        <b>Schema files</b>
+        <span>DDL from your entity classes, plus your own SQL</span>
+      </div>
+      <div class="cmp-arrow"><i></i><span>run on an empty database</span></div>
+      <div class="cmp-box cmp-db">
+        <b>Expected database</b>
+      </div>
+    </div>
+  </div>
+
+  <div class="cmp-merge" aria-hidden="true"><i></i><i></i></div>
+
+  <div class="cmp-box cmp-compare">
+    <b>Compare</b>
+    <span>Both databases are read into a schema model: tables, columns, constraints, indexes, views. The two models must be equal.</span>
+  </div>
+
+  <div class="cmp-split" aria-hidden="true"><i></i><i></i><i></i></div>
+
+  <div class="cmp-outcomes">
+    <div class="cmp-out ok">
+      <div class="cmp-tag">No difference</div>
+      <b>Proven</b>
+      <span>The migration is correct. The schema fingerprint is stored for the start-up check.</span>
+    </div>
+    <div class="cmp-out bad">
+      <div class="cmp-tag">Difference, while testing</div>
+      <b>Error report</b>
+      <span><code>mig test</code> fails and lists every difference: what was expected, and what the migration produced.</span>
+    </div>
+    <div class="cmp-out gen">
+      <div class="cmp-tag">Difference, while developing</div>
+      <b>Snippets are written for you</b>
+      <span><code>mig make</code> turns the difference into snippets. With an LLM configured, it groups and names them. Without one, you get one snippet per table, or a single one with <code>--single-snippet</code>.</span>
+    </div>
+  </div>
+</figure>
+
+<style>
+  .cmp { margin: 0 0 1.6em; max-width: 900px; }
+  .cmp-paths { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+  .cmp-path { display: flex; flex-direction: column; }
+  .cmp-label { font-size: .82rem; font-weight: 650; color: var(--text); margin-bottom: 8px; }
+  .cmp-box {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 12px 16px; display: flex; flex-direction: column; gap: 2px;
+  }
+  .cmp-box b { color: var(--text); font-weight: 600; font-size: .95rem; }
+  .cmp-box span { color: var(--text-2); font-size: .86rem; line-height: 1.45; }
+  .cmp-db { border-color: var(--border-strong); background: var(--surface-2); }
+
+  .cmp-arrow { display: flex; align-items: center; gap: 10px; padding: 0 0 0 26px; height: 40px; }
+  .cmp-arrow span { font-size: .8rem; color: var(--text-3); }
+  .cmp-arrow i, .cmp-merge i, .cmp-split i {
+    display: block; width: 2px; height: 100%; background: var(--border-strong); position: relative;
+  }
+  .cmp-arrow i::after, .cmp-merge i::after, .cmp-split i::after {
+    content: ''; position: absolute; left: -4px; bottom: 0;
+    border: 5px solid transparent; border-top-color: var(--border-strong); border-bottom: 0;
+  }
+  .cmp-merge { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; height: 28px; }
+  .cmp-merge i { margin-left: 26px; }
+  .cmp-compare { border-color: var(--blue); }
+  .cmp-split { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; height: 28px; }
+  .cmp-split i { margin-left: 26px; }
+
+  .cmp-outcomes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .cmp-out {
+    border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 16px;
+    background: var(--surface); display: flex; flex-direction: column; gap: 3px;
+    border-top-width: 3px;
+  }
+  .cmp-out b { color: var(--text); font-weight: 600; font-size: .95rem; }
+  .cmp-out span { color: var(--text-2); font-size: .86rem; line-height: 1.5; }
+  .cmp-tag { font-size: .78rem; color: var(--text-3); }
+  .cmp-out.ok { border-top-color: var(--ok); }
+  .cmp-out.bad { border-top-color: var(--bad); }
+  .cmp-out.gen { border-top-color: var(--blue); }
+
+  @media (max-width: 720px) {
+    .cmp-paths, .cmp-outcomes { grid-template-columns: 1fr; }
+    .cmp-merge { grid-template-columns: 1fr; }
+    .cmp-merge i + i { display: none; }
+    .cmp-split { grid-template-columns: 1fr; }
+    .cmp-split i + i { display: none; }
+  }
+</style>

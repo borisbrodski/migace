@@ -7,7 +7,7 @@ lead: A snippet is one file that describes one change. It is made of named parts
 
 ## A complete snippet
 
-Release 1.1.0 of the bookshop adds book reviews.
+Release 1.1.0 of the bookshop adds book reviews. `mig make` [wrote this snippet](/docs/generated-snippets/) after the `Review` entity was added.
 
 ```yaml
 # migrations/20260309-1400-review-table.mig.yaml
@@ -89,6 +89,7 @@ Next to the operation, a part can have these keys:
 | `verify-after` | Fail after running if something is not true. | [Data migrations](/docs/data-migrations/) |
 | `batch` | Run a data statement in portions. | [Data migrations](/docs/data-migrations/) |
 | `expect-rows` | How many rows the statement may change. | [Data migrations](/docs/data-migrations/) |
+| `todo` | An open decision left by `mig make`. The build fails until you remove it. | [Generated snippets](/docs/generated-snippets/) |
 
 ## One line or a block
 

@@ -1,8 +1,8 @@
 ---
 layout: ../../layouts/Doc.astro
 title: Getting started
-description: One schema change, from the entity class to a proven migration.
-lead: This page follows one small change through the whole process. It takes about fifteen minutes to read and uses the bookshop example.
+description: One schema change, from the entity class to a proven migration that runs from your JAR.
+lead: This page follows one small change through the whole process. You change an entity, MIG-Ace writes the migration, proves it, and your application runs it.
 ---
 
 ## What you need
@@ -10,7 +10,7 @@ lead: This page follows one small change through the whole process. It takes abo
 - A Jakarta EE or other Java project that uses Hibernate, built with Gradle.
 - PostgreSQL 16 or newer in production.
 
-You do not need Docker or a test database server. MIG-Ace starts its own temporary PostgreSQL for the proof.
+You do not need Docker or a test database server. MIG-Ace brings its own PostgreSQL for the proof.
 
 ## Add MIG-Ace to the build
 
@@ -19,9 +19,13 @@ You do not need Docker or a test database server. MIG-Ace starts its own tempora
 plugins {
     id("org.openbrod.migace") version "0.1.0"
 }
+
+dependencies {
+    implementation("org.openbrod.migace:migace-runner:0.1.0")
+}
 ```
 
-The plugin gives you the `mig` commands. Each command is also a Gradle task: `mig test` is the same as `./gradlew migTest`.
+The plugin gives you the `mig` commands. Each command is also a Gradle task: `mig test` is the same as `./gradlew migTest`. The small runner library lets your application run the migration script.
 
 ## The project layout
 
@@ -29,7 +33,7 @@ The plugin gives you the `mig` commands. Each command is also a Gradle task: `mi
 bookshop/
   migace.yaml          settings
   schema/              the schema your application expects
-    101-generated.sql    written by Hibernate during the build
+    101-generated.sql    DDL from your entity classes
     102-indexes.sql      written by hand
   migrations/          one file per change
   releases/            one file per release
@@ -54,39 +58,58 @@ The next build regenerates `schema/101-generated.sql`. The `customer` table in i
 ## Step 2: let MIG-Ace write the snippet
 
 ```text
-$ mig make customer-loyalty
+$ mig make
 
 Comparing schema/ with the migrated release 1.0.0
-  + column customer.loyalty_level varchar(10) not null
+  + column customer.loyalty_level varchar(10), mandatory
+
+customer has rows, and the new column is mandatory.
+Which value should existing rows get? (an expression, or empty to decide later)
+> 'BRONZE'
 
 Wrote migrations/20260302-0900-customer-loyalty.mig.yaml
-  ! customer has rows. Choose a value for existing customers in part "fill-existing".
 ```
 
-MIG-Ace saw that the column is mandatory and that the table has rows. It wrote three parts and left the middle one for you:
+You did not type a name. With an [LLM configured](/docs/generated-snippets/), MIG-Ace names the snippet and its parts. You can also choose the name: `mig make customer-loyalty`.
+
+MIG-Ace saw that the column is mandatory and that the table has rows, so it asked for a value and wrote three parts:
 
 ```yaml
+# migrations/20260302-0900-customer-loyalty.mig.yaml
+migration: 20260302-0900-customer-loyalty
+uid: 01JF2A6QW3ZK8M4T7R9B5X0C1D
+doc: Every customer gets a loyalty level
+
 parts:
   - add-column:
       do: alter table customer add column loyalty_level varchar(10)
 
   - fill-existing:
-      do: update customer set loyalty_level = ?   # TODO: value for existing rows
+      do: update customer set loyalty_level = 'BRONZE'
 
   - make-mandatory:
       do: alter table customer alter column loyalty_level set not null
 ```
 
-## Step 3: decide what happens to existing rows
+### If nobody is there to answer
 
-Only you know the right value. Existing customers start as bronze:
+In CI, in a script, or with `mig make --batch`, MIG-Ace cannot ask. It writes the snippet with a `todo` and says so:
+
+```text
+Wrote migrations/20260302-0900-customer-loyalty.mig.yaml
+  ! 1 TODO: part "fill-existing" needs a value for existing rows.
+    The migration script cannot be built until every TODO is resolved.
+```
 
 ```yaml
   - fill-existing:
-      do: update customer set loyalty_level = 'BRONZE'
+      todo: Choose a value for existing customers
+      do: update customer set loyalty_level = ?
 ```
 
-## Step 4: add test data
+While a `todo` is left, `mig test` and `mig compile` fail. An unfinished snippet cannot reach production.
+
+## Step 3: add test data
 
 A snippet that changes a table brings rows for it. The proof loop inserts them after the snippet ran.
 
@@ -101,7 +124,7 @@ testdata:
 
 `fill: all` creates a row where every column has a value. `fill: required` creates a row with only the mandatory columns. You write the values that matter, and MIG-Ace fills in the rest. [Test data](/docs/test-data/) explains why both rows are needed.
 
-## Step 5: prove it
+## Step 4: prove it
 
 ```text
 $ mig test
@@ -116,7 +139,7 @@ run again   nothing left to do               ok
 Proven. Fingerprint 9f3c…e1a7
 ```
 
-If you had forgotten the `fill-existing` part, the same command would have failed:
+Had the `fill-existing` part been missing, the same command would have failed:
 
 ```text
 migrate     20260302-0900-customer-loyalty
@@ -127,35 +150,61 @@ migrate     20260302-0900-customer-loyalty
 
 This is the error you would otherwise meet in production.
 
-## Step 6: build the migration script
+## Step 5: build
+
+Your normal build does the rest.
 
 ```text
-$ mig compile
-Wrote build/migace/migration-script-pg.sql
+$ ./gradlew build
 ```
 
-This one file contains every snippet. It is what you deliver together with the application.
+- It runs the proof.
+- It compiles all snippets into one file, `migration-script-pg.sql`.
+- It puts that file into your JAR or WAR, under `/migace/`.
 
-## Step 7: run it
+## Step 6: run the migration from Java
 
-```text
-$ java -jar migace-runner.jar \
-    --url jdbc:postgresql://db.example/bookshop --user bookshop_owner \
-    build/migace/migration-script-pg.sql
+The script travels inside your application. One call runs it:
 
-20260302-0900-customer-loyalty
-  add-column        done
-  fill-existing     done   1,284 rows
-  make-mandatory    done
-Schema fingerprint 9f3c…e1a7 matches.
+```java
+import org.openbrod.migace.MigAce;
+
+MigAce.execFromJar(BookshopApp.class, "/migace/migration-script-pg.sql", dataSource);
 ```
 
-Start the new application version afterwards. [Running migrations](/docs/running-migrations/) shows the start-up check and what to do when a run fails.
+The first argument is any class from the JAR that contains the script. The call applies what is missing, skips what already ran, and checks the schema at the end.
+
+In a Jakarta EE application, a start-up bean is a good place:
+
+```java
+@Singleton
+@Startup
+public class DatabaseMigration {
+
+    @Resource(lookup = "java:jboss/datasources/BookshopDS")
+    private DataSource dataSource;
+
+    @PostConstruct
+    void migrate() {
+        try {
+            MigAce.execFromJar(BookshopApp.class, "/migace/migration-script-pg.sql", dataSource);
+        } catch (MigrationFailedException e) {
+            // e.snippet() and e.part() name the step that failed
+            throw new IllegalStateException("Database migration failed: " + e.getMessage(), e);
+        }
+    }
+}
+```
+
+If several instances start at the same time, one of them migrates and the others wait.
+
+Prefer to run migrations outside the application? The same script runs from the command line. See [Running migrations](/docs/running-migrations/).
 
 ## What you have now
 
-- A migration that is proven on a database with data.
+- A migration you did not have to write by hand.
+- Proof that it works on a database with data.
 - A record in the database of every part that ran.
-- An application that refuses to start on the wrong schema.
+- An application that migrates its database when it starts.
 
-Next: read about [snippets](/docs/snippets/), or see [the bookshop example](/docs/bookshop/) for the releases that follow.
+Next: read how [generated snippets](/docs/generated-snippets/) work, or see [the bookshop example](/docs/bookshop/) for the releases that follow.

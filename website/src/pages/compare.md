@@ -12,14 +12,19 @@ lead: Flyway, Liquibase and Atlas are the tools a Java team is most likely to co
 - **Flyway and Liquibase** run the migrations you write, reliably, on almost any database. They do not check that your migrations produce the schema your application expects.
 - **Atlas** can write migrations for you from a desired schema, including one generated from Hibernate entities, and can warn about risky statements.
 - **Django migrations** write themselves from the model classes and are part of the framework. They are not available to a Java application.
-- **MIG-Ace** proves, in every build and on a database with data, that your migrations lead to the expected schema. It also has tools for the day a released migration turns out to be wrong. It is new, and it supports PostgreSQL only.
+- **MIG-Ace** writes most migrations for you when you change an entity, asks what should happen to existing rows, and then proves the result in every build on a database with data. Its editor support knows your schema. It also has tools for the day a released migration turns out to be wrong. It is new, and it supports PostgreSQL only.
 
 ## Feature by feature
 
 | | MIG-Ace | Flyway | Liquibase | Atlas | Django migrations |
 |---|---|---|---|---|---|
 | **You write migrations as** | YAML files with SQL-like statements | SQL files, or Java classes | Changelogs in XML, YAML, JSON or SQL | SQL files, or a desired schema | Python files |
-| **Writes a migration from the model** | Yes, from the Hibernate-generated schema plus your own SQL | In the paid edition | Yes, by comparing two databases; Hibernate through an extension | Yes, also from Hibernate entities | Yes, built in |
+| **Writes the migration for you** | Yes, from your entity changes and your own SQL files | In the paid edition | Yes, by comparing two databases; Hibernate through an extension | Yes, also from Hibernate entities | Yes, built in |
+| **Asks what to do with existing rows** | Yes, for mandatory columns and possible renames | No | No | No | Yes, for mandatory fields and possible renames |
+| **An unfinished migration blocks the build** | Yes, through `todo` entries | No | No | No | No |
+| **Generated migration is proven on data** | Yes, by the same command chain | No | No | No | No |
+| **AI assistance** | Optional: an LLM of your choice names and groups generated snippets. It never writes statements. | AI summaries and an assistant integration in the commercial product | Governance for AI-generated changes in the commercial edition | Skills for coding assistants; an assistant in the paid plan | None built in |
+| **Editor support** | A language server that knows your schema as it was at that snippet, and completes tables and columns | What your SQL editor offers | Completion for the changelog format | Editor plugins for its schema language | Python IDE support |
 | **Proves the result equals the expected schema** | Yes, in every build | No | No | Partly: replays migrations on an empty database | Partly: reports model changes that have no migration |
 | **Tests migrations on a database with data** | Yes, built in | You build it yourself | You build it yourself | You write the tests | You write the tests |
 | **Test rows that travel with a migration** | Yes | No | No | No | No |
@@ -50,12 +55,30 @@ Be clear about these before you choose MIG-Ace.
 
 ## Where MIG-Ace is stronger
 
+- **Generated and proven in one go.** `mig make` writes the snippet, asks for what it cannot know, and `mig test` proves it on data. The tools that generate migrations stop after writing them.
+- **Generation sees your whole schema.** The comparison runs on real PostgreSQL databases, so it includes the indexes, constraints and views you wrote by hand, not only what Hibernate generates.
+- **An editor that knows the schema.** Completion offers the tables and columns that exist at that point in your migration history.
+- **An LLM where it helps, and only there.** It names and groups generated snippets. The statements always come from the comparison.
 - **The proof.** No other tool in this comparison migrates an older database with data in every build and compares the result with the schema the application expects.
 - **Test data as part of the migration.** A mandatory column without a value for existing rows fails in the build.
 - **Changing history safely.** A released snippet can be corrected, with a reason. Databases that ran the old version are found by a condition and repaired.
 - **Customers on different versions.** Every supported release is a tested starting point, including jumps over several versions.
 - **Zero-downtime checks included.** The check against an older application version and the lock warnings are part of the tool.
-- **Nothing in your application.** Production needs one SQL script. Your application contains one query for the start-up check.
+- **One readable script.** Production runs a single SQL script that you can open and review. A small library sends it to the database with one line of Java; all logic is in the script that the proof tested.
+
+## Generating migrations: a closer look
+
+MIG-Ace is not the only tool that can write a migration from Java entities. Liquibase can do it with its Hibernate extension, Atlas with its Hibernate provider, and IntelliJ IDEA Ultimate can generate Flyway and Liquibase migrations from JPA entities. They all work the same way: compare the model with a database and write down the difference.
+
+MIG-Ace differs in what happens around that step.
+
+| | Other generators | MIG-Ace |
+|---|---|---|
+| **What is compared** | The entity model, as the tool understands it | Two real PostgreSQL databases, including your hand-written SQL |
+| **A mandatory column on a table with rows** | Generated as written; fails later on real data | MIG-Ace asks for the value and writes the data step |
+| **An open decision** | A comment, if anything | A `todo` that fails the build |
+| **After generating** | You review and hope | `mig test` proves the result on a database with data |
+| **Names and grouping** | Fixed patterns | Fixed patterns, or an LLM of your choice |
 
 ## Tool by tool
 
@@ -89,7 +112,7 @@ Django writes a migration whenever a model class changes, keeps migrations in a 
 
 **Choose Django migrations** when your application is a Django application. They are not usable from Java.
 
-**What a Java team can learn from them:** how pleasant it is when the tool writes the first draft. MIG-Ace does the same with `mig make`. Two things work differently. When two branches each add a migration, Django asks you to create a merge migration, while MIG-Ace merges the files and lets the proof decide. And Django does not notice when an applied migration is edited, while MIG-Ace does.
+**What a Java team can learn from them:** how pleasant it is when the tool writes the first draft and asks when it is unsure. Django asks for a default value when you add a mandatory field, and it asks whether a changed name is a rename. MIG-Ace does the same with `mig make`. Two things work differently. When two branches each add a migration, Django asks you to create a merge migration, while MIG-Ace merges the files and lets the proof decide. And Django does not notice when an applied migration is edited, while MIG-Ace does.
 
 ### And Hibernate's automatic schema update?
 
@@ -105,5 +128,7 @@ MIG-Ace uses Hibernate differently: Hibernate describes the schema it expects, a
 - Liquibase: [Community 5.0 release notes](https://docs.liquibase.com/community/release-notes/5-0), including the licence change
 - Atlas: [feature availability](https://atlasgo.io/features), [release notes](https://github.com/ariga/atlas/releases), [Hibernate guide](https://atlasgo.io/guides/orms/hibernate) and [community edition limits](https://atlasgo.io/faq/tags/community-edition)
 - Django: [migrations documentation](https://docs.djangoproject.com/en/stable/topics/migrations/) and an article on [merge migrations](https://adamj.eu/tech/2020/12/10/introducing-django-linear-migrations/)
+- IntelliJ IDEA: [generating Flyway and Liquibase migrations from JPA entities](https://www.jetbrains.com/help/idea/2025.2/jpa-buddy-database-versioning.html)
+- AI features: [Atlas with AI agents](https://atlasgo.io/guides/ai-tools) and [Liquibase 5.2 release notes](https://docs.liquibase.com/secure/release-notes-5-2/5-2-secure-release-notes)
 
 If something on this page is wrong or out of date, please [open an issue](https://github.com/borisbrodski/migace/issues).

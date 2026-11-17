@@ -20,6 +20,17 @@ MIG-Ace runs these files in name order on an empty database. The result is the d
 
 It makes no difference whether a file was generated or written by hand. What counts is the database that results.
 
+## Getting the DDL from your entities
+
+The file `101-generated.sql` comes from Hibernate. Schema generation is a standard feature of Jakarta Persistence, switched on with two properties:
+
+```text
+jakarta.persistence.schema-generation.scripts.action=create
+jakarta.persistence.schema-generation.scripts.create-target=schema/101-generated.sql
+```
+
+Run it as part of your build, with the same Hibernate version and the same settings your application uses in production. Then the file always matches your entity classes.
+
 ## Why Hibernate alone is not enough
 
 Hibernate creates tables, columns, keys and simple constraints. A real application needs more: an index for a slow query, a view for a report, a trigger, a PostgreSQL extension.

@@ -9,7 +9,7 @@ lead: MIG-Ace has a handful of commands. With the Gradle plugin, each one is als
 
 | Command | Gradle task | What it does |
 |---|---|---|
-| `mig make <name>` | `migMake` | Writes a snippet for the difference between the desired schema and your migrations. |
+| `mig make [name]` | `migMake` | Writes snippets for the difference between the desired schema and your migrations. |
 | `mig test` | `migTest` | Runs the [proof loop](/docs/proof-loop/). |
 | `mig compile` | `migCompile` | Writes the migration script. |
 | `mig release <version>` | `migRelease` | Writes the release file. |
@@ -33,9 +33,15 @@ Wrote migrations/20260309-1400-review-table.mig.yaml
   ! Add a testdata entry for the new table review.
 ```
 
-The snippet is a starting point. You add what MIG-Ace cannot know: values for existing rows, data steps and test data.
+| Option | Meaning |
+|---|---|
+| `mig make` | MIG-Ace chooses the names. With an LLM configured it also groups the changes; otherwise it writes one snippet per table. |
+| `mig make <name>` | All changes go into one snippet with this name. |
+| `--single-snippet` | All changes go into one snippet, and MIG-Ace names it. |
+| `--batch` | Ask no questions. Open decisions become `todo` entries. This is also the behaviour when no terminal is attached. |
+| `--empty` | Write an empty snippet, for example for a data-only change. |
 
-Without a difference, `mig make <name> --empty` creates an empty snippet, for example for a data-only change.
+A generated snippet is a starting point. You add what MIG-Ace cannot know: data steps and test data. See [Generated snippets](/docs/generated-snippets/).
 
 ## `mig test`
 
@@ -50,7 +56,7 @@ The command ends with an error if any step fails, so it fits into CI as it is.
 
 ## `mig compile`
 
-Writes `build/migace/migration-script-pg.sql`. See [Running migrations](/docs/running-migrations/).
+Writes `build/migace/migration-script-pg.sql`. It fails while any snippet contains a `todo`. See [Running migrations](/docs/running-migrations/).
 
 ## `mig release`
 
@@ -74,7 +80,7 @@ See [Releases and branches](/docs/releases-and-branches/).
 
 ## The runner
 
-The runner is separate from the commands above. It is the only piece you need on the machine that reaches the production database.
+The runner is the small Java library `migace-runner`. It is the only piece that reaches the production database. Use it from your application with `MigAce.execFromJar(...)`, or as a program:
 
 ```text
 java -jar migace-runner.jar --url <jdbc-url> --user <user> [options] <script>
@@ -101,6 +107,11 @@ releases: releases/
 
 upgrade-from: 1.1.0       # oldest release a database may still be on
 compatible-with: 1.2.0    # oldest application version that may run during an upgrade
+
+llm:                      # optional: names and groups generated snippets
+  endpoint: https://llm.example.internal/v1
+  model: your-model
+  api-key-env: MIGACE_LLM_KEY
 ```
 
 | Setting | Meaning | Read more |
@@ -109,3 +120,4 @@ compatible-with: 1.2.0    # oldest application version that may run during an up
 | `postgresql.version` | The PostgreSQL version of the temporary database. | [The proof loop](/docs/proof-loop/) |
 | `upgrade-from` | Every release from here on is tested as a starting point. | [Releases and branches](/docs/releases-and-branches/) |
 | `compatible-with` | Changes that break this application version are reported. | [Zero-downtime changes](/docs/zero-downtime/) |
+| `llm` | An OpenAI-compatible endpoint used by `mig make` for names and grouping. | [Generated snippets](/docs/generated-snippets/) |

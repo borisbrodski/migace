@@ -1,0 +1,37 @@
+---
+// A static picture of the editor offering columns inside a statement.
+---
+<figure class="cd" aria-label="The editor offers the columns of the orders table while a statement is typed">
+  <div class="codebox">
+    <div class="codebox-head"><span>migrations/20260525-1100-orders-ship-by.mig.yaml</span></div>
+    <pre class="cd-code"><span class="k">parts</span>:
+  - <span class="k">fill-ship-by</span>:
+      <span class="k">do</span>: <span class="s">update orders set s</span><span class="cd-caret"></span></pre>
+    <div class="cd-popup" role="presentation">
+      <div class="cd-item sel"><b>ship_by</b><span>date · added by this snippet</span></div>
+      <div class="cd-item"><b>status</b><span>varchar(20) · mandatory</span></div>
+      <div class="cd-item"><b>status_id</b><span>bigint · references order_status</span></div>
+    </div>
+  </div>
+</figure>
+
+<style>
+  .cd { margin: 0 0 1.4em; max-width: 620px; }
+  .cd .codebox { position: relative; padding-bottom: 132px; font-size: .84rem; }
+  .cd-code { margin: 0; padding: 16px 18px 0; background: transparent; color: var(--text-2); line-height: 1.6; border: 0; }
+  .cd-code .k { color: var(--blue); }
+  .cd-code .s { color: var(--text); }
+  .cd-caret { display: inline-block; width: 2px; height: 1.1em; background: var(--text); vertical-align: text-bottom; margin-left: 1px; }
+  .cd-popup {
+    position: absolute; left: 170px; top: 122px; width: min(330px, calc(100% - 190px));
+    background: var(--surface-2); border: 1px solid var(--border-strong); border-radius: 8px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, .28); overflow: hidden;
+  }
+  .cd-item { display: flex; justify-content: space-between; gap: 14px; padding: 6px 12px; font-family: var(--font-mono); font-size: .8rem; }
+  .cd-item b { color: var(--text); font-weight: 600; }
+  .cd-item span { color: var(--text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cd-item.sel { background: color-mix(in srgb, var(--blue) 22%, transparent); }
+  @media (max-width: 560px) {
+    .cd-popup { left: 24px; width: calc(100% - 48px); }
+  }
+</style>

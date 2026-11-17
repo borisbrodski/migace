@@ -3,7 +3,10 @@ layout: ../../layouts/Doc.astro
 title: The proof loop
 description: How MIG-Ace proves in every build that the migrations produce exactly the expected schema.
 lead: The proof loop is the test at the centre of MIG-Ace. It migrates an older copy of your database and compares the result with the schema your application expects.
+figure: compare
 ---
+
+The picture shows both uses of the comparison. `mig test` uses it to prove your migrations. `mig make` uses it to [write them](/docs/generated-snippets/).
 
 ## The claim that is tested
 

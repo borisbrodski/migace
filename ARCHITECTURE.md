@@ -2,6 +2,8 @@
 
 Status: design phase, nothing is implemented yet. Last updated 2026-11-17.
 
+The project website (sources in `website/`) describes MIG-Ace as if it were finished. Where the website shows details that this document marks as open or does not mention, this document is the reference.
+
 This document records what has been decided for MIG-Ace, what is the current working direction, and what is still open. It replaces all earlier design notes.
 
 Every statement carries one of three markers:
@@ -29,7 +31,7 @@ MIG-Ace is a schema migration framework. It migrates a database that already con
 3. **Migrations are exercised on data.** Test data is part of every snippet that changes the shape of a table. **[decided]**
 4. **Mishaps are normal.** Snippets can be changed, reordered and repaired after they were released. The framework records what really ran and makes every such change explicit. **[decided]**
 5. **Avoid native SQL.** Native SQL is dialect-specific and has to exist once per supported database, so the neutral statement language covers as much as possible. **[decided]**
-6. **No framework code stays in the database, and no framework library is needed at run time.** The migration is a generated script. **[direction]**
+6. **No framework code stays in the database, and all migration logic is in a generated script.** A small runner library only sends that script to the database. **[direction]**
 7. **Editor support is a first-class requirement.** **[decided]**
 
 ## 3. System overview
@@ -131,7 +133,7 @@ Details:
 - `uid` is the identity of a snippet. It is generated once and never changes. The ledger is keyed by it. **[direction]**
 - The name (`YYYYMMDD-HHMM-slug`) defines the position. Renaming a snippet reorders it. Installations that already ran it match by `uid`. **[direction]**
 - Part names are the identity of parts inside a snippet. **[decided]**
-- An optional LLM configuration proposes part names when snippets are generated. It runs at build time only, never renames existing parts, and has a deterministic fallback. **[decided]**
+- An optional LLM configuration names generated snippets and their parts and decides how many snippets a change becomes. It runs at build time only, never writes statements, never renames existing snippets or parts, and has a deterministic fallback. **[decided]**
 
 ### 6.2 YAML profile
 
@@ -181,6 +183,7 @@ Each part is a list entry whose key is the part name. It holds exactly one opera
 | `verify-after` | fail after execution if false | decided |
 | `batch` | run a data statement in batches | direction |
 | `expect-rows` | allowed range of affected rows | direction |
+| `todo` | an open decision left by snippet generation; the build fails while one is present | decided |
 
 ### 6.4 Statement language
 
@@ -319,6 +322,18 @@ parts:
 
 ## 7. Ordering, changes and releases
 
+### 6.9 Snippet generation
+
+MIG-Ace generates snippets for most simple schema changes. This is a main feature, not a convenience. **[decided]**
+
+- `mig make` runs the same comparison as the proof loop and writes snippets for the differences. **[decided]**
+- The snippet name is optional. With an LLM configured, the LLM chooses names and decides the number of snippets. **[decided]**
+- Without an LLM, one snippet is written per table. The option `--single-snippet` writes one snippet, and the tool mentions this option whenever it writes several. **[decided]**
+- For decisions it cannot make, such as the value of a new mandatory column for existing rows, the tool asks interactively. **[decided]**
+- In `--batch` mode, or when no console is attached, it does not ask. It writes a `todo` into the snippet and reports it clearly. **[decided]**
+- While a `todo` is present, building the migration script fails. **[decided]**
+- A possible rename (one column removed, a similar one added) is asked about, not guessed. **[direction]**
+
 ### 7.1 Ordering and branching
 
 - Snippets run in name order. Branches are merged by plain file merge, and CI decides whether the merged set works. There is no migration graph and no merge migration. **[decided]**
@@ -383,6 +398,12 @@ The script is executed through a JDBC connection or an equally thin adapter in a
 5. Print server notices.
 
 Run-time parameters such as the object exclusion patterns are passed as session settings.
+
+For Java, the adapter is a small library. **[decided]**
+
+- The build puts the migration script into the application's JAR as a resource.
+- One call reads it from there and runs it, for example `MigAce.execFromJar(SomeClassFromTheJar.class, "/migace/migration-script-pg.sql", dataSource)`. The exact API is provisional. **[direction]**
+- The same library works as a command-line program for teams that migrate as a separate step. **[direction]**
 
 ### 8.3 Ledger
 
@@ -470,6 +491,7 @@ A thin Gradle plugin calls the tool. The Hibernate DDL generation stays a JVM ta
 9. **Grammar spike:** literal blocks, key-dependent lexing and error recovery in Langium need to be proven on real snippets.
 10. **Temporary procedures in the script:** whether a session-temporary procedure may commit when called at top level in PostgreSQL. If not, the logic is inlined per part.
 11. **Row-level security and grants:** deployment tier by default; confirm when a project needs them compared.
+12. **DDL from entities:** whether MIG-Ace helps to generate the DDL file from the entity classes, or whether that stays the responsibility of the application build. It needs the compiled classes, the persistence unit and exactly the Hibernate version and settings used in production.
 
 ## 14. Decision history
 

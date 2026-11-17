@@ -14,6 +14,7 @@ export const docsNav: NavGroup[] = [
   {
     title: 'Writing migrations',
     items: [
+      { title: 'Generated snippets', href: '/docs/generated-snippets/' },
       { title: 'Snippets', href: '/docs/snippets/' },
       { title: 'Statements', href: '/docs/statements/' },
       { title: 'Data migrations', href: '/docs/data-migrations/' },

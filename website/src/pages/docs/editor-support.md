@@ -1,43 +1,67 @@
 ---
 layout: ../../layouts/Doc.astro
 title: Editor support
-description: Completion, checks and quick fixes for snippets in VS Code and IntelliJ IDEA.
-lead: Snippets are text files, and your editor understands them. You get completion and error messages while you type, before any build runs.
+description: A language server that knows your schema - completion, checks and quick fixes for snippets in VS Code and IntelliJ IDEA.
+lead: The MIG-Ace editor support knows your database schema. It completes almost everything you type in a snippet, and it reports mistakes before any build runs.
+figure: completion
 ---
 
-## What the editor does for you
+## It knows your schema
 
-MIG-Ace comes with a language server, the same kind of helper that gives your IDE its Java support. It works in VS Code, in IntelliJ IDEA and in other editors that speak the Language Server Protocol.
+Most SQL you write in a migration is typed blind: the editor does not know which tables and columns exist. MIG-Ace does. It comes with a language server, the same kind of helper that gives your IDE its Java support, and that server has your schema in memory.
 
-**Completion for the file format.** Type `ver` under a part and the editor offers `verify-before` and `verify-after`, each with a short explanation.
+In the picture above, `ship_by` is offered although no database has that column yet. An earlier part of the same snippet adds it.
 
-**Completion for tables and columns.** Inside a statement the editor offers the tables and columns of your schema.
+## What is completed
 
-```yaml
-  - fill-ship-by:
-      do: update orders set sh    # offers: ship_by, status, status_id
-```
+| Where you type | What is offered |
+|---|---|
+| A new line in a snippet | The keys that are allowed there, such as `parts`, `testdata`, `when` |
+| Inside a part | `do`, `insert`, `native`, `verify-before`, `verify-after`, `batch`, each with a short explanation |
+| At the start of a statement | `alter table`, `create index`, `update`, `ensure column` and the other statements |
+| After `update`, `from`, `alter table`, `references` | The tables of your schema |
+| After `set`, in `where`, in a column list | The columns of that table, with type and whether they are mandatory |
+| After `drop constraint`, `drop index` | The constraints and indexes that exist |
+| After `next value for` | Your sequences |
+| In an expression | Functions such as `upper`, `trim`, `coalesce`, `days` |
+| In `ran …` | Snippet names, then the part names of that snippet, then release names |
+| In a `testdata` row | The columns of the chosen table that still have no value |
+| In `insert … values` | The columns of the target table, mandatory ones first |
 
-**Errors while you type.**
+## The schema at that point in time
+
+A snippet from last year must not suggest a column that was added last week. So the editor does not use today's schema. For the snippet you are editing, it works out what the schema looks like **at that point**, after all earlier snippets ran.
+
+It follows the parts above your cursor too. A column added in the first part of a snippet is offered in the second.
+
+## Errors while you type
 
 ```text
 20260525-1100-orders-ship-by.mig.yaml:14
   Unknown column "shipby" in table orders. Did you mean "ship_by"?
 ```
 
-**Quick fixes.** Add a missing `testdata` entry, move a statement to a native part, or name an unnamed constraint with one keystroke.
+```text
+20260601-0900-book-price-check.mig.yaml:9
+  Constraint without a name. Suggested name: ck_book_price
+```
 
-**Navigation.** Jump from `ran 20260518-1000-order-status.link-status` to that part.
+The editor also keeps a small PostgreSQL in memory. It runs the statement you are editing there and undoes it right away. That is why you see PostgreSQL's own error messages while you type, not only syntax checks.
 
-## The schema at that point in time
+## Quick fixes
 
-A snippet from last year must not suggest a column that was added last week. So the editor does not use today's schema. For the snippet you are editing, it works out what the schema looks like **at that point**, after all earlier snippets ran.
+- Add a missing `testdata` entry with all columns listed.
+- Name an unnamed constraint or index.
+- Move a PostgreSQL-specific statement to a `native` part.
+- Turn a one-line statement into a block, and back.
+- Resolve a `todo` left by `mig make`.
 
-It also follows the parts above your cursor. A column added in the first part of a snippet is offered in the second.
+## Hover and navigation
 
-## Real errors from PostgreSQL
-
-The editor keeps a small PostgreSQL in the background. It runs the statement you are editing there and undoes it right away. That is why you see PostgreSQL's own error messages while you type, not only syntax checks.
+- Hover over a column to see its type and the snippet that introduced it.
+- Hover over a statement to see the exact PostgreSQL statements MIG-Ace will run for it.
+- Jump from `ran 20260518-1000-order-status.link-status` to that part.
+- Find every snippet that touches a table.
 
 ## Installation
 
@@ -57,6 +81,10 @@ For basic help without the MIG-Ace extension, point your editor's YAML support a
 # yaml-language-server: $schema=./.migace/schema.json
 migration: 20260309-1400-review-table
 ```
+
+## How it is built
+
+The language server is written in TypeScript with [Langium](https://langium.org), a framework for building languages and their editor support. For the schema it uses [PGlite](https://pglite.dev), a real PostgreSQL that runs in memory inside the language server. Nothing has to be installed or started for it.
 
 ## In code review
 

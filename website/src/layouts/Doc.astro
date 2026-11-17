@@ -1,10 +1,12 @@
 ---
 import Base from './Base.astro';
 import { docsNav, docsFlat } from '../lib/nav';
+import CompareDiagram from '../components/CompareDiagram.astro';
+import CompletionDemo from '../components/CompletionDemo.astro';
 
 // Used as the layout of Markdown pages (frontmatter) and directly by .astro pages (props).
 const fm = Astro.props.frontmatter ?? Astro.props;
-const { title, description, lead } = fm;
+const { title, description, lead, figure } = fm;
 
 const here = Astro.url.pathname.endsWith('/') ? Astro.url.pathname : Astro.url.pathname + '/';
 const index = docsFlat.findIndex((i) => i.href === here);
@@ -33,6 +35,8 @@ const next = index >= 0 && index < docsFlat.length - 1 ? docsFlat[index + 1] : u
     <main class="prose">
       <h1>{title}</h1>
       {lead && <p class="lead">{lead}</p>}
+      {figure === 'compare' && <CompareDiagram />}
+      {figure === 'completion' && <CompletionDemo />}
       <slot />
 
       <nav class="doc-pager" aria-label="Previous and next page">
