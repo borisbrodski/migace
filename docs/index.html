@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>MigAce — Provable schema migrations for PostgreSQL &amp; Hibernate</title>
-<meta name="description" content="MigAce is an open-source migration framework for PostgreSQL and Hibernate that proves every migration produces exactly the schema your application expects.">
+<title>MIG-Ace — Provable schema migrations for PostgreSQL &amp; Hibernate</title>
+<meta name="description" content="MIG-Ace is an open-source migration framework for PostgreSQL and Hibernate that proves every migration produces exactly the schema your application expects.">
 <style>
   :root{
     --bg:#0b1020; --bg2:#111831; --card:#141c38; --line:#25305a;
@@ -57,13 +57,13 @@
 </style>
 </head>
 <body>
-<div class="banner">Mockup — MigAce is in early development. Nothing here is released yet.</div>
+<div class="banner">Mockup — MIG-Ace is in early development. Nothing here is released yet.</div>
 
 <div class="wrap">
   <header>
     <div class="logo">
       <svg viewBox="0 0 32 32" aria-hidden="true"><defs><linearGradient id="g" x1="0" x2="1"><stop offset="0" stop-color="#4fd1c5"/><stop offset="1" stop-color="#7c8cff"/></linearGradient></defs><path d="M16 2 L29 26 L16 20 L3 26 Z" fill="url(#g)"/></svg>
-      MigAce
+      MIG-Ace
     </div>
     <nav>
       <a href="#how">How it works</a>
@@ -77,7 +77,7 @@
     <div>
       <span class="eyebrow">PostgreSQL · Hibernate · Kotlin · Gradle</span>
       <h1>Schema migrations you can <em>prove</em>.</h1>
-      <p class="lead">MigAce migrates a database with real data and then proves the result is identical to the schema your application expects, down to the last constraint. No drift, no surprises in production.</p>
+      <p class="lead">MIG-Ace migrates a database with real data and then proves the result is identical to the schema your application expects, down to the last constraint. No drift, no surprises in production.</p>
       <div class="cta">
         <a class="btn primary" href="#how">See how it works</a>
         <a class="btn ghost" href="https://github.com/borisbrodski/migace">Star on GitHub</a>
@@ -117,7 +117,7 @@
       <div class="card"><span class="ico">🔁</span><h3>Re-runnable snippets</h3><p>YAML snippets made of small parts. Each part is logged and skipped once applied, so a failed run simply resumes.</p></div>
       <div class="card"><span class="ico">📦</span><h3>Migrations on real data</h3><p>Adding NOT NULL or unique constraints is tested against data, not just an empty schema.</p></div>
       <div class="card"><span class="ico">🧮</span><h3>Data migrations</h3><p>First-class data and repair snippets, separate from schema changes and fully traceable.</p></div>
-      <div class="card"><span class="ico">🚦</span><h3>Breaking-change detection</h3><p>Define the oldest app version you still support. MigAce classifies every change as compatible or breaking against its schema, so rolling updates stay safe.</p></div>
+      <div class="card"><span class="ico">🚦</span><h3>Breaking-change detection</h3><p>Define the oldest app version you still support. MIG-Ace classifies every change as compatible or breaking against its schema, so rolling updates stay safe.</p></div>
       <div class="card"><span class="ico">🔐</span><h3>Schema digest at startup</h3><p>The app checks a hash of the live schema and refuses to start against an unexpected database.</p></div>
       <div class="card"><span class="ico">🧪</span><h3>Test data generation</h3><p>Generate realistic data for every new table and column so each snippet is exercised.</p></div>
       <div class="card"><span class="ico">⚙️</span><h3>Gradle-native, no containers needed</h3><p>A Kotlin Gradle plugin that works against any PostgreSQL you point it at, even on locked-down build machines. One task, <code>migaceVerify</code>; ship by running migrations directly or as a plain SQL script for your DBAs.</p></div>
@@ -126,10 +126,10 @@
   </section>
 
   <section id="compare">
-    <h2>How MigAce compares</h2>
-    <p class="sub">Indicative comparison for planned features. MigAce is not released yet.</p>
+    <h2>How MIG-Ace compares</h2>
+    <p class="sub">Indicative comparison for planned features. MIG-Ace is not released yet.</p>
     <table>
-      <tr><th>Capability</th><th>MigAce</th><th>Typical versioned tools</th></tr>
+      <tr><th>Capability</th><th>MIG-Ace</th><th>Typical versioned tools</th></tr>
       <tr><td>Proves migrated schema = ORM model</td><td class="y">Yes</td><td class="n">Manual / partial</td></tr>
       <tr><td>Tests migrations against existing data</td><td class="y">Built in</td><td class="n">Up to you</td></tr>
       <tr><td>Resumable, part-level execution log</td><td class="y">Yes</td><td class="n">Per-file</td></tr>
@@ -158,7 +158,7 @@
   </section>
 
   <footer>
-    <span>MigAce · an <a href="https://openbrod.org">OpenBrod</a> project · open source</span>
+    <span>MIG-Ace · an <a href="https://openbrod.org">OpenBrod</a> project · open source</span>
     <span><a href="https://github.com/borisbrodski/migace">github.com/borisbrodski/migace</a></span>
   </footer>
 </div>
