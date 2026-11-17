@@ -323,7 +323,7 @@ parts:
 
 - Snippets run in name order. Branches are merged by plain file merge, and CI decides whether the merged set works. There is no migration graph and no merge migration. **[decided]**
 - An installation applies every snippet it has not run, in order, even when some are older than its newest applied snippet. This is normal and is recorded. **[direction]**
-- Reordering is always possible, also after release, by renaming the snippet. **[decided]** Optional `before` and `after` constraints exist for cases where a rename is not wanted. **[direction]**
+- Reordering must always be possible, also after release. **[decided]** It is done by renaming the snippet. Optional `before` and `after` constraints exist for cases where a rename is not wanted. **[direction]**
 
 ### 7.2 Changing released snippets
 
