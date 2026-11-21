@@ -42,4 +42,4 @@ status: open
 35. *Closed 2026-11-21:* see [MigQL answers after the PostgreSQL generation](../decisions/migql-answers-after-m3.md).
 36. *Closed 2026-11-21:* see [MigQL answers after the PostgreSQL generation](../decisions/migql-answers-after-m3.md).
 37. *Closed 2026-11-21:* see [MigQL answers after the PostgreSQL generation](../decisions/migql-answers-after-m3.md).
-38. **Case in names:** confirm the rules in [Names and case](../migql/names-and-case.md): a name without quotes is not case-sensitive, a name in quotes is exact, and names that differ only in case are allowed where the database allows them. Sub-question: is a double quote inside a name ever needed?
+38. **Case in names:** confirm the rule in [Names and case](../migql/names-and-case.md): a name is exact, with or without quotes. Sub-questions: the setting for an application that sends names without quotes on a database that stores them in upper case; whether a double quote inside a name is ever needed.

@@ -16,7 +16,7 @@ The statement language follows common SQL where a portable form exists and adds 
 - **Subqueries:** scalar subqueries and `exists (…)` / `in (…)`, each over one table.
 - **Expressions:** arithmetic, `||`, comparisons, `and/or/not`, `is null`, `in`, `between`, `like`, `case`, `cast`, and a list of portable functions.
 - **Sequences:** `next value for <sequence>`.
-- Keywords and unquoted identifiers are case-insensitive. A name in double quotes is exact. See [Names and case](names-and-case.md). **[direction]**
+- Keywords, names of functions and names of built-in types are case-insensitive. A name of a table, a column or another object is exact, with or without quotes. See [Names and case](names-and-case.md). **[direction]**
 - A name that is a keyword is written in double quotes, as in SQL: `"index"`. **[decided]**
 - A change of a column type has two accepted spellings: `alter column c type t` and `alter column c set data type t`. **[decided]**
 - `?` stands for a value that is not decided yet. It is allowed only in a part with a `todo`. **[decided]**

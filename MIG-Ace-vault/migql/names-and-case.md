@@ -6,31 +6,46 @@ date: 2026-11-21
 
 # Names and case
 
-**Status:** proposed by the review, not yet confirmed by the project owner. See question 38 in [Open questions](../questions/open-questions.md). An earlier proposal ("double quotes are for keywords only, upper case inside quotes is an error") is withdrawn: it cannot serve an application whose ORM puts names in quotes.
+**Status:** the rule below was proposed by the project owner on 2026-11-21 and is the working assumption. It is confirmed with question 38 in [Open questions](../questions/open-questions.md).
 
 ## What must work
 
-1. The database has every name exactly as the application addresses it. Hibernate with backticks or `hibernate.globally_quoted_identifiers`, the PostgreSQL provider of EF Core and Prisma all create names in quotes, and then the case counts.
-2. A change of case only, such as `key` to `"Key"`, can be written as a migration.
-3. A project that moves to MIG-Ace may already have two names that differ only in case, such as `email` and `"Email"` in one table.
+1. The database has every name exactly as the application addresses it. Hibernate with backticks or with quoting switched on for all names, the PostgreSQL provider of EF Core and Prisma all send names in quotes, and then the case counts.
+2. A change of case only, such as `key` to `Key`, can be written as a migration.
+3. A project that moves to MIG-Ace may already have two names that differ only in case, such as `email` and `Email` in one table.
+4. A snippet creates the same name in every database.
 
 ## The rule
 
-The rule is the one of SQL, so an author has nothing new to learn. **[direction]**
+**A name is exact.** The database gets the name with the characters and the case that the snippet has, as if it were written in quotes in SQL. **[direction]**
 
-| Written in MigQL | Meaning |
+| Written in MigQL | Name in the database |
 |---|---|
-| `customer`, `Customer`, `CUSTOMER` | One name. Case does not count. It stands for the form the database gives a name without quotes: lower case in PostgreSQL, upper case in Oracle. |
-| `"Customer"` | Exactly these characters, in every database. |
+| `customer` | `customer` |
+| `Customer` | `Customer` |
+| `CUSTOMER` | `CUSTOMER` |
+| `"Customer"` | `Customer`, the same name as without quotes |
 
-- `email` and `"Email"` are two names. `email` and `"email"` are the same name in PostgreSQL and two names in Oracle. For this reason MigQL never turns a name into one fixed form. The name keeps what was written and whether it was in quotes; only the code of one database decides which name in the catalog is meant.
-- A name in quotes may contain any character except a double quote and a line break. **[open]**: whether a double quote inside a name is ever needed.
+- Double quotes do not change the meaning. They are needed only for a name that is a keyword of MigQL or that contains a character other than a letter, a digit or an underscore. **[direction]**
+- Two names are the same name when their characters are the same. `email` and `Email` are two names.
+- Keywords, names of functions and names of the built-in types are not case-sensitive: `ALTER TABLE`, `Upper(…)`, `VARCHAR(20)`. **[direction]**
+- A name may contain any character except a double quote and a line break. **[open]**: whether a double quote inside a name is ever needed.
+
+## Why not the rule of SQL
+
+In SQL a name without quotes is not case-sensitive, and each database stores it in its own form: lower case in PostgreSQL, upper case in Oracle. With that rule `add column key` creates `key` in one database and `KEY` in another, and an application that sends `"key"` in quotes finds it in only one of them. Every name would have to be written in quotes to prevent this.
+
+## The case this rule does not serve
+
+An application that sends names **without** quotes, which is what Hibernate does unless it is configured otherwise, on a database that stores such names in upper case. The application then looks for `DUE_DATE` in Oracle and for `due_date` in PostgreSQL, and no single exact name is right in both.
+
+- With PostgreSQL only, this case does not exist: the author writes names in lower case, as they are in the catalog.
+- When a database with another default form is added, a project needs a setting that says how its application sends names. **[open]** Liquibase has such a setting (`objectQuotingStrategy`) and so has jOOQ (`RenderQuotedNames`), for the same reason. A possible form: `names: exact` as the default, and a second value with which names are written without quotes and are not case-sensitive.
 
 ## Why most of it is already there
 
 - The schema model holds the names as the catalog has them, and compares them character by character.
-- The desired database is built from the statements that the ORM really generates. The comparison therefore proves the case of every name, without MIG-Ace knowing the naming rules of any ORM. A column created as `key` where the application expects `"Key"` is a difference, and the proof fails.
-- The PostgreSQL generator already reads a name in quotes as exact and a name without quotes as lower case, and writes quotes only where PostgreSQL needs them.
+- The desired database is built from the statements that the ORM really generates. The comparison therefore proves the case of every name, without MIG-Ace knowing the naming rules of any ORM. A column created as `Key` where the application expects `key` is a difference, and the proof fails.
 - The ledger, the references between snippets, the runner and the replaceable objects do not handle names of tables or columns.
 
 Checked on PGlite: `email` and `"Email"` exist side by side in one table; `alter table customer rename column key to "Key"` is an ordinary rename; `nextval('OrderSeq')` does not find the sequence `"OrderSeq"`, `nextval('"OrderSeq"')` does; `order by … collate "C"` gives the same order as the comparison in `core`.
@@ -39,22 +54,26 @@ Checked on PGlite: `email` and `"Email"` exist side by side in one table; `alter
 
 | Area | Work |
 |---|---|
-| YAML positions | A column name in quotes as a key of a row written over several lines: `"Email": 'a@example.org'`. The grammar accepts a name in quotes in a flow map, in `into` and in `key` today, but not there. The [YAML profile](yaml-profile.md) excludes quoted keys and needs this one exception. |
-| Comparing names in MigQL | The checks compare names as written. `key: Code` with a row `{ code: … }` is reported as a missing key column. One function decides whether two written names are the same, with the rules of the databases of the project. |
-| One place per database | The form of a name without quotes, when quotes are needed, and how quotes are written. For PostgreSQL this is `names.ts`. Every place that puts a name into a text or a catalog query (`regclass`, `nextval`, `attname`) gets a test with a name in quotes. |
-| Report of the comparison | When a missing object and an unexpected object differ only in case, they are reported as one finding with the repair: add the quotes in the snippet, or `rename … to "Key"`. This is the mistake that will happen most often. |
-| Warning for mixed case without quotes | `add column DueDate date` creates `duedate`. A name with upper-case and lower-case letters and without quotes gets a warning with a quick fix. Names written all in upper case or all in lower case get none. |
-| Names that differ only in case | Allowed where the database allows them. Reported by a check that a project can switch off. An error when the project lists a database in which the two names are one. |
-| `mig make` | Writes quotes where the name in the catalog is not the form without quotes. Proposes a rename when a column is missing and a column with the same type and a name that differs only in case is unexpected. |
+| PostgreSQL generator | `names.ts` turns a name without quotes into lower case today. It stops doing that. Quotes are written in the generated SQL where PostgreSQL would read the name differently without them, as today. Every place that puts a name into a text or a catalog query (`regclass`, `nextval`, `attname`) gets a test with a name that has upper-case letters. |
+| Comparing names in MigQL | The checks compare names as written, which is now right for names without quotes. A name in quotes and the same name without quotes must be found equal. |
+| YAML positions | A column name in quotes as a key of a row written over several lines: `"Line Item": 3`. Needed only for names with other characters. The [YAML profile](yaml-profile.md) excludes quoted keys and needs this one exception. |
+| Report of the comparison | When a missing object and an unexpected object differ only in case, they are reported as one finding with the repair: correct the case in the snippet, or `rename … to Key`. An author used to SQL who writes `ALTER TABLE ORDERS …` gets this finding. |
+| Editor | A name that does not exist while a name that differs only in case does exist is an error with a quick fix. |
+| Names that differ only in case | Allowed. Reported by a check that a project can switch off. An error when the project lists a database in which the two names are one. |
+| `mig make` | Writes the names as the catalog has them. Proposes a rename when a column is missing and a column with the same type and a name that differs only in case is unexpected. |
 | Fingerprint in the script | The SQL that computes the fingerprint sorts with a fixed collation (`collate "C"` in PostgreSQL), so that it matches the order used by `core`. |
-| Tests | A second variant of the bookshop schema, written as an ORM with quoted names creates it, with one pair of names that differ only in case. It runs through every proof that the plain bookshop runs through. A property test: any name, written in MigQL, created in PGlite and read back, is the same name; and a name from the catalog, written by `mig make` and parsed again, is the same name. |
+| Tests | A second variant of the bookshop schema with names in mixed case, as an ORM that quotes creates them, with one pair of names that differ only in case. It runs through every proof that the plain bookshop runs through. A property test: any name, written in MigQL, created in PGlite and read back, is the same name; and a name from the catalog, written by `mig make` and parsed again, is the same name. |
 
 ## Renaming with phases
 
-In PostgreSQL the columns `key` and `"Key"` are two columns, so the form with `start` and `finish` works for a change of case as for any other rename. In a database where the case of a column name does not count, both versions of the application find the column under either spelling; the adapter generates a plain rename and no second column. **[direction]**
+In PostgreSQL the columns `key` and `Key` are two columns, so the form with `start` and `finish` works for a change of case as for any other rename. In a database where the case of a column name does not count, both versions of the application find the column under either spelling; the adapter generates a plain rename and no second column. **[direction]**
 
 ## Limits that stay
 
-- A snippet that needs `email` and `"Email"` in one table cannot run on MySQL, or on SQL Server with its default collation. The build reports it; nothing can repair it.
-- A name without quotes has a different spelling in the catalog of each database. That is intended: an ORM that writes the name without quotes finds it in each of them.
+- A snippet that needs `email` and `Email` in one table cannot run on MySQL, or on SQL Server with its default collation. The build reports it; nothing can repair it.
 - In MySQL the case of a table name depends on the operating system and a server setting. The MySQL adapter has to deal with this when it is written.
+
+## Rejected alternatives
+
+- **The rule of SQL** (a name without quotes is not case-sensitive, a name in quotes is exact) as the only rule: see above. It may return as the second value of the setting.
+- **Quotes for keywords only, and upper case inside quotes is an error:** cannot serve an application whose ORM sends names in mixed case.
