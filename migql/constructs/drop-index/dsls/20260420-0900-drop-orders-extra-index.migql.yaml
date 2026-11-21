@@ -1,0 +1,5 @@
+migration: 20260420-0900-drop-orders-extra-index
+
+parts:
+  - drop-index:
+      do: drop index ix_orders_extra

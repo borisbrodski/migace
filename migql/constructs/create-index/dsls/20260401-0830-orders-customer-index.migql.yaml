@@ -1,0 +1,8 @@
+migration: 20260401-0830-orders-customer-index
+
+parts:
+  - index:
+      do: create index concurrently ix_orders_customer on orders (customer_id, created_at)
+
+  - unique-mail:
+      do: create unique index ux_customer_mail on customer (mail)

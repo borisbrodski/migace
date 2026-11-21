@@ -1,0 +1,7 @@
+migration: 20260907-1010-review-text
+
+parts:
+  - rename:
+      do: |
+        rename column review.review_text
+          to body

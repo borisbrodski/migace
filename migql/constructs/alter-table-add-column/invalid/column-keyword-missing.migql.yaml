@@ -1,0 +1,6 @@
+# expect: Expected "column", "constraint", "primary", "unique", "check" or "foreign", but found "loyalty_level".
+migration: 20260101-0900-example
+
+parts:
+  - p:
+      do: alter table customer add <<{|loyalty_level|}>> varchar(10)

@@ -1,0 +1,6 @@
+# expect: Expected "from", but the value ends here.
+migration: 20260101-0900-example
+
+parts:
+  - p:
+      do: insert into book_copy (id, title) select id, title<<{||}>>

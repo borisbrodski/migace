@@ -13,7 +13,7 @@ status: open
 6. **File reference form for native SQL** kept in separate files.
 7. **Seed and reference data:** ordinary snippets as today, or a repeatable definition applied on every run. A new database gets these rows from `schema/` and an upgraded one from snippets (see [Execution and ledger](../architecture/execution-and-ledger.md)). Proposal: tables listed as `reference-tables` are compared row by row in the proof loop.
 8. **Editor association:** whether VS Code and IntelliJ let MigQL win over the built-in `.yaml` association for `*.migql.yaml`.
-9. **Grammar spike:** literal blocks, key-dependent lexing and error recovery in Langium need to be proven on real snippets.
+9. *Closed 2026-11-21:* one Langium grammar carries the envelope and the statements, with a lexer of our own. See [the journal](../journal/2026-11-21-workspace-and-migql-parser.md).
 10. **Temporary procedures in the script:** whether a session-temporary procedure may commit when called at top level in PostgreSQL. If not, the logic is inlined per part.
 11. **Row-level security and grants:** deployment tier by default; confirm when a project needs them compared.
 12. **DDL from entities:** whether MIG-Ace helps to generate the DDL file from the entity classes, or whether that stays the responsibility of the application build. It needs the compiled classes, the persistence unit and exactly the Hibernate version and settings used in production.
@@ -28,3 +28,11 @@ status: open
 21. **Stability check for generated SQL:** store a hash of the generated statement per part and database in the release file. See [Language stability](../migql/stability.md).
 22. *Closed 2026-11-21:* `upgrade-from` keeps its name for now.
 23. **Format of acceptance scenarios.** See [Test concept](../testing/test-concept.md).
+24. **Rename of a column on the website:** the website writes `expand column customer.mail to email` in one release and `contract column customer.mail` in the next. The vault defines one statement, `rename column <table>.<old> to <new>`, with two phases. The two website examples are skipped in the tests until the website is changed or the vault defines the two statements.
+25. **`upsert`:** the operation is listed in [Snippets](../architecture/snippets.md) and in M1-AC-08, but no note says how it is written. It is not implemented.
+26. **`former-names`, `before`, `after`:** the keys are listed in [Snippets](../architecture/snippets.md) without the form of their values. They are not implemented.
+27. **Comment after a one-line statement:** is `do: delete from t # why` allowed? It is accepted now, because YAML reads it the same way. M1-AC-14 can be read as: every ` #` in a one-line statement is an error.
+28. **`?` in a statement:** the website writes `do: update customer set loyalty_level = ?` in a part with a `todo`. The parser accepts `?` only in such a part. Confirm, or choose another sign.
+29. **Values in flow maps:** YAML and MigQL read `{ a: coalesce(x, 1) }` differently. Proposal in [the journal](../journal/2026-11-21-workspace-and-migql-parser.md): only literals and names in a flow map.
+30. **Quoted names:** how is a column written whose name is a keyword of the statement language? Proposal: double quotes, as in SQL.
+31. **Lists at the indentation of their key:** YAML allows `parts:` and `- name:` in the same column. MigQL does not. Support it, or keep the rule and improve the message.

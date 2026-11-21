@@ -1,0 +1,6 @@
+# expect: Expected "set", "drop" or "type", but found "mandatory".
+migration: 20260101-0900-example
+
+parts:
+  - p:
+      do: alter table customer alter column loyalty_level <<{|mandatory|}>>

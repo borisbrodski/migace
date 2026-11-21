@@ -1,0 +1,12 @@
+{
+  "generatedFiles": [
+    {
+      "filename": "postgresql/20260620-0900-archive-old-orders.sql",
+      "overwrite": true
+    },
+    {
+      "filename": "postgresql/20260620-0910-keep-odd-values.sql",
+      "overwrite": true
+    }
+  ]
+}

@@ -24,8 +24,8 @@ migql/constructs/alter-table-add-column/
 ├─ dsls/                        valid snippets
 ├─ generated/
 │  └─ postgresql/               the SQL that must be generated for the valid snippets
-├─ postgresql-metadata.json     list of generated files, written by the test tool
-└─ invalid/                     snippets that must fail, with markers at the expected place
+├─ generated-metadata.json      list of generated files, written by the test tool
+└─ invalid/                     snippets that must fail: `# expect: <message>` lines, then markers at the expected places
 ```
 
 The layout is the one of the generator snapshot tests in [langium-tools](langium-tools.md).
@@ -36,5 +36,4 @@ The layout is the one of the generator snapshot tests in [langium-tools](langium
 
 ## Open
 
-- How invalid examples are kept away from the snapshot runner, see [langium-tools](langium-tools.md).
-- How multi-step output is written in the expected files.
+- How multi-step output is written in the expected files. Until then the expected file of `ensure column` and `rename column` contains a line "not generated yet".

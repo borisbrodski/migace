@@ -1,0 +1,12 @@
+{
+  "generatedFiles": [
+    {
+      "filename": "postgresql/20260302-0905-fill-loyalty.sql",
+      "overwrite": true
+    },
+    {
+      "filename": "postgresql/20260518-1010-link-status.sql",
+      "overwrite": true
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+# expect: Expected ")", but found "(".
+# expect: Unexpected ")". The value is complete before it.
+migration: 20260101-0900-example
+
+parts:
+  - p:
+      do: create index ix_customer_name on customer (lower<<{|(|}>>name)<<{|)|}>>

@@ -1,0 +1,12 @@
+{
+    "projectName": "Migql",
+    "out": "src/generated",
+    "languages": [
+        {
+            "id": "migql",
+            "grammar": "grammar/migql.langium",
+            "fileExtensions": [".migql.yaml"],
+            "caseInsensitive": true
+        }
+    ]
+}

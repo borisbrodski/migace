@@ -1,0 +1,5 @@
+migration: 20260518-1030-open-status
+
+parts:
+  - add-open-status:
+      do: insert into order_status (id, code, label) values (1, 'OPEN', 'Open')

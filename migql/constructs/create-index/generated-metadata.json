@@ -1,0 +1,12 @@
+{
+  "generatedFiles": [
+    {
+      "filename": "postgresql/20260309-1420-review-book-index.sql",
+      "overwrite": true
+    },
+    {
+      "filename": "postgresql/20260401-0830-orders-customer-index.sql",
+      "overwrite": true
+    }
+  ]
+}

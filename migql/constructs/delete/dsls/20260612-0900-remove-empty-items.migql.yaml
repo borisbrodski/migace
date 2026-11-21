@@ -1,0 +1,5 @@
+migration: 20260612-0900-remove-empty-items
+
+parts:
+  - remove-empty-items:
+      do: delete from order_item where quantity = 0

@@ -1,0 +1,12 @@
+{
+  "generatedFiles": [
+    {
+      "filename": "postgresql/20260302-0910-loyalty-mandatory.sql",
+      "overwrite": true
+    },
+    {
+      "filename": "postgresql/20260615-0900-order-total-bigint.sql",
+      "overwrite": true
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+# expect: Unexpected "join". The value is complete before it.
+migration: 20260101-0900-example
+
+parts:
+  - p:
+      do: |
+        insert into order_report (id, name)
+        select o.id, c.name from orders o <<{|join|}>> customer c on c.id = o.customer_id

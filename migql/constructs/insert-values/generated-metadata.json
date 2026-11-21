@@ -1,0 +1,12 @@
+{
+  "generatedFiles": [
+    {
+      "filename": "postgresql/20260518-1020-unknown-status.sql",
+      "overwrite": true
+    },
+    {
+      "filename": "postgresql/20260518-1030-open-status.sql",
+      "overwrite": true
+    }
+  ]
+}

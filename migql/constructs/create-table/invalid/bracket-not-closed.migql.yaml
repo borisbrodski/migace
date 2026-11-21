@@ -1,0 +1,8 @@
+# expect: Expected ")", but the value ends here.
+migration: 20260101-0900-example
+
+parts:
+  - p:
+      do: |
+        create table review (
+          id bigint not null<<{||}>>

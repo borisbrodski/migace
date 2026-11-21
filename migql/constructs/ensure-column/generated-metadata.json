@@ -1,0 +1,12 @@
+{
+  "generatedFiles": [
+    {
+      "filename": "postgresql/20260610-0900-orders-note.sql",
+      "overwrite": true
+    },
+    {
+      "filename": "postgresql/20260610-0910-review-title.sql",
+      "overwrite": true
+    }
+  ]
+}

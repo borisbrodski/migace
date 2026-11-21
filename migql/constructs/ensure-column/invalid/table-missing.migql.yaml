@@ -1,0 +1,6 @@
+# expect: Expected ".", but the value ends here.
+migration: 20260101-0900-example
+
+parts:
+  - p:
+      do: ensure column note<<{||}>>

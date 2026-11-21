@@ -1,0 +1,5 @@
+migration: 20260309-1420-review-book-index
+
+parts:
+  - index-book:
+      do: create index ix_review_book on review (book_id)

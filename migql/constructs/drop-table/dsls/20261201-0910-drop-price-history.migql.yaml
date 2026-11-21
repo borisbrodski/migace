@@ -1,0 +1,7 @@
+migration: 20261201-0910-drop-price-history
+
+parts:
+  - drop-history:
+      do: |
+        drop table
+          price_history

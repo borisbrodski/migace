@@ -1,0 +1,6 @@
+# expect: Expected "not", "data" or "default", but the value ends here.
+migration: 20260101-0900-example
+
+parts:
+  - p:
+      do: alter table customer alter column loyalty_level set<<{||}>>

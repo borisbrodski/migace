@@ -23,6 +23,20 @@ git config core.hooksPath tools/git-hooks
 
 The hook blocks a commit that contains a word from the file `.private-words` in the root of the clone. Create that file yourself, with one word or phrase per line. It is not in git.
 
+## Development
+
+The tool is a workspace of npm packages. It needs Node 22.22.2 or newer (see `engines` in `package.json`) and no Docker.
+
+```sh
+npm install            # installs every package; fails on an unsupported Node version
+npm run build          # generates the Langium parser and compiles every package
+npm run lint           # ESLint, including the rule that keeps core/ free of database code
+npm test               # all tests of all packages
+npm run test:generate  # rewrites the expected SQL in migql/constructs/*/generated; review the diff
+```
+
+Inside `migql/`, `npx vitest` runs the tests in watch mode. Run `npm run langium:generate` there after a change to the grammar.
+
 ## Website
 
 The website is an [Astro](https://astro.build) project in [`website/`](website/). The workflow [`.github/workflows/website.yml`](.github/workflows/website.yml) builds it and publishes it to GitHub Pages on every push to `main` that touches `website/`.

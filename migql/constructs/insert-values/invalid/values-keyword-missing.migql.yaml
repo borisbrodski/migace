@@ -1,0 +1,6 @@
+# expect: Expected "values" or "select", but found "(".
+migration: 20260101-0900-example
+
+parts:
+  - p:
+      do: insert into order_status (id, code, label) <<{|(|}>>1, 'OPEN', 'Open')

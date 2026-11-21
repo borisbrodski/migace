@@ -1,0 +1,7 @@
+# expect: Expected "(", but found "price_cents".
+# expect: Expected ")", but the value ends here.
+migration: 20260101-0900-example
+
+parts:
+  - p:
+      do: alter table book add constraint ck_book_price check <<{|price_cents|}>> >= 0<<{||}>>

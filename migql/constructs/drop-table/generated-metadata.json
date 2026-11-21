@@ -1,0 +1,12 @@
+{
+  "generatedFiles": [
+    {
+      "filename": "postgresql/20261201-0900-drop-order-status-legacy.sql",
+      "overwrite": true
+    },
+    {
+      "filename": "postgresql/20261201-0910-drop-price-history.sql",
+      "overwrite": true
+    }
+  ]
+}

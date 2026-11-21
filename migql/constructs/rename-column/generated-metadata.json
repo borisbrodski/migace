@@ -1,0 +1,12 @@
+{
+  "generatedFiles": [
+    {
+      "filename": "postgresql/20260907-1000-customer-email.sql",
+      "overwrite": true
+    },
+    {
+      "filename": "postgresql/20260907-1010-review-text.sql",
+      "overwrite": true
+    }
+  ]
+}

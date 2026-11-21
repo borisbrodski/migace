@@ -1,0 +1,6 @@
+# expect: Unexpected "from". The value is complete before it.
+migration: 20260101-0900-example
+
+parts:
+  - p:
+      do: update orders set status_id = s.id <<{|from|}>> order_status s where s.code = orders.status

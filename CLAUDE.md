@@ -2,14 +2,15 @@
 
 A schema migration framework for PostgreSQL and Hibernate. It writes migrations from the difference between the schema the application expects and an older database, and proves them on a database with data.
 
-**Status: design phase. There is no code yet.** The website in `website/` describes MIG-Ace as if it were finished.
+**Status: first code.** The workspace (M0) and the MigQL parser with its checks (M1) exist in `migql/`. Everything else is design. The website in `website/` describes MIG-Ace as if it were finished.
 
 ## Where things are
 
 - `MIG-Ace-vault/home.md`: start page of the specs and internal documentation (an Obsidian vault).
 - `MIG-Ace-vault/how-to-use-this-vault.md`: status markers and writing rules. Read it before changing the vault.
 - `MIG-Ace-vault/architecture/repository-layout.md`: what each top-level folder is for.
-- `MIG-Ace-vault/roadmap.md` and `MIG-Ace-vault/specs/`: what to build next. Start with `specs/m0-workspace.md`, then `specs/m1-migql-parser.md`.
+- `MIG-Ace-vault/roadmap.md` and `MIG-Ace-vault/specs/`: what to build next. `specs/README.md` says how far each milestone is.
+- `MIG-Ace-vault/journal/`: what was found while building. Read the newest note before you continue a milestone.
 
 Read only the notes a task needs. Do not load the whole vault.
 
@@ -39,6 +40,18 @@ Details: `MIG-Ace-vault/engineering/coding-rules.md`.
 
 ## Commands
 
+Tool, from the repository root (Node 22.22.2 or newer, no Docker):
+
+```sh
+npm install
+npm run build          # Langium generation and tsc for every package
+npm run lint
+npm test               # all packages, then the tests in tools/
+npm run test:generate  # rewrite the expected SQL in migql/constructs/*/generated, then review the diff
+```
+
+In `migql/`: `npm run langium:generate` after a grammar change, `npx vitest run test/<folder>` for one group of tests.
+
 Website:
 
 ```sh
@@ -47,5 +60,3 @@ npm install
 npm run dev      # local preview
 npm run build    # static site in website/dist
 ```
-
-The tool has no build yet. The first milestone defines it.

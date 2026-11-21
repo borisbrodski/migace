@@ -1,0 +1,10 @@
+migration: 20260309-1410-review-foreign-keys
+
+parts:
+  - fk-book:
+      do: |
+        alter table review
+        add constraint fk_review_book foreign key (book_id) references book
+
+  - fk-customer:
+      do: alter table review add constraint fk_review_customer foreign key (customer_id) references customer (id)

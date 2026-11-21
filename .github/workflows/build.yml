@@ -1,0 +1,30 @@
+name: Build
+
+# Build, lint and tests on every push to candidate and to feature branches.
+# No step needs Docker.
+
+on:
+  push:
+    branches-ignore: [main]
+    paths-ignore:
+      - 'website/**'
+      - 'MIG-Ace-vault/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    # Windows is part of M0-AC-06 and is added when the tool chain was tried on Windows.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.2
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm run lint
+      - run: npm test

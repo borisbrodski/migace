@@ -1,0 +1,6 @@
+# expect: Expected a name, but found "on".
+migration: 20260101-0900-example
+
+parts:
+  - p:
+      do: create index <<{|on|}>> review (book_id)

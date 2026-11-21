@@ -1,0 +1,13 @@
+{
+  "name": "@migace/core",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Database-neutral logic of MIG-Ace.",
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "volta": {
+    "extends": "../package.json"
+  }
+}

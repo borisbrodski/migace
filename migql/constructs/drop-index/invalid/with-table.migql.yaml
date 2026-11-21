@@ -1,0 +1,6 @@
+# expect: Unexpected "on". The value is complete before it.
+migration: 20260101-0900-example
+
+parts:
+  - p:
+      do: drop index ix_review_book <<{|on|}>> review

@@ -1,0 +1,5 @@
+migration: 20261116-0900-drop-old-status
+
+parts:
+  - drop-old-status:
+      do: alter table orders drop column status

@@ -1,0 +1,12 @@
+{
+  "generatedFiles": [
+    {
+      "filename": "postgresql/20260612-0900-remove-empty-items.sql",
+      "overwrite": true
+    },
+    {
+      "filename": "postgresql/20260612-0910-remove-orphan-reviews.sql",
+      "overwrite": true
+    }
+  ]
+}

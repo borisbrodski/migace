@@ -1,0 +1,6 @@
+# expect: Unexpected "exists". The value is complete before it.
+migration: 20260101-0900-example
+
+parts:
+  - p:
+      do: drop table if <<{|exists|}>> order_status_legacy

@@ -1,0 +1,6 @@
+# expect: Expected ".", but found "to".
+migration: 20260101-0900-example
+
+parts:
+  - p:
+      do: rename column mail <<{|to|}>> email

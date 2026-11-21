@@ -1,0 +1,12 @@
+{
+  "generatedFiles": [
+    {
+      "filename": "postgresql/20260420-0900-drop-orders-extra-index.sql",
+      "overwrite": true
+    },
+    {
+      "filename": "postgresql/20260420-0910-drop-review-index.sql",
+      "overwrite": true
+    }
+  ]
+}

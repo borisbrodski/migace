@@ -1,0 +1,16 @@
+{
+  "generatedFiles": [
+    {
+      "filename": "postgresql/20260309-1400-review-table.sql",
+      "overwrite": true
+    },
+    {
+      "filename": "postgresql/20260518-1000-order-status-table.sql",
+      "overwrite": true
+    },
+    {
+      "filename": "postgresql/20260520-0900-price-history.sql",
+      "overwrite": true
+    }
+  ]
+}

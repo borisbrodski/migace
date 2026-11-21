@@ -1,0 +1,6 @@
+# expect: Expected "from", but found "order_item".
+migration: 20260101-0900-example
+
+parts:
+  - p:
+      do: delete <<{|order_item|}>> where quantity = 0

@@ -1,0 +1,5 @@
+migration: 20260610-0900-orders-note
+
+parts:
+  - note-column:
+      do: ensure column orders.note varchar(500)

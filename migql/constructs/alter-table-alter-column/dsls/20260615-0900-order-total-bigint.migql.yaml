@@ -1,0 +1,17 @@
+migration: 20260615-0900-order-total-bigint
+
+parts:
+  - widen-total:
+      do: alter table orders alter column total_cents type bigint
+
+  - widen-price:
+      do: alter table order_item alter column price_cents set data type bigint
+
+  - default-level:
+      do: alter table customer alter column loyalty_level set default 'BRONZE'
+
+  - no-default:
+      do: alter table customer alter column loyalty_level drop default
+
+  - optional-again:
+      do: alter table customer alter column loyalty_level drop not null

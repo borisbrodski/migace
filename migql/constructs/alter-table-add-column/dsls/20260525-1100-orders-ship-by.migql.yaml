@@ -1,0 +1,10 @@
+migration: 20260525-1100-orders-ship-by
+
+parts:
+  - add-ship-by:
+      do: alter table orders add column ship_by date
+
+  - add-note:
+      do: |
+        alter table orders
+        add column note varchar(500) not null default ''

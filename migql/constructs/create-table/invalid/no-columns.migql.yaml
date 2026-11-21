@@ -1,0 +1,6 @@
+# expect: Expected "constraint", "primary", "unique", "check", "foreign" or a name, but found ")".
+migration: 20260101-0900-example
+
+parts:
+  - p:
+      do: create table review (<<{|)|}>>

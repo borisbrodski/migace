@@ -1,0 +1,14 @@
+migration: 20260309-1400-review-table
+
+parts:
+  - create-table:
+      do: |
+        create table review (
+          id          bigint         not null,
+          book_id     bigint         not null,
+          customer_id bigint         not null,
+          stars       integer        not null check (stars between 1 and 5),
+          review_text varchar(2000),
+          created_at  timestamp      not null,
+          primary key (id)
+        )

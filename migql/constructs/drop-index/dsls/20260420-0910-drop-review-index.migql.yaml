@@ -1,0 +1,5 @@
+migration: 20260420-0910-drop-review-index
+
+parts:
+  - drop-index:
+      do: drop index concurrently ix_review_book

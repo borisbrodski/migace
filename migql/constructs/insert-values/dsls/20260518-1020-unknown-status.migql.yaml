@@ -1,0 +1,7 @@
+migration: 20260518-1020-unknown-status
+
+parts:
+  - add-unknown-status:
+      do: |
+        insert into order_status (id, code, label)
+        values (next value for bookshop_seq, 'UNKNOWN', 'Unknown')

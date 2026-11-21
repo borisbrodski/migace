@@ -1,0 +1,12 @@
+{
+  "generatedFiles": [
+    {
+      "filename": "postgresql/20260302-0900-customer-loyalty.sql",
+      "overwrite": true
+    },
+    {
+      "filename": "postgresql/20260525-1100-orders-ship-by.sql",
+      "overwrite": true
+    }
+  ]
+}

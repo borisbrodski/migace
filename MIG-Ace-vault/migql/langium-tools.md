@@ -23,7 +23,9 @@ Not needed now: the Java helpers in `langium-tools/lang/java`. MIG-Ace generates
 
 ## How the catalogue of constructs uses it
 
-The snapshot runner expects one folder per test with a `dsls/` folder and writes `generated/`. With named targets it writes `generated/<target>/` and `<target>-metadata.json`. The catalogue follows that layout, with one target per database. **[direction]**
+The snapshot runner expects one folder per test with a `dsls/` folder and writes `generated/`. The catalogue follows that layout. Each database writes into its own folder below `generated/`. **[direction]**
+
+Named targets are not used. With them the runner of version 0.4.0 also expects an empty folder `generated/DEFAULT/`, which git does not keep. See the [journal](../journal/2026-11-21-workspace-and-migql-parser.md).
 
 ```text
 migql/constructs/alter-table-add-column/
@@ -31,7 +33,7 @@ migql/constructs/alter-table-add-column/
 ├─ dsls/                        valid snippets
 ├─ generated/
 │  └─ postgresql/               expected SQL, written by the generate run
-├─ postgresql-metadata.json     written by the generate run
+├─ generated-metadata.json      written by the generate run
 └─ invalid/                     snippets that must fail, with markers at the expected place
 ```
 
@@ -54,8 +56,8 @@ langium-tools 0.4.0 sets these versions. **[direction]**
 
 1. **Vitest version.** MIG-Ace's Vitest version is fixed by the peer dependency of langium-tools. A newer Vitest needs a new release of langium-tools first.
 2. **Test helpers in a shipped tool.** langium-tools is one package, and Vitest is its peer dependency. If `cli/` or `migql/` depend on it at run time, installing MIG-Ace asks for Vitest. The roadmap of langium-tools already has the answer: a separate package for the test helpers. MIG-Ace needs that split before its first release.
-3. **Invalid examples and the snapshot runner.** The runner loads a whole folder and fails on parse errors. The invalid examples must stay outside what it loads: another file extension, or an `initWorkspace` that loads `dsls/` only.
-4. **Generate run on Windows.** `GENERATOR_TEST=generate vitest run` does not work in the Windows command shell. MIG-Ace needs a script that sets the variable on every system.
+3. *Settled 2026-11-21:* the invalid examples stay outside the snapshot runner with an `initWorkspace` that loads `dsls/` only.
+4. **Generate run on Windows.** `tools/with-env.mjs` sets the variable without a shell feature. It was run on Linux only and has to be tried on Windows.
 5. **Prototype extensions.** Importing the string and array helpers adds methods to `String.prototype` and `Array.prototype`. MIG-Ace is itself a library for others, so its shipped code should call the function forms (`toFirstUpper(x)`, `arraySortBy(x, …)`).
 
 ## What MIG-Ace may add to langium-tools

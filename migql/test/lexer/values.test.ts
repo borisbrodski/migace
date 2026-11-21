@@ -1,0 +1,175 @@
+import { describe, expect, test } from 'vitest';
+import { createMigql, lines } from '../support.js';
+
+const { tokens, positions, lexerErrors } = createMigql();
+
+function inPart(...body: string[]): string {
+    return lines('parts:', '  - p:', ...body.map(line => (line.length > 0 ? '      ' + line : line)));
+}
+
+const PART_START = ['parts:', 'INDENT()', 'DASH(-)', 'NAME(p)', ':', 'INDENT()'];
+const PART_END = ['DEDENT()', 'DEDENT()'];
+
+// M1-AC-12, M1-AC-13
+describe('Lexer: literal blocks', () => {
+    test('a statement in a literal block gives the same tokens as on one line', () => {
+        const oneLine = tokens(inPart('do: alter table orders'));
+        const block = tokens(inPart('do: |', '  alter table orders'));
+
+        expect(block).toEqual(oneLine);
+        expect(block).toEqual([...PART_START, 'do:', 'alter', 'table', 'ID(orders)', 'EOL()', ...PART_END]);
+    });
+
+    test('a statement in a block may span lines and be indented freely', () => {
+        expect(tokens(inPart('do: |', '  alter', '        table', '', '    orders'))).toEqual([
+            ...PART_START, 'do:', 'alter', 'table', 'ID(orders)', 'EOL()', ...PART_END,
+        ]);
+    });
+
+    test('the block ends where the indentation falls back to the key', () => {
+        expect(tokens(inPart('do: |', '  alter', 'do: table'))).toEqual([
+            ...PART_START, 'do:', 'alter', 'EOL()', 'do:', 'table', 'EOL()', ...PART_END,
+        ]);
+    });
+
+    test('tokens in a block know their place in the file', () => {
+        expect(positions('parts:\n  - p:\n      do: |\n        alter\n          table\n').slice(6)).toEqual([
+            'do:@3:7+20', 'alter@4:9+34', 'table@5:11+50', '@5:16+55', '@6:1+56', '@6:1+56',
+        ]);
+    });
+
+    test('a comment after the block sign is allowed', () => {
+        expect(tokens(inPart('do: | # why', '  alter'))).toEqual([...PART_START, 'do:', 'alter', 'EOL()', ...PART_END]);
+    });
+
+    test('a -- comment inside a block is not part of the statement', () => {
+        expect(tokens(inPart('do: |', '  alter -- the table', '  -- a whole line', '  table'))).toEqual([
+            ...PART_START, 'do:', 'alter', 'table', 'EOL()', ...PART_END,
+        ]);
+    });
+
+    test('a block without lines is an empty value', () => {
+        expect(tokens(inPart('do: |', 'do: x'))).toEqual([
+            ...PART_START, 'do:', 'EOL()', 'do:', 'ID(x)', 'EOL()', ...PART_END,
+        ]);
+    });
+
+    test('a character the statement language does not know is an error at its place', () => {
+        expect(lexerErrors(inPart('do: |', '  alter ~ table'))).toEqual([
+            'Unexpected character "~".@4:15+1',
+        ]);
+    });
+});
+
+// M1-AC-11
+describe('Lexer: free text', () => {
+    test('the value of doc is one TEXT token, whatever it contains', () => {
+        expect(tokens("doc: Customers can't review (yet); 100% sure\n")).toEqual([
+            'doc:', "TEXT(Customers can't review (yet); 100% sure)", 'EOL()',
+        ]);
+    });
+
+    test('a doc in a literal block is one TEXT token over all its lines', () => {
+        expect(tokens('doc: |\n  First line.\n    Second line.\nuid: A\n')).toEqual([
+            'doc:', 'TEXT(First line.\n    Second line.)', 'EOL()', 'uid:', 'WORD(A)', 'EOL()',
+        ]);
+    });
+});
+
+// M1-AC-19
+describe('Lexer: references to parts and releases', () => {
+    test('after ran comes the reference to a part as one token', () => {
+        expect(tokens('when: ran order-status.link-status\n')).toEqual([
+            'when:', 'ran', 'PART_REF(order-status.link-status)', 'EOL()',
+        ]);
+    });
+
+    test('after from comes the release as one token', () => {
+        expect(tokens('when: not ran repair-2.or-not from 1.2.0-rc1 and true\n')).toEqual([
+            'when:', 'not', 'ran', 'PART_REF(repair-2.or-not)', 'from', 'RELEASE(1.2.0-rc1)', 'and', 'true', 'EOL()',
+        ]);
+    });
+
+    test('elsewhere a minus is a minus and from is followed by a table', () => {
+        expect(tokens('when: exists (select a-b.c from orders)\n')).toEqual([
+            'when:', 'exists', '(', 'select', 'ID(a)', '-', 'ID(b)', '.', 'ID(c)', 'from', 'ID(orders)', ')', 'EOL()',
+        ]);
+    });
+});
+
+// M1-AC-20
+describe('Lexer: lists of checks', () => {
+    test('each check is a list item with a quantifier as its key', () => {
+        expect(tokens(inPart('verify-after:', '  - all: true', '  - none: false'))).toEqual([
+            ...PART_START, 'verify-after:', 'INDENT()',
+            'DASH(-)', 'all:', 'true', 'EOL()', 'DASH(-)', 'none:', 'false', 'EOL()',
+            'DEDENT()', ...PART_END,
+        ]);
+    });
+});
+
+// M1-AC-05
+describe('Lexer: flow maps', () => {
+    test('a flow map on one line is read with the tokens of the statement language', () => {
+        expect(tokens("testdata:\n  - table: orders\n    row: { status: 'shipped ', total_cents: 100 }\n")).toEqual([
+            'testdata:', 'INDENT()', 'DASH(-)', 'table:', 'ID(orders)', 'EOL()',
+            'row:', '{', 'ID(status)', ':', "STRING('shipped ')", ',', 'ID(total_cents)', ':', 'INT(100)', '}', 'EOL()',
+            'DEDENT()',
+        ]);
+    });
+
+    test('a list item may be a flow map', () => {
+        expect(tokens(inPart('insert:', '  rows:', '    - { id: 1 }', '    - { id: 2 }'))).toEqual([
+            ...PART_START, 'insert:', 'INDENT()', 'rows:', 'INDENT()',
+            'DASH(-)', '{', 'ID(id)', ':', 'INT(1)', '}', 'EOL()',
+            'DASH(-)', '{', 'ID(id)', ':', 'INT(2)', '}', 'EOL()',
+            'DEDENT()', 'DEDENT()', ...PART_END,
+        ]);
+    });
+});
+
+// M1-AC-14
+describe('Lexer: one-line values that YAML would read differently', () => {
+    const ADVICE = ' Use a literal block: write | after the key and the value on the lines below it.';
+
+    test('a # inside a text in quotes would be read as a comment', () => {
+        expect(lexerErrors(inPart("do: update t set a = 'x # y'"))).toEqual([
+            `YAML reads " #" as the start of a comment, so the rest of the line would be lost.${ADVICE}@3:31+1`,
+        ]);
+    });
+
+    test('a colon followed by a space is not allowed in a one-line value', () => {
+        expect(lexerErrors(inPart("do: update t set a = 'x: y'"))).toEqual([
+            `YAML does not allow ": " inside a value that stands on the line of its key.${ADVICE}@3:30+1`,
+        ]);
+        expect(lexerErrors('doc: Note: this is new\n')).toEqual([
+            `YAML does not allow ": " inside a value that stands on the line of its key.${ADVICE}@1:10+1`,
+        ]);
+    });
+
+    test.each(["'", '"', '@', '`', '%', '[', ']', '}', ','])('a value cannot start with %s', character => {
+        expect(lexerErrors(`doc: ${character}text\n`)).toEqual([
+            `YAML reads a value that starts with ${character} differently.${ADVICE}@1:6+1`,
+        ]);
+    });
+
+    test('a value that is one text in quotes means the same in YAML', () => {
+        expect(tokens("let:\n  a: 'it''s'\n")).toEqual(['let:', 'INDENT()', 'NAME(a)', ':', "STRING('it''s')", 'EOL()', 'DEDENT()']);
+        expect(lexerErrors("let:\n  a: 'x' || 'y'\n")).toEqual([
+            `YAML reads a value that starts with ' differently.${ADVICE}@2:6+1`,
+        ]);
+    });
+
+    test('the same values are accepted in a literal block', () => {
+        expect(lexerErrors(inPart('do: |', "  update t set a = 'x # y: z'"))).toEqual([]);
+        expect(lexerErrors("doc: |\n  'Note': this is new # really\n")).toEqual([]);
+    });
+
+    test('a comment after a complete statement is still a comment', () => {
+        expect(lexerErrors(inPart("do: update t set a = 'x' # why"))).toEqual([]);
+    });
+
+    test('a flow map keeps its colons', () => {
+        expect(lexerErrors("testdata:\n  - table: t\n    row: { a: 'x', b: 2 }\n")).toEqual([]);
+    });
+});

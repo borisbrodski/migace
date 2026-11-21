@@ -1,3 +1,5 @@
 .private-words
 node_modules/
 dist/
+out/
+migql/src/generated/

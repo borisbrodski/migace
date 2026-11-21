@@ -1,0 +1,10 @@
+migration: 20260612-0910-remove-orphan-reviews
+
+parts:
+  - remove-orphans:
+      do: |
+        delete from review r
+        where not exists (select 1 from book b where b.id = r.book_id)
+
+  - remove-all:
+      do: delete from order_status_legacy

@@ -1,0 +1,6 @@
+# expect: Expected "set", but found "=".
+migration: 20260101-0900-example
+
+parts:
+  - p:
+      do: update customer loyalty_level <<{|=|}>> 'BRONZE'

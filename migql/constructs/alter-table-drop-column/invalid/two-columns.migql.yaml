@@ -1,0 +1,6 @@
+# expect: Unexpected ",". The value is complete before it.
+migration: 20260101-0900-example
+
+parts:
+  - p:
+      do: alter table orders drop column status<<{|,|}>> note

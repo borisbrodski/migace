@@ -1,0 +1,5 @@
+migration: 20260302-0905-fill-loyalty
+
+parts:
+  - fill-existing:
+      do: update customer set loyalty_level = 'BRONZE'

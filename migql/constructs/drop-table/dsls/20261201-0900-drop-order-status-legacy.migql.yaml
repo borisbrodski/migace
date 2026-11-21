@@ -1,0 +1,5 @@
+migration: 20261201-0900-drop-order-status-legacy
+
+parts:
+  - drop-legacy:
+      do: drop table order_status_legacy

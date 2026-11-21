@@ -1,0 +1,5 @@
+migration: 20260302-0900-customer-loyalty
+
+parts:
+  - add-column:
+      do: alter table customer add column loyalty_level varchar(10)
