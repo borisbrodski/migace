@@ -1,0 +1,9 @@
+# expect: An upsert needs "key": the column, or the list of columns, by which an existing row is found.
+migration: 20260101-0900-example
+
+parts:
+  - p:
+      upsert:
+        <<{|into|}>>: order_status
+        rows:
+          - { code: 'OPEN', label: 'Open' }

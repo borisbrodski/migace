@@ -11,9 +11,9 @@ A milestone starts when its spec note exists in `specs/`. Order and content are 
 |---|---|---|
 | M0 Workspace | Folders, build, the three test stages, CI. No features. | done on Linux |
 | M1 MigQL parser | MigQL files are parsed and checked, tested with langium-tools. | done |
-| M1.1 MigQL follow-up | Windows, checks across a project, `upsert`, syntax decisions. | spec ready |
-| M2 Schema model | The model is read from PGlite and compared. Fingerprint. | spec ready |
-| M3 PostgreSQL generation | Every construct becomes correct PostgreSQL, proven by PostgreSQL's parser and on a database. | spec ready |
+| M1.1 MigQL follow-up | Windows, checks across a project, `upsert`, syntax decisions. | done; Windows job not run yet |
+| M2 Schema model | The model is read from PGlite and compared. Fingerprint. | done |
+| M3 PostgreSQL generation | Every construct becomes correct PostgreSQL, proven by PostgreSQL's parser and on a database. | done |
 | M4 Script | Snippets are compiled to a script that runs on real PostgreSQL, with the ledger. Java runner. | |
 | M5 Proof loop | Baseline, migration, comparison, second run, install on an empty database. The bookshop passes. | |
 | M6 Generation | `mig make` writes snippets from the comparison. | |

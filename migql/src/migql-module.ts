@@ -9,6 +9,7 @@ import { MigqlLexer } from './lexer/migql-lexer.js';
 import { MigqlValidator, registerValidationChecks } from './validation/migql-validator.js';
 import { MigqlParserErrorMessageProvider } from './parser/migql-parser-error-message-provider.js';
 import { MigqlValueConverter } from './migql-value-converter.js';
+import { MigqlIndexManager } from './references/migql-index-manager.js';
 import { MigqlLinker } from './references/migql-linker.js';
 import { MigqlScopeComputation } from './references/migql-scope-computation.js';
 import { MigqlScopeProvider } from './references/migql-scope-provider.js';
@@ -33,7 +34,7 @@ export const MigqlModule: Module<MigqlServices, PartialLangiumServices & MigqlAd
         ScopeComputation: services => new MigqlScopeComputation(services),
     },
     validation: {
-        MigqlValidator: () => new MigqlValidator(),
+        MigqlValidator: services => new MigqlValidator(services),
     },
     parser: {
         TokenBuilder: () => new MigqlTokenBuilder(),
@@ -45,6 +46,9 @@ export const MigqlModule: Module<MigqlServices, PartialLangiumServices & MigqlAd
 
 export const MigqlSharedModule: Module<LangiumSharedServices, DeepPartial<LangiumSharedServices>> = {
     ServiceRegistry: services => new MigqlServiceRegistry(services),
+    workspace: {
+        IndexManager: services => new MigqlIndexManager(services),
+    },
 };
 
 export function createMigqlServices(context: DefaultSharedModuleContext): {

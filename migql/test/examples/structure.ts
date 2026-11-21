@@ -81,7 +81,11 @@ class TokenReader {
             tokens.push(this.next());
         }
         this.index++;
-        return tokens[0]?.image === '{' ? flowMap(tokens.slice(1, -1)) : text(tokens);
+        switch (tokens[0]?.image) {
+            case '{': return flowMap(tokens.slice(1, -1));
+            case '[': return flowList(tokens.slice(1, -1));
+            default: return text(tokens);
+        }
     }
 
     private is(name: string): boolean {
@@ -96,11 +100,8 @@ class TokenReader {
 function flowMap(tokens: IToken[]): Structure {
     const map: Record<string, Structure> = {};
     let start = 0;
-    let depth = 0;
     for (let index = 0; index <= tokens.length; index++) {
-        const image = tokens[index]?.image;
-        depth += image === '(' ? 1 : image === ')' ? -1 : 0;
-        if (index === tokens.length || (image === ',' && depth === 0)) {
+        if (index === tokens.length || tokens[index].image === ',') {
             if (index > start) {
                 map[tokens[start].image] = text(tokens.slice(start + 2, index));
             }
@@ -108,6 +109,10 @@ function flowMap(tokens: IToken[]): Structure {
         }
     }
     return map;
+}
+
+function flowList(tokens: IToken[]): Structure {
+    return tokens.filter(token => token.image !== ',').map(token => text([token]));
 }
 
 function text(tokens: IToken[]): string {

@@ -1,0 +1,17 @@
+migration: 20260701-0900-book-prices
+
+parts:
+  - euro-prices:
+      upsert:
+        into: book_price
+        key: [book_id, currency]
+        rows:
+          - { book_id: 1, currency: 'EUR', price_cents: 990 }
+          - { book_id: 2, currency: 'EUR', price_cents: 1490 }
+
+  - one-status:
+      upsert:
+        into: order_status
+        key: code
+        rows:
+          - { code: 'UNKNOWN', label: 'It''s unknown' }

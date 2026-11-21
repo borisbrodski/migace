@@ -67,6 +67,21 @@ describe('Completion: statements', () => {
     });
 });
 
+// M1.1-AC-18
+describe('Completion: fixed values', () => {
+    test('fill offers its two modes', async () => {
+        expect(await offered(lines(NAME, 'testdata:', '  - table: review', '    fill: <|>'))).toEqual(['all', 'required']);
+    });
+
+    test('phase offers finish', async () => {
+        expect(await offered(lines(NAME, 'parts:', '  - p:', '      do: delete from t', '      phase: <|>'))).toEqual(['finish']);
+    });
+
+    test('requires-downtime offers true and false', async () => {
+        expect(await offered(lines(NAME, 'requires-downtime: <|>'))).toEqual(['true', 'false']);
+    });
+});
+
 describe('Completion: names', () => {
     test('a condition offers the names defined under let', async () => {
         const labels = await offered(lines(NAME, 'let:', '  has_old_status: column orders.status exists', '  audited: true', 'when: <|>'));

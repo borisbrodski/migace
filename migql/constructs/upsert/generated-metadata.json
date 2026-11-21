@@ -1,0 +1,12 @@
+{
+  "generatedFiles": [
+    {
+      "filename": "postgresql/20260518-1040-order-statuses.sql",
+      "overwrite": true
+    },
+    {
+      "filename": "postgresql/20260701-0900-book-prices.sql",
+      "overwrite": true
+    }
+  ]
+}

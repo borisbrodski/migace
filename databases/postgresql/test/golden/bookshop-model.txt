@@ -1,0 +1,169 @@
+extension pg_trgm
+
+extension plpgsql
+
+sequence bookshop_seq
+  cache: 1
+  cycle: no
+  increment: 50
+  max: 9223372036854775807
+  min: 1
+  start: 1
+  type: bigint
+
+table book
+
+column book.author
+  nullable: no
+  type: character varying
+  type details: 200
+
+column book.id
+  nullable: no
+  type: bigint
+
+column book.price_cents
+  nullable: no
+  type: integer
+
+column book.stock
+  nullable: no
+  type: integer
+
+column book.title
+  nullable: no
+  type: character varying
+  type details: 200
+
+primary key book.book_pkey
+  columns: id
+
+index book.ix_book_title_search
+  columns: title public.gin_trgm_ops
+  method: gin
+  unique: no
+
+table customer
+
+column customer.created_at
+  nullable: no
+  type: timestamp without time zone
+
+column customer.id
+  nullable: no
+  type: bigint
+
+column customer.mail
+  nullable: yes
+  type: character varying
+  type details: 255
+
+column customer.name
+  nullable: no
+  type: character varying
+  type details: 100
+
+primary key customer.customer_pkey
+  columns: id
+
+table order_item
+
+column order_item.book_id
+  nullable: no
+  type: bigint
+
+column order_item.id
+  nullable: no
+  type: bigint
+
+column order_item.order_id
+  nullable: no
+  type: bigint
+
+column order_item.price_cents
+  nullable: no
+  type: integer
+
+column order_item.quantity
+  nullable: no
+  type: integer
+
+primary key order_item.order_item_pkey
+  columns: id
+
+foreign key order_item.order_item_book_id_fkey
+  columns: book_id
+  on delete: no action
+  on update: no action
+  references: book (id)
+
+foreign key order_item.order_item_order_id_fkey
+  columns: order_id
+  on delete: no action
+  on update: no action
+  references: orders (id)
+
+trigger order_item.trg_order_item_total
+  events: insert, delete, update
+  function: refresh_order_total()
+  level: row
+  timing: after
+
+table orders
+
+column orders.created_at
+  nullable: no
+  type: timestamp without time zone
+
+column orders.customer_id
+  nullable: no
+  type: bigint
+
+column orders.id
+  nullable: no
+  type: bigint
+
+column orders.status
+  nullable: no
+  type: character varying
+  type details: 20
+
+column orders.total_cents
+  nullable: no
+  type: integer
+
+primary key orders.orders_pkey
+  columns: id
+
+foreign key orders.orders_customer_id_fkey
+  columns: customer_id
+  on delete: no action
+  on update: no action
+  references: customer (id)
+
+index orders.ix_orders_customer
+  columns: customer_id
+  method: btree
+  unique: no
+
+view v_order_totals
+  definition:
+    | SELECT customer_id,
+    |    count(*) AS orders,
+    |    sum(total_cents) AS total_cents
+    |   FROM orders o
+    |  GROUP BY customer_id;
+
+function refresh_order_total()
+  body:
+    |
+    |begin
+    |  update orders o
+    |  set total_cents = (select coalesce(sum(i.quantity * i.price_cents), 0)
+    |                     from order_item i
+    |                     where i.order_id = o.id)
+    |  where o.id = coalesce(new.order_id, old.order_id);
+    |  return null;
+    |end 
+  language: plpgsql
+  returns: trigger

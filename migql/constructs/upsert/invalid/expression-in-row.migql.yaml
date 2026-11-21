@@ -1,0 +1,10 @@
+# expect: A flow map holds only literals, names and table.column. Write the values in the block form, one line per column.
+migration: 20260101-0900-example
+
+parts:
+  - p:
+      upsert:
+        into: order_status
+        key: code
+        rows:
+          - { code: <<{|upper('open')|}>>, label: 'Open' }

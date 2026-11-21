@@ -37,11 +37,11 @@ describe('Parser: messages say what was expected', () => {
     });
 
     test('a keyword stands where a name is expected', async () => {
-        await expectErrors(part('do: alter table <<{|table|}>> add column c integer'), 'Expected a name, but found "table".');
+        await expectErrors(part('do: alter table <<{|table|}>> add column c integer'), 'Expected a name, but found "table". "table" is a keyword. To use it as a name, write it in double quotes: "table".');
     });
 
     test('a type is missing', async () => {
-        await expectErrors(part('do: alter table t add column c <<{|not|}>> null'), 'Expected a name, but found "not".');
+        await expectErrors(part('do: alter table t add column c <<{|not|}>> null'), 'Expected a name, but found "not". "not" is a keyword. To use it as a name, write it in double quotes: "not".');
     });
 
     test('a list is expected below a key', async () => {

@@ -1,0 +1,21 @@
+{
+  "name": "@migace/postgresql",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Everything of MIG-Ace that talks to PostgreSQL.",
+  "license": "Apache-2.0",
+  "volta": {
+    "extends": "../../package.json"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.src.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@migace/core": "*"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.17"
+  }
+}

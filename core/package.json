@@ -6,9 +6,19 @@
   "description": "Database-neutral logic of MIG-Ace.",
   "license": "Apache-2.0",
   "scripts": {
-    "build": "tsc -p tsconfig.json"
+    "build": "tsc -p tsconfig.src.json",
+    "test": "vitest run"
   },
   "volta": {
     "extends": "../package.json"
+  },
+  "exports": {
+    ".": {
+      "types": "./out/index.d.ts",
+      "default": "./out/index.js"
+    }
+  },
+  "devDependencies": {
+    "fast-check": "^4.0.0"
   }
 }

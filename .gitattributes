@@ -1,0 +1,2 @@
+# Text files have LF line endings on every system, so that expected files compare equal everywhere.
+* text=auto eol=lf

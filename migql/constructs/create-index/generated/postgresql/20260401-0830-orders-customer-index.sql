@@ -1,6 +1,7 @@
 -- 20260401-0830-orders-customer-index
 
 -- part: index
+-- outside transaction
 create index concurrently ix_orders_customer on orders (customer_id, created_at);
 
 -- part: unique-mail

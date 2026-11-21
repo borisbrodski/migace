@@ -94,7 +94,7 @@ describe('Parser: expressions', () => {
         ['upper(trim(o.status))', 'upper(trim(o.status))'],
         ['coalesce(payment_terms, 30)', 'coalesce(payment_terms, 30)'],
         ['count(*)', 'count(*)'],
-        ['now()', 'now()'],
+        ['length(a)', 'length(a)'],
         // subqueries
         ['(select max(id) from order_status)', '<select max(id) from order_status>'],
         ["(select s.id from order_status s where s.code = 'X')", "<select s.id from order_status s where (s.code = 'X')>"],

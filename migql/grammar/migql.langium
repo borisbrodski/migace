@@ -40,7 +40,7 @@ RetiredEntry:
 
 RequiresDowntimeEntry:
     /** The snippet may only run while the application is stopped. */
-    'requires-downtime:' value=WORD EOL;
+    'requires-downtime:' (value?='true' | 'false') EOL;
 
 WhenEntry:
     /** Runs the snippet or the part only if the condition is true. Otherwise it is skipped and looked at again on the next run. */
@@ -61,7 +61,7 @@ Part:
     DASH name=NAME ':' (INDENT entries+=PartEntry+ DEDENT)?;
 
 PartEntry:
-    DoEntry | InsertEntry | NativeEntry | StopEntry
+    DoEntry | InsertEntry | UpsertEntry | NativeEntry | StopEntry
     | WhenEntry | VerifyEntry | BatchEntry | ExpectRowsEntry | PhaseEntry | TodoEntry;
 
 DoEntry:
@@ -71,6 +71,17 @@ DoEntry:
 InsertEntry:
     /** Inserts rows, written as YAML: `into`, and `values` for one row or `rows` for several. */
     'insert:' INDENT entries+=InsertSpecEntry+ DEDENT;
+
+UpsertEntry:
+    /** Inserts the rows that are missing and updates the rows that exist, found by `key`. Written with `into`, `key` and `rows`. */
+    'upsert:' INDENT entries+=UpsertSpecEntry+ DEDENT;
+
+UpsertSpecEntry:
+    IntoEntry | KeyEntry | RowsEntry;
+
+KeyEntry:
+    /** The column by which an existing row is found, or a list of columns: `[book_id, currency]`. */
+    'key:' (columns+=Name | '[' columns+=Name (',' columns+=Name)* ']') EOL;
 
 InsertSpecEntry:
     IntoEntry | ValuesEntry | RowsEntry;
@@ -130,7 +141,7 @@ ExpectRowsEntry:
 
 PhaseEntry:
     /** `finish` marks a part that breaks older application versions. It runs only when no older version is left. */
-    'phase:' phase=WORD EOL;
+    'phase:' phase='finish' EOL;
 
 TodoEntry:
     /** An open decision. The migration script cannot be built while a todo is left. */
@@ -154,7 +165,7 @@ AsEntry:
     'as:' name=Name EOL;
 
 FillEntry:
-    'fill:' mode=WORD EOL;
+    'fill:' mode=('all' | 'required') EOL;
 
 RowEntry:
     'row:' (map=FlowMap EOL | INDENT values+=ColumnValue+ DEDENT);
@@ -335,9 +346,12 @@ Literal infers Expression:
 DataType:
     name=Name ('(' parameters+=INT (',' parameters+=INT)* ')')?;
 
-/** A name of a table, a column or another object. Some keywords are accepted as names. */
+/**
+ * A name of a table, a column or another object. Some keywords are accepted as names.
+ * Any other keyword, and a name with upper-case letters or other characters, is written in double quotes.
+ */
 Name returns string:
-    ID | 'value' | 'key' | 'date' | 'type' | 'data' | 'next';
+    ID | QUOTED_ID | 'value' | 'key' | 'date' | 'type' | 'data' | 'next' | 'required' | 'finish';
 
 // Tokens of the envelope. The MigQL lexer produces them; the patterns are never used.
 terminal INDENT: 'synthetic:indent';
@@ -358,3 +372,4 @@ terminal DECIMAL returns number: /[0-9]+\.[0-9]+/;
 terminal INT returns number: /[0-9]+/;
 terminal STRING: /'(?:[^']|'')*'/;
 terminal ID: /[_a-zA-Z][\w_]*/;
+terminal QUOTED_ID: /"[^"\r\n]+"/;

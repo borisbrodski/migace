@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest';
-import { createMigql, error, lines } from '../support.js';
+import { createMigql, DIAGNOSTICS_ONLY, error, lines } from '../support.js';
 
-const { parseMarked, parse } = createMigql();
+const { parseMarked, parse, clear } = createMigql();
 
 const NAME = 'migration: 20260302-0900-x';
 
@@ -75,7 +75,7 @@ describe('Validation: one operation per part', () => {
         const parsed = await parseMarked(lines(NAME, 'parts:', '  - <<{|p|}>>:', '      when: true'));
 
         expect(parsed).toHaveDocumentIssues([
-            error('The part "p" has no operation. Add one of: do, insert, native, stop.', 0),
+            error('The part "p" has no operation. Add one of: do, insert, upsert, native, stop.', 0),
         ]);
     });
 
@@ -83,7 +83,7 @@ describe('Validation: one operation per part', () => {
         const parsed = await parseMarked(lines(NAME, 'parts:', '  - <<{|p|}>>:'));
 
         expect(parsed).toHaveDocumentIssues([
-            error('The part "p" has no operation. Add one of: do, insert, native, stop.', 0),
+            error('The part "p" has no operation. Add one of: do, insert, upsert, native, stop.', 0),
         ]);
     });
 
@@ -107,7 +107,7 @@ describe('Validation: part names', () => {
     });
 });
 
-// M1-AC-10
+// M1-AC-10, M1.1-AC-18
 describe('Validation: phase', () => {
     test('finish is accepted', async () => {
         const parsed = await parseMarked(lines(NAME, 'parts:', '  - p:', '      do: update t set c = 1', '      phase: finish'));
@@ -118,8 +118,19 @@ describe('Validation: phase', () => {
     test('any other phase is an error at the value', async () => {
         const parsed = await parseMarked(lines(NAME, 'parts:', '  - p:', '      do: update t set c = 1', '      phase: <<{|start|}>>'));
 
-        expect(parsed).toHaveDocumentIssues([
-            error('The only phase to write is "finish". A part without a phase runs in the start phase.', 0),
-        ]);
+        expect(parsed).toHaveDocumentIssues([error('Expected "finish", but found "start".', 0)], DIAGNOSTICS_ONLY);
+    });
+});
+
+// M1.1-AC-18
+describe('Validation: requires-downtime', () => {
+    test('true and false are accepted, nothing else', async () => {
+        expect(await parseMarked(lines(NAME, 'requires-downtime: true'))).toHaveNoErrors();
+        await clear();
+        expect(await parseMarked(lines(NAME, 'requires-downtime: false'))).toHaveNoErrors();
+        await clear();
+        expect(await parseMarked(lines(NAME, 'requires-downtime: <<{|yes|}>>'))).toHaveDocumentIssues([
+            error('Expected "true" or "false", but found "yes".', 0),
+        ], DIAGNOSTICS_ONLY);
     });
 });

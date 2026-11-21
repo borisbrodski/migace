@@ -1,0 +1,12 @@
+different   view v_order_totals: definition: expected
+    | SELECT customer_id,
+    |    count(*) AS orders,
+    |    sum(total_cents) AS total_cents
+    |   FROM orders o
+    |  GROUP BY customer_id;
+  actual
+    | SELECT customer_id,
+    |    count(*) AS orders,
+    |    max(created_at) AS last_order_at
+    |   FROM orders o
+    |  GROUP BY customer_id;

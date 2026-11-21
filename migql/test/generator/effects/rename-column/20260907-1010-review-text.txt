@@ -1,0 +1,2 @@
+unexpected  column review.body
+missing     column review.review_text

@@ -2,7 +2,7 @@
 
 A schema migration framework for PostgreSQL and Hibernate. It writes migrations from the difference between the schema the application expects and an older database, and proves them on a database with data.
 
-**Status: first code.** The workspace (M0) and the MigQL parser with its checks (M1) exist in `migql/`. Everything else is design. The website in `website/` describes MIG-Ace as if it were finished.
+**Status: first code.** The workspace, the MigQL parser with its checks, the schema model with its PostgreSQL reader, and the PostgreSQL generation of statements exist (M0 to M3). Everything else is design. The website in `website/` describes MIG-Ace as if it were finished.
 
 ## Where things are
 

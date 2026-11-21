@@ -1,5 +1,6 @@
 import { EmptyFileSystem, URI } from 'langium';
-import { parseHelper } from 'langium/test';
+import { clearDocuments, parseHelper } from 'langium/test';
+import { afterEach } from 'vitest';
 import { DocumentIssueSeverity, DocumentIssueSource } from 'langium-tools/base';
 import { type IssueExpectation, parseWithMarks } from 'langium-tools/testing';
 import { createMigqlServices } from '../src/migql-module.js';
@@ -11,6 +12,8 @@ import type { Snippet } from '../src/generated/ast.js';
  */
 export function createMigql() {
     const services = createMigqlServices(EmptyFileSystem);
+    // Documents of one test must not be seen by the next: snippets of a project know each other.
+    afterEach(() => clearDocuments(services.shared));
     const parseText = parseHelper<Snippet>(services.migql);
     let count = 0;
     /** Gives the document the file name that its snippet name asks for, each in a folder of its own. */
@@ -45,6 +48,8 @@ export function createMigql() {
         },
         /** Parse only. */
         parse,
+        /** Forgets the documents parsed so far. For a test that parses several versions of one snippet. */
+        clear: () => clearDocuments(services.shared),
         /** Strip `<<{|` … `|}>>`, parse and validate. The markers are the expected ranges. */
         parseMarked: (text: string) => parseWithMarks(parse, text),
         /** Parse and validate. */

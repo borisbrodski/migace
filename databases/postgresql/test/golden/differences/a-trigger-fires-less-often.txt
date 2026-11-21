@@ -1,0 +1,1 @@
+different   trigger order_item.trg_order_item_total: events: expected insert, delete, update, actual insert, delete

@@ -38,7 +38,9 @@ Read [How to use this vault](how-to-use-this-vault.md) before you change anythin
 - [Native SQL and dialects](migql/native-sql-and-dialects.md)
 - [Generation of database-specific SQL](migql/generation.md)
 - [Stability](migql/stability.md)
+- [Functions in expressions](migql/functions.md)
 - [langium-tools](migql/langium-tools.md): the helper library used to build and test the language
+- [langium-tools: wishes not reported yet](migql/langium-tools-issues.md)
 
 ## Engineering
 

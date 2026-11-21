@@ -1,0 +1,1 @@
+different   index orders.ix_orders_customer: name: expected ix_orders_customer, actual orders_customer_idx

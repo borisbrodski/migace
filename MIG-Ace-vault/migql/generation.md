@@ -25,6 +25,7 @@ migql/constructs/alter-table-add-column/
 ├─ generated/
 │  └─ postgresql/               the SQL that must be generated for the valid snippets
 ├─ generated-metadata.json      list of generated files, written by the test tool
+├─ setup/                       optional: SQL that an example needs on top of the bookshop of release 1.0.0
 └─ invalid/                     snippets that must fail: `# expect: <message>` lines, then markers at the expected places
 ```
 

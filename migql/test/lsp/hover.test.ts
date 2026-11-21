@@ -37,8 +37,8 @@ describe('Hover', () => {
     });
 
     test('a part that is not generated yet says so', async () => {
-        await at(lines(NAME, 'parts:', '  - ren<|>ame:', '      do: rename column customer.mail to email'),
-            '"rename column" needs several steps. Its generation belongs to milestone M3.');
+        await at(lines(NAME, 'parts:', '  - ens<|>ure:', '      do: ensure column orders.shipped_at timestamp(3)'),
+            '"ensure column" knows the details of varchar, char and numeric only, not of timestamp(3).');
     });
 
     test('a key shows what it is for', async () => {

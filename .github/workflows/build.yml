@@ -1,14 +1,11 @@
 name: Build
 
-# Build, lint and tests on every push to candidate and to feature branches.
-# No step needs Docker.
+# Build, lint and tests on every push to candidate and to feature branches,
+# on Linux and on Windows. No step needs Docker.
 
 on:
   push:
     branches-ignore: [main]
-    paths-ignore:
-      - 'website/**'
-      - 'MIG-Ace-vault/**'
   workflow_dispatch:
 
 permissions:
@@ -16,8 +13,14 @@ permissions:
 
 jobs:
   build:
-    # Windows is part of M0-AC-06 and is added when the tool chain was tried on Windows.
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -28,3 +31,12 @@ jobs:
       - run: npm run build
       - run: npm run lint
       - run: npm test
+      # The expected files in the repository must be what the generators produce now.
+      - run: npm run test:generate
+      - name: The generate run changed no file
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            git status --short
+            git diff
+            exit 1
+          fi

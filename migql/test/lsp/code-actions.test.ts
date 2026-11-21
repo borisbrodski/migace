@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'vitest';
+import { clearDocuments } from 'langium/test';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import type { CodeAction } from 'vscode-languageserver';
 import { createMigql, lines } from '../support.js';
@@ -15,7 +16,10 @@ async function quickFix(text: string): Promise<{ titles: string[], fixed: string
         context: { diagnostics },
     }) as CodeAction[];
     const edits = actions[0]?.edit?.changes?.[document.textDocument.uri] ?? [];
-    return { titles: actions.map(action => action.title), fixed: TextDocument.applyEdits(document.textDocument, edits) };
+    const fixed = TextDocument.applyEdits(document.textDocument, edits);
+    // The corrected text takes the place of the original one.
+    await clearDocuments(services.shared);
+    return { titles: actions.map(action => action.title), fixed };
 }
 
 const NAME = 'migration: 20260302-0900-x';

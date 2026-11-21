@@ -1,0 +1,1 @@
+different   column book.title: type details: expected 200, actual 300

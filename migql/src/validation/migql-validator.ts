@@ -1,19 +1,29 @@
-import { type AstNode, CstUtils, UriUtils, AstUtils, type ValidationAcceptor, type ValidationChecks } from 'langium';
+import { type AstNode, AstUtils, CstUtils, type IndexManager, UriUtils, type ValidationAcceptor, type ValidationChecks } from 'langium';
 import type { Range } from 'vscode-languageserver-types';
-import type { FillEntry, LetDefinition, MigqlAstType, NameEntry, NameRef, Part, PartEntry, PartsEntry, PhaseEntry, Placeholder, Snippet } from '../generated/ast.js';
-import { isDoEntry, isInsertEntry, isNameEntry, isNameRef, isNativeEntry, isPart, isStopEntry, isTodoEntry } from '../generated/ast.js';
+import type {
+    Expression, FlowMap, FunctionCall, LetDefinition, MigqlAstType, NameEntry, NameRef, Part, PartEntry, PartsEntry, Placeholder, Snippet,
+    UidEntry, UpsertEntry,
+} from '../generated/ast.js';
+import {
+    isDoEntry, isInsertEntry, isIntoEntry, isKeyEntry, isNameEntry, isNameRef, isNativeEntry, isNegativeExpression, isNumberLiteral,
+    isPart, isRowsEntry, isSnippet, isStopEntry, isTodoEntry, isUpsertEntry,
+} from '../generated/ast.js';
+import { FUNCTIONS } from '../functions.js';
 import type { MigqlServices } from '../migql-module.js';
+import { slugOf } from '../model/snippet.js';
 
 export function registerValidationChecks(services: MigqlServices): void {
     const validator = services.validation.MigqlValidator;
     const checks: ValidationChecks<MigqlAstType> = {
         Snippet: [validator.checkSnippetHasOneName, validator.checkKeysAppearOnce],
-        NameEntry: [validator.checkFormOfName, validator.checkFileName],
+        NameEntry: [validator.checkFormOfName, validator.checkFileName, validator.checkSlugIsUnique],
+        UidEntry: validator.checkUidIsUnique,
         PartsEntry: validator.checkPartNamesAreUnique,
         Part: [validator.checkPartHasOneOperation, validator.checkKeysAppearOnce],
-        PhaseEntry: validator.checkPhase,
+        UpsertEntry: validator.checkUpsert,
+        FlowMap: validator.checkFlowMapHoldsSimpleValues,
+        FunctionCall: validator.checkFunctionIsKnown,
         LetDefinition: validator.checkDefinitionDoesNotUseItself,
-        FillEntry: validator.checkFillMode,
         Placeholder: validator.checkPlaceholderHasTodo,
     };
     services.validation.ValidationRegistry.register(checks, validator);
@@ -28,6 +38,36 @@ const FILE_ENDING = '.migql.yaml';
 const NAME_FORM = /^\d{8}-\d{4}-[a-z0-9]+(-[a-z0-9]+)*$/;
 
 export class MigqlValidator {
+
+    private readonly index: IndexManager;
+
+    constructor(services: MigqlServices) {
+        this.index = services.shared.workspace.IndexManager;
+    }
+
+    checkSlugIsUnique(entry: NameEntry, accept: ValidationAcceptor): void {
+        const slug = slugOf(AstUtils.getContainerOfType(entry, isSnippet)!);
+        for (const other of this.othersWith(entry, slug)) {
+            accept('error', `The slug "${slug}" is also used by ${other}. ` +
+                'Slugs must be unique in a project, because snippets refer to each other by slug.', { node: entry, property: 'name' });
+        }
+    }
+
+    checkUidIsUnique(entry: UidEntry, accept: ValidationAcceptor): void {
+        for (const other of this.othersWith(entry, entry.value)) {
+            accept('error', `The uid "${entry.value}" is also used by ${other}. ` +
+                'Every snippet needs a uid of its own; create a new one for the newer snippet.', { node: entry, property: 'value' });
+        }
+    }
+
+    /** The names of the other files that have an entry of the same kind with the same value. */
+    private othersWith(entry: AstNode, value: string | undefined): string[] {
+        const own = AstUtils.getDocument(entry).uri.toString();
+        return this.index.allElements(entry.$type)
+            .filter(description => description.name === value && description.documentUri.toString() !== own)
+            .map(description => UriUtils.basename(description.documentUri))
+            .toArray();
+    }
 
     checkSnippetHasOneName(snippet: Snippet, accept: ValidationAcceptor): void {
         const [first, ...others] = snippet.entries.filter(isNameEntry);
@@ -86,7 +126,7 @@ export class MigqlValidator {
     checkPartHasOneOperation(part: Part, accept: ValidationAcceptor): void {
         const operations = part.entries.filter(isOperation).map(keyOf);
         if (operations.length === 0) {
-            accept('error', `The part "${part.name}" has no operation. Add one of: do, insert, native, stop.`,
+            accept('error', `The part "${part.name}" has no operation. Add one of: do, insert, upsert, native, stop.`,
                 { node: part, property: 'name' });
         } else if (operations.length > 1) {
             accept('error', `The part "${part.name}" has ${operations.length} operations: ${operations.join(', ')}. ` +
@@ -95,17 +135,43 @@ export class MigqlValidator {
         }
     }
 
-    checkPhase(entry: PhaseEntry, accept: ValidationAcceptor): void {
-        if (entry.phase !== 'finish') {
-            accept('error', 'The only phase to write is "finish". A part without a phase runs in the start phase.',
-                { node: entry, property: 'phase' });
+    checkUpsert(upsert: UpsertEntry, accept: ValidationAcceptor): void {
+        const first = upsert.entries[0];
+        const missing = (present: boolean, message: string) => {
+            if (!present) {
+                accept('error', message, { node: first, range: keyRange(first) });
+            }
+        };
+        missing(upsert.entries.some(isIntoEntry), 'An upsert needs "into": the table.');
+        missing(upsert.entries.some(isKeyEntry), 'An upsert needs "key": the column, or the list of columns, by which an existing row is found.');
+        missing(upsert.entries.some(isRowsEntry), 'An upsert needs "rows": the list of rows.');
+
+        const keys = upsert.entries.filter(isKeyEntry).flatMap(entry => entry.columns);
+        for (const row of upsert.entries.filter(isRowsEntry).flatMap(entry => entry.rows)) {
+            const given = new Set(row.map.values.map(value => value.column));
+            const absent = keys.filter(key => !given.has(key)).map(key => `"${key}"`);
+            if (absent.length > 0) {
+                accept('error', `This row has no value for the key column${absent.length > 1 ? 's' : ''} ${absent.join(' and ')}. ` +
+                    'Every row of an upsert gives all key columns.', { node: row.map });
+            }
         }
     }
 
-    checkFillMode(entry: FillEntry, accept: ValidationAcceptor): void {
-        if (entry.mode !== 'all' && entry.mode !== 'required') {
-            accept('error', 'The fill mode is "all" (every column has a value) or "required" (only mandatory columns).',
-                { node: entry, property: 'mode' });
+    checkFunctionIsKnown(call: FunctionCall, accept: ValidationAcceptor): void {
+        if (!(call.name.toLowerCase() in FUNCTIONS)) {
+            accept('error', `Unknown function "${call.name}". A snippet may call: ${Object.keys(FUNCTIONS).sort().join(', ')}. ` +
+                'They are described in the MigQL notes, migql/functions.md. Anything else belongs in a native part.',
+            { node: call, property: 'name' });
+        }
+    }
+
+    /** YAML splits a flow map at every comma and reads quotes its own way. Only simple values mean the same in both. */
+    checkFlowMapHoldsSimpleValues(map: FlowMap, accept: ValidationAcceptor): void {
+        for (const entry of map.values) {
+            if (!isSimpleValue(entry.value)) {
+                accept('error', 'A flow map holds only literals, names and table.column. Write the values in the block form, one line per column.',
+                    { node: entry, property: 'value' });
+            }
         }
     }
 
@@ -144,7 +210,13 @@ function findCycle(start: LetDefinition, current: LetDefinition, visited: LetDef
 }
 
 function isOperation(entry: PartEntry): boolean {
-    return isDoEntry(entry) || isInsertEntry(entry) || isNativeEntry(entry) || isStopEntry(entry);
+    return isDoEntry(entry) || isInsertEntry(entry) || isUpsertEntry(entry) || isNativeEntry(entry) || isStopEntry(entry);
+}
+
+const SIMPLE_VALUES = new Set(['StringLiteral', 'NumberLiteral', 'DateLiteral', 'NullLiteral', 'BooleanLiteral', 'NameRef', 'ColumnRef', 'Placeholder']);
+
+function isSimpleValue(value: Expression): boolean {
+    return SIMPLE_VALUES.has(value.$type) || (isNegativeExpression(value) && isNumberLiteral(value.operand));
 }
 
 /** The key token of an entry, such as `uid:`. Every entry starts with it. */

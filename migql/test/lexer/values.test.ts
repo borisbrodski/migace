@@ -148,8 +148,8 @@ describe('Lexer: one-line values that YAML would read differently', () => {
     });
 
     test.each(["'", '"', '@', '`', '%', '[', ']', '}', ','])('a value cannot start with %s', character => {
-        expect(lexerErrors(`doc: ${character}text\n`)).toEqual([
-            `YAML reads a value that starts with ${character} differently.${ADVICE}@1:6+1`,
+        expect(lexerErrors(`when: ${character}text\n`)).toEqual([
+            `YAML reads a value that starts with ${character} differently.${ADVICE}@1:7+1`,
         ]);
     });
 
@@ -171,5 +171,74 @@ describe('Lexer: one-line values that YAML would read differently', () => {
 
     test('a flow map keeps its colons', () => {
         expect(lexerErrors("testdata:\n  - table: t\n    row: { a: 'x', b: 2 }\n")).toEqual([]);
+    });
+});
+
+// M1.1-AC-03
+describe('Lexer: line endings', () => {
+    test('a file with Windows line endings gives the same tokens', () => {
+        const text = inPart('do: |', '  update orders', "     set note = 'a'", '', 'when: true') + 'doc: |\n  One.\n  Two.\n';
+
+        const windows = tokens(text.replace(/\n/g, '\r\n'));
+
+        // A text over several lines keeps its line endings in the token. Its value has none, see the parser tests.
+        expect(windows.map(token => token.replace(/\r/g, ''))).toEqual(tokens(text));
+        expect(lexerErrors(text.replace(/\n/g, '\r\n'))).toEqual([]);
+    });
+});
+
+// M1.1-AC-15
+describe('Lexer: free text in quotes', () => {
+    test.each(['doc', 'changed', 'retired'])('the text of %s may not start with a quote', key => {
+        expect(lexerErrors(`${key}: 'A text'\n`)).toEqual([
+            'Free text is not put in quotes. Remove the quotes, or use a literal block: write | after the key and the text on the lines below it.@1:' + (key.length + 3) + '+1',
+        ]);
+        expect(lexerErrors(`${key}: "A text"\n`)).toHaveLength(1);
+    });
+
+    test.each(['stop', 'todo'])('the text of %s may not start with a quote', key => {
+        expect(lexerErrors(inPart(`${key}: 'A text'`))).toEqual([
+            'Free text is not put in quotes. Remove the quotes, or use a literal block: write | after the key and the text on the lines below it.@3:' + (key.length + 9) + '+1',
+        ]);
+    });
+
+    test('a quote inside the text and a quoted text in a literal block are accepted', () => {
+        expect(lexerErrors("doc: It's fine\n")).toEqual([]);
+        expect(lexerErrors("doc: |\n  'Quoted' text\n")).toEqual([]);
+    });
+});
+
+// M1.1-AC-17
+describe('Lexer: a list at the indentation of its key', () => {
+    test('is one error at its first item, and the lines after the list are read', () => {
+        const text = 'parts:\n- first:\n    do: delete from t\n- second:\n    do: delete from u\nuid: A\n';
+
+        expect(lexerErrors(text)).toEqual([
+            'A list is indented below its key. Indent this line and the other lines of the list.@2:1+1',
+        ]);
+        expect(tokens(text)).toEqual(['parts:', 'uid:', 'WORD(A)', 'EOL()']);
+    });
+
+    test('is also found below a nested key', () => {
+        expect(lexerErrors(inPart('do: delete from t', 'verify-after:', '- all: true'))).toEqual([
+            'A list is indented below its key. Indent this line and the other lines of the list.@5:7+1',
+        ]);
+    });
+});
+
+// M1.1-AC-16
+describe('Lexer: names in double quotes', () => {
+    test('a name in double quotes is one token', () => {
+        expect(tokens(inPart('do: |', '  update "order" set "Mixed Case" = 1'))).toEqual([
+            ...PART_START, 'do:', 'update', 'QUOTED_ID("order")', 'set', 'QUOTED_ID("Mixed Case")', '=', 'INT(1)', 'EOL()', ...PART_END,
+        ]);
+    });
+});
+
+// M1.1-AC-11
+describe('Lexer: a list of names on one line', () => {
+    test('is read with the tokens of the statement language', () => {
+        expect(lexerErrors(inPart('upsert:', '  key: [book_id, currency]'))).toEqual([]);
+        expect(tokens(inPart('upsert:', '  key: [book_id, currency]')).slice(8, 15)).toEqual(['key:', '[', 'ID(book_id)', ',', 'ID(currency)', ']', 'EOL()']);
     });
 });

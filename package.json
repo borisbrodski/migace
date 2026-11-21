@@ -12,8 +12,9 @@
     "node": "22.22.2"
   },
   "workspaces": [
+    "core",
     "migql",
-    "core"
+    "databases/postgresql"
   ],
   "scripts": {
     "build": "npm run build --workspaces --if-present",

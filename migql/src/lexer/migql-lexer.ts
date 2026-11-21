@@ -84,20 +84,24 @@ export const LITERAL_BLOCK_ADVICE = ' Use a literal block: write | after the key
  * Finds the place in a one-line value where a YAML parser reads something else than MigQL does.
  * `rest` is the line after the key, `value` the same without a comment at its end.
  */
-function misreadByYaml(rest: string, value: string): { message: string, at: number } | undefined {
+function misreadByYaml(rest: string, value: string, kind: ValueKind | undefined): { message: string, at: number } | undefined {
     const first = value.charAt(0);
+    if (kind === 'text' && (first === "'" || first === '"')) {
+        return { message: 'Free text is not put in quotes. Remove the quotes, or use a literal block: write | after the key and the text on the lines below it.', at: 0 };
+    }
     const isOneQuotedText = /^'(?:[^']|'')*'$/.test(value);
-    if (first !== '' && '\'"@`%[]},'.includes(first) && !isOneQuotedText) {
-        return { message: `YAML reads a value that starts with ${first} differently.`, at: 0 };
+    const isList = first === '[' && value.endsWith(']');
+    if (first !== '' && '\'"@`%[]},'.includes(first) && !isOneQuotedText && !isList) {
+        return { message: `YAML reads a value that starts with ${first} differently.${LITERAL_BLOCK_ADVICE}`, at: 0 };
     }
     const comment = /\s#/.exec(rest);
     const quotes = value.split("'").length - 1;
     if (comment && quotes % 2 === 1) {
-        return { message: 'YAML reads " #" as the start of a comment, so the rest of the line would be lost.', at: comment.index + 1 };
+        return { message: `YAML reads " #" as the start of a comment, so the rest of the line would be lost.${LITERAL_BLOCK_ADVICE}`, at: comment.index + 1 };
     }
     const colon = first === '{' ? null : /:(\s|$)/.exec(value);
     if (colon) {
-        return { message: 'YAML does not allow ": " inside a value that stands on the line of its key.', at: colon.index };
+        return { message: `YAML does not allow ": " inside a value that stands on the line of its key.${LITERAL_BLOCK_ADVICE}`, at: colon.index };
     }
     return undefined;
 }
@@ -136,6 +140,8 @@ class Scan {
     private pending?: Context;
     /** Set after an entry that could not be read: deeper lines belong to it and are skipped. */
     private skipBelow?: number;
+    /** Set after a list that stands at the indentation of its key: its items are skipped. */
+    private skipListAt?: number;
 
     private nextOffset = 0;
     private lineOffset = 0;
@@ -193,6 +199,17 @@ class Scan {
                 return;
             }
             this.skipBelow = undefined;
+        }
+        if (this.pending && indent === this.top.indent && /^-(\s|$)/.test(this.line.substring(indent))) {
+            this.error('A list is indented below its key. Indent this line and the other lines of the list.', indent, 1);
+            this.pending = undefined;
+            this.skipListAt = indent;
+        }
+        if (this.skipListAt !== undefined) {
+            if (indent > this.skipListAt || (indent === this.skipListAt && this.line.charAt(indent) === '-')) {
+                return;
+            }
+            this.skipListAt = undefined;
         }
         this.moveToIndentation(indent);
         if (indent > this.top.indent) {
@@ -264,9 +281,9 @@ class Scan {
             this.rejectEntry(column, ...unsupported, valueColumn);
             return;
         }
-        const misread = misreadByYaml(afterKey, value);
+        const misread = misreadByYaml(afterKey, value, spec.value);
         if (misread) {
-            this.rejectEntry(column, misread.message + LITERAL_BLOCK_ADVICE, 1, valueColumn + misread.at);
+            this.rejectEntry(column, misread.message, 1, valueColumn + misread.at);
             return;
         }
         if (fixed) {

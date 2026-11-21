@@ -60,6 +60,10 @@ langium-tools 0.4.0 sets these versions. **[direction]**
 4. **Generate run on Windows.** `tools/with-env.mjs` sets the variable without a shell feature. It was run on Linux only and has to be tried on Windows.
 5. **Prototype extensions.** Importing the string and array helpers adds methods to `String.prototype` and `Array.prototype`. MIG-Ace is itself a library for others, so its shipped code should call the function forms (`toFirstUpper(x)`, `arraySortBy(x, …)`).
 
+## Issues found
+
+Two wishes that are not reported yet are written down in [langium-tools: wishes not reported yet](langium-tools-issues.md).
+
 ## What MIG-Ace may add to langium-tools
 
 MIG-Ace needs these and they are not specific to MIG-Ace. They are candidates for langium-tools, not decisions.

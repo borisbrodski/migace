@@ -2,7 +2,7 @@
 
 -- part: create-table
 create table price_history (
-    id BIGINT not null primary key,
+    id bigint not null primary key,
     book_id bigint not null,
     price_cents numeric(12, 2) not null default 0,
     valid_from date not null,

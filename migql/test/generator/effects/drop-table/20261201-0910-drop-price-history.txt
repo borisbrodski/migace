@@ -1,0 +1,1 @@
+missing     table price_history

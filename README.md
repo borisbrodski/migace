@@ -35,6 +35,8 @@ npm test               # all tests of all packages
 npm run test:generate  # rewrites the expected SQL in migql/constructs/*/generated; review the diff
 ```
 
+Other expected files are updated with Vitest, in the folder of the package: `npx vitest run -u`. Review the diff as well.
+
 Inside `migql/`, `npx vitest` runs the tests in watch mode. Run `npm run langium:generate` there after a change to the grammar.
 
 ## Website

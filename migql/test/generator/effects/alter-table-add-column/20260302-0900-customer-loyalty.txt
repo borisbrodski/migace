@@ -1,0 +1,1 @@
+unexpected  column customer.loyalty_level

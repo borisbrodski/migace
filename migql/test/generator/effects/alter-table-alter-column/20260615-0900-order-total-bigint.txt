@@ -1,0 +1,2 @@
+different   column order_item.price_cents: type: expected integer, actual bigint
+different   column orders.total_cents: type: expected integer, actual bigint

@@ -1,0 +1,2 @@
+unexpected  check constraint book.ck_book_price
+unexpected  unique constraint order_status.uq_order_status_label

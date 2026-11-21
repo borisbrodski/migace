@@ -1,4 +1,4 @@
-# expect: Expected a name, but found "on".
+# expect: Expected a name, but found "on". "on" is a keyword. To use it as a name, write it in double quotes: "on".
 migration: 20260101-0900-example
 
 parts:

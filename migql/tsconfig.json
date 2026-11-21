@@ -2,7 +2,20 @@
   "extends": "../tsconfig.base.json",
   "compilerOptions": {
     "noEmit": true,
-    "strictPropertyInitialization": false
+    "strictPropertyInitialization": false,
+    "paths": {
+      "@migace/core": [
+        "../core/src/index.ts"
+      ],
+      "@migace/postgresql": [
+        "../databases/postgresql/src/index.ts"
+      ]
+    }
   },
-  "include": ["src/**/*", "test/**/*", "generators/**/*", "vitest.config.ts"]
+  "include": [
+    "src/**/*",
+    "test/**/*",
+    "generators/**/*",
+    "vitest.config.ts"
+  ]
 }

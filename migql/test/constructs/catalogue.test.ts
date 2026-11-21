@@ -18,6 +18,8 @@ const REQUIRED = [
     'create-table', 'alter-table-add-column', 'alter-table-drop-column', 'alter-table-alter-column',
     'alter-table-add-constraint', 'create-index', 'drop-table', 'drop-index', 'ensure-column', 'rename-column',
     'update', 'delete', 'insert-values', 'insert-select',
+    // M1.1-AC-13
+    'upsert',
 ];
 
 const { parse, parseMarked } = createMigql();

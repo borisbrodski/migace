@@ -3,7 +3,11 @@
   "compilerOptions": {
     "noEmit": false,
     "rootDir": ".",
-    "outDir": "out"
+    "outDir": "out",
+    "paths": {}
   },
-  "include": ["src/**/*", "generators/**/*"]
+  "include": [
+    "src/**/*",
+    "generators/**/*"
+  ]
 }

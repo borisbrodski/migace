@@ -1,0 +1,11 @@
+migration: 20260518-1040-order-statuses
+
+parts:
+  - statuses:
+      upsert:
+        into: order_status
+        key: code
+        rows:
+          - { id: 1, code: 'OPEN', label: 'Open' }
+          - { id: 2, code: 'PAID', label: 'Paid' }
+          - { id: 3, code: 'SHIPPED', label: 'Shipped' }

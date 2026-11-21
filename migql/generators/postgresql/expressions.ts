@@ -1,6 +1,7 @@
 import type { DataType, Expression, Select } from '../../src/generated/ast.js';
+import { name, text } from './names.js';
 
-/** Functions of the statement language that PostgreSQL spells differently. */
+/** Functions of the statement language that PostgreSQL spells differently. All others keep their name. */
 const FUNCTIONS: Record<string, (args: string[]) => string> = {
     days: args => `make_interval(days => ${args.join(', ')})`,
 };
@@ -28,10 +29,10 @@ export function expression(node: Expression): string {
             'end',
         ].join(' ');
         case 'CastExpression': return `cast(${expression(node.expression)} as ${dataType(node.type)})`;
-        case 'NextValueExpression': return `nextval(${text(node.sequence)})`;
+        case 'NextValueExpression': return `nextval(${text(name(node.sequence))})`;
         case 'FunctionCall': return functionCall(node.name, node.star ? ['*'] : node.arguments.map(expression));
-        case 'ColumnRef': return `${node.table}.${node.column}`;
-        case 'NameRef': return node.target.$refText;
+        case 'ColumnRef': return `${name(node.table)}.${name(node.column)}`;
+        case 'NameRef': return name(node.target.$refText);
         case 'StringLiteral': return text(node.value);
         case 'NumberLiteral': return node.$cstNode?.text ?? String(node.value);
         case 'DateLiteral': return `date ${text(node.value)}`;
@@ -42,21 +43,16 @@ export function expression(node: Expression): string {
 }
 
 export function select(query: Select): string {
-    return `select ${query.items.map(expression).join(', ')} from ${query.table}` +
-        (query.alias ? ` ${query.alias}` : '') +
+    return `select ${query.items.map(expression).join(', ')} from ${name(query.table)}` +
+        (query.alias ? ` ${name(query.alias)}` : '') +
         (query.condition ? ` where ${expression(query.condition)}` : '');
 }
 
 export function dataType(type: DataType): string {
-    return type.name + (type.parameters.length > 0 ? `(${type.parameters.join(', ')})` : '');
+    return name(type.name) + (type.parameters.length > 0 ? `(${type.parameters.join(', ')})` : '');
 }
 
-/** A text as a PostgreSQL literal. */
-export function text(value: string): string {
-    return `'${value.replace(/'/g, "''")}'`;
-}
-
-function functionCall(name: string, args: string[]): string {
-    const special = FUNCTIONS[name.toLowerCase()];
-    return special ? special(args) : `${name}(${args.join(', ')})`;
+function functionCall(written: string, args: string[]): string {
+    const special = FUNCTIONS[written.toLowerCase()];
+    return special ? special(args) : `${name(written)}(${args.join(', ')})`;
 }

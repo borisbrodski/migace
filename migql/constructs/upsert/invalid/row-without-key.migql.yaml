@@ -1,0 +1,11 @@
+# expect: This row has no value for the key column "code". Every row of an upsert gives all key columns.
+migration: 20260101-0900-example
+
+parts:
+  - p:
+      upsert:
+        into: order_status
+        key: code
+        rows:
+          - { code: 'OPEN', label: 'Open' }
+          - <<{|{ label: 'Paid' }|}>>

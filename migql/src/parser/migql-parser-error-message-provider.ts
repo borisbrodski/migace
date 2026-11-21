@@ -12,6 +12,7 @@ const LABELS: Record<string, string> = {
     WORD: 'a name',
     TEXT: 'a text',
     ID: 'a name',
+    QUOTED_ID: 'a name',
     INT: 'a number',
     DECIMAL: 'a number',
     STRING: 'a text in single quotes',
@@ -20,7 +21,7 @@ const LABELS: Record<string, string> = {
 };
 
 /** Keywords that the grammar also accepts as names. Where a name fits, they need no mention. */
-const NAME_KEYWORDS = new Set(['value', 'key', 'date', 'type', 'data', 'next']);
+const NAME_KEYWORDS = new Set(['value', 'key', 'date', 'type', 'data', 'next', 'required', 'finish']);
 
 /**
  * Says in the words of an author what the parser expected.
@@ -54,7 +55,17 @@ function message(expected: TokenType[], actual: IToken): string {
     if (names.length === 0 || names.every(name => name === 'EOL')) {
         return `Unexpected ${found(actual)}. The value is complete before it.`;
     }
-    return `Expected ${describe(names)}, but ${actual.image.length > 0 ? `found ${found(actual)}` : ending(actual)}.`;
+    return `Expected ${describe(names)}, but ${actual.image.length > 0 ? `found ${found(actual)}` : ending(actual)}.` +
+        (names.includes('ID') && isKeyword(actual) ? quoteAdvice(actual.image) : '');
+}
+
+/** A keyword of the statement language is a token whose name is its own text, made of letters. */
+function isKeyword(token: IToken): boolean {
+    return /^[A-Za-z]+$/.test(token.image) && token.tokenType.name.toLowerCase() === token.image.toLowerCase();
+}
+
+function quoteAdvice(keyword: string): string {
+    return ` "${keyword}" is a keyword. To use it as a name, write it in double quotes: "${keyword}".`;
 }
 
 function describe(names: string[]): string {

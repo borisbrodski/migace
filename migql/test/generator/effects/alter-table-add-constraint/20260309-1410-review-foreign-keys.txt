@@ -1,0 +1,2 @@
+unexpected  foreign key review.fk_review_book
+unexpected  foreign key review.fk_review_customer

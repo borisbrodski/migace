@@ -37,6 +37,14 @@ const insert: Context = {
     },
 };
 
+const upsert: Context = {
+    keys: {
+        into: statement,
+        key: statement,
+        rows: { children: { flowItems: true } },
+    },
+};
+
 const checks: Context = {
     keys: {
         all: statement,
@@ -50,6 +58,7 @@ const partBody: Context = {
     keys: {
         'do': statement,
         'insert': { children: insert },
+        'upsert': { children: upsert },
         'native': { children: { names: text } },
         'stop': text,
         'when': statement,
@@ -57,7 +66,7 @@ const partBody: Context = {
         'verify-after': { value: 'statement', children: checks },
         'batch': statement,
         'expect-rows': statement,
-        'phase': word,
+        'phase': statement,
         'todo': text,
     },
 };
@@ -66,7 +75,7 @@ const testRow: Context = {
     keys: {
         table: statement,
         as: statement,
-        fill: word,
+        fill: statement,
         row: { value: 'statement', children: { names: statement } },
     },
 };
@@ -84,6 +93,6 @@ export const snippetContext: Context = {
         'testdata-before': { children: testRow },
         'changed': text,
         'retired': text,
-        'requires-downtime': word,
+        'requires-downtime': statement,
     },
 };
