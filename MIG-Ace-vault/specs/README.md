@@ -12,7 +12,7 @@ A spec contains: goal, non-goals, the notes it builds on, numbered acceptance cr
 |---|---|
 | [M0 Workspace](m0-workspace.md) | done on Linux; Windows (M0-AC-04, M0-AC-06) moves to M1.1 |
 | [M1 MigQL parser and checks](m1-migql-parser.md) | done except `upsert` (M1-AC-08), which moves to M1.1 |
-| [M1.1 MigQL follow-up](m1-1-migql-follow-up.md) | ready |
+| [M1.1 MigQL follow-up](m1-1-migql-follow-up.md) | ready; includes the syntax decisions taken after M1 |
 | [M2 Schema model, comparison and fingerprint](m2-schema-model.md) | ready |
 | [M3 PostgreSQL generation of statements](m3-postgresql-generation.md) | ready; needs M2 for its last part |
 

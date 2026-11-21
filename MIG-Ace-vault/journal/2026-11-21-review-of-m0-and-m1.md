@@ -28,7 +28,7 @@ A review of the first implementation session, done in a fresh clone on Linux wit
 ## Deviations from the specs
 
 1. **More than the spec asked for.** M1 listed SQL generation and editor features as non-goals. The session built a first PostgreSQL generator (about 220 lines) and hover, completion and two quick fixes. All of it is tested and small. The generator is the starting point of M3. Rule for the future: a non-goal is not built; if it seems needed, write the reason into the journal first.
-2. **One commit for everything.** 188 files arrived in one commit. The tests exist, but the history cannot show that each test came before its code. The [coding rules](../engineering/coding-rules.md) now ask for small commits.
+2. **One commit for everything.** 188 files arrived in one commit. The project owner accepts this for the first phase: a commit is one logical change and does not have to follow the test-first cycles. See the [coding rules](../engineering/coding-rules.md).
 3. **Windows is open:** M0-AC-04 and M0-AC-06, as the session note says.
 
 ## Findings
@@ -45,7 +45,7 @@ A review of the first implementation session, done in a fresh clone on Linux wit
 
 ## Recommendations on the open language questions
 
-These are recommendations to the project owner. None of them is decided.
+The project owner accepted all of these on 2026-11-21. They are recorded in [MigQL syntax decisions after the first implementation](../decisions/migql-syntax-after-m1.md).
 
 | Question | Recommendation |
 |---|---|

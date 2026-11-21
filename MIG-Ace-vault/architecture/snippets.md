@@ -34,7 +34,7 @@ Top-level keys:
 
 ### The `upsert` operation
 
-`upsert` inserts rows that are missing and updates rows that exist, found by a key. A part with `upsert` can therefore run on a database that already has some of the rows. **[direction]**
+`upsert` inserts rows that are missing and updates rows that exist, found by a key. A part with `upsert` can therefore run on a database that already has some of the rows. **[decided]**
 
 ```yaml
 parts:

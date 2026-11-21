@@ -70,4 +70,4 @@ MIG-Ace needs these and they are not specific to MIG-Ace. They are candidates fo
 
 ## Known problems in 0.4.0
 
-Four problems are written up as issue texts in [langium-tools issues](../journal/2026-11-21-langium-tools-issues.md).
+Four problems are reported as issues [#1](https://github.com/borisbrodski/langium-tools/issues/1) to [#4](https://github.com/borisbrodski/langium-tools/issues/4) of langium-tools. A summary is in [langium-tools issues](../journal/2026-11-21-langium-tools-issues.md). When one is fixed, remove its workaround in MIG-Ace.

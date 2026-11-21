@@ -16,6 +16,9 @@ The statement language follows common SQL where a portable form exists and adds 
 - **Expressions:** arithmetic, `||`, comparisons, `and/or/not`, `is null`, `in`, `between`, `like`, `case`, `cast`, and a list of portable functions.
 - **Sequences:** `next value for <sequence>`.
 - Keywords and unquoted identifiers are case-insensitive.
+- A name that is a keyword is written in double quotes, as in SQL: `"index"`. **[decided]**
+- A change of a column type has two accepted spellings: `alter column c type t` and `alter column c set data type t`. **[decided]**
+- `?` stands for a value that is not decided yet. It is allowed only in a part with a `todo`. **[decided]**
 
 A condition must never restate what the operation already says. **[decided]**
 

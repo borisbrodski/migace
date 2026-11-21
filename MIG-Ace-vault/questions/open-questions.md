@@ -29,15 +29,14 @@ status: open
 22. *Closed 2026-11-21:* `upgrade-from` keeps its name for now.
 23. **Format of acceptance scenarios.** See [Test concept](../testing/test-concept.md).
 24. *Closed 2026-11-21:* the website now shows `rename column` with the `start` and `finish` phases. The two examples parse and are no longer skipped.
-25. **`upsert`:** the operation is listed in [Snippets](../architecture/snippets.md) and in M1-AC-08, but no note says how it is written. It is not implemented.
-26. **`former-names`, `before`, `after`:** the keys are listed in [Snippets](../architecture/snippets.md) without the form of their values. They are not implemented.
-27. **Comment after a one-line statement:** is `do: delete from t # why` allowed? It is accepted now, because YAML reads it the same way. M1-AC-14 can be read as: every ` #` in a one-line statement is an error.
-28. **`?` in a statement:** the website writes `do: update customer set loyalty_level = ?` in a part with a `todo`. The parser accepts `?` only in such a part. Confirm, or choose another sign.
-29. **Values in flow maps:** YAML and MigQL read `{ a: coalesce(x, 1) }` differently. Proposal in [the journal](../journal/2026-11-21-workspace-and-migql-parser.md): only literals and names in a flow map.
-30. **Quoted names:** how is a column written whose name is a keyword of the statement language? Proposal: double quotes, as in SQL.
-31. **Lists at the indentation of their key:** YAML allows `parts:` and `- name:` in the same column. MigQL does not. Support it, or keep the rule and improve the message.
+25. *Closed 2026-11-21:* see [MigQL syntax decisions after the first implementation](../decisions/migql-syntax-after-m1.md).
+26. *Deferred 2026-11-21:* `former-names`, `before` and `after` are left out until the work on ordering starts. Their form is decided then.
+27. *Closed 2026-11-21:* see [MigQL syntax decisions after the first implementation](../decisions/migql-syntax-after-m1.md).
+28. *Closed 2026-11-21:* see [MigQL syntax decisions after the first implementation](../decisions/migql-syntax-after-m1.md).
+29. *Closed 2026-11-21:* see [MigQL syntax decisions after the first implementation](../decisions/migql-syntax-after-m1.md).
+30. *Closed 2026-11-21:* see [MigQL syntax decisions after the first implementation](../decisions/migql-syntax-after-m1.md).
+31. *Closed 2026-11-21:* see [MigQL syntax decisions after the first implementation](../decisions/migql-syntax-after-m1.md).
 32. **Functions in expressions:** which functions may a snippet call? M3 proposes a list in `migql/functions.md`.
 33. **Automatic lock-safe forms:** `set not null` and a new foreign key are generated in the safe multi-step form. Should `create index` always be generated as `concurrently`, also when the author did not write it?
 34. **Contributor agreement:** do contributors sign an agreement that allows a later change of licence?
 
-Recommendations for questions 25 to 31 are in the [review of M0 and M1](../journal/2026-11-21-review-of-m0-and-m1.md).

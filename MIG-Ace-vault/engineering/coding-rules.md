@@ -26,7 +26,7 @@ Notes on applying it:
 
 ## Other rules
 
-- **Commit small.** Commit at the end of a cycle or of a few cycles that belong together, at least once per acceptance criterion. The history then shows how the code grew. **[direction]**
+- **One commit is one logical change.** A commit does not have to follow the test-first cycles. In the first phase of the project, while whole parts are built for the first time, larger commits are fine. **[decided]**
 - **A non-goal of a spec is not built.** If it seems needed, write the reason into the journal and ask. **[direction]**
 - No test may need Docker.
 - `core/` imports nothing from `databases/` and nothing from `migql/generators/`.

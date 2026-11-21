@@ -5,7 +5,16 @@ date: 2026-11-21
 
 # Issues for langium-tools
 
-Four issues for [langium-tools](https://github.com/borisbrodski/langium-tools), version 0.4.0. Each was checked against the source of langium-tools. They could not be posted from the review session, because that session had no write access to the repository.
+Four issues for [langium-tools](https://github.com/borisbrodski/langium-tools), version 0.4.0. Each was checked against the source of langium-tools. They were posted on 2026-11-21:
+
+| Issue | Topic |
+|---|---|
+| [#4](https://github.com/borisbrodski/langium-tools/issues/4) | `getDocumentIssues` returns lexer and parser errors twice |
+| [#2](https://github.com/borisbrodski/langium-tools/issues/2) | named targets need an empty `generated/DEFAULT` folder |
+| [#1](https://github.com/borisbrodski/langium-tools/issues/1) | snapshot tests are titled "(generating)" in the comparing run |
+| [#3](https://github.com/borisbrodski/langium-tools/issues/3) | the peer dependency on Vitest 2.0.5 |
+
+The texts below are the drafts. The issues on GitHub are the current version.
 
 ## 1. getDocumentIssues returns lexer and parser errors twice after validation
 
