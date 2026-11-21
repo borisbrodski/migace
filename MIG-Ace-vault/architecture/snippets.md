@@ -32,6 +32,25 @@ Top-level keys:
 | `changed` | reason for an intentional change to a released snippet | decided |
 | `retired`, `requires-downtime`, `former-names`, `before`, `after` | mishap and ordering controls | direction |
 
+### The `upsert` operation
+
+`upsert` inserts rows that are missing and updates rows that exist, found by a key. A part with `upsert` can therefore run on a database that already has some of the rows. **[direction]**
+
+```yaml
+parts:
+  - statuses:
+      upsert:
+        into: order_status
+        key: code
+        rows:
+          - { code: 'OPEN', label: 'Open' }
+          - { code: 'PAID', label: 'Paid' }
+```
+
+- `key` is one column, or a list of columns.
+- Every row gives a value for every key column.
+- Columns that are not the key are updated when the row exists.
+
 Each part is a list entry whose key is the part name. It holds exactly one operation and optional sibling keys.
 
 | Operation key | Meaning | Status |

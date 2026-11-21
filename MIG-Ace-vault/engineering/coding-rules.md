@@ -26,6 +26,8 @@ Notes on applying it:
 
 ## Other rules
 
+- **Commit small.** Commit at the end of a cycle or of a few cycles that belong together, at least once per acceptance criterion. The history then shows how the code grew. **[direction]**
+- **A non-goal of a spec is not built.** If it seems needed, write the reason into the journal and ask. **[direction]**
 - No test may need Docker.
 - `core/` imports nothing from `databases/` and nothing from `migql/generators/`.
 - All examples use the bookshop. Nothing comes from a real or private project.

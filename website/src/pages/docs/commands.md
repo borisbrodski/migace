@@ -96,6 +96,7 @@ java -jar migace-runner.jar --url <jdbc-url> --user <user> [options] <script>
 | Option | Meaning |
 |---|---|
 | `--ignore "index:dba_*"` | Ignore additional objects that match the pattern in the final check. |
+| `--phase start` or `--phase finish` | Run one phase of an upgrade without downtime. Without the option the script does everything. See [Zero-downtime changes](/docs/zero-downtime/). |
 | `--adopt <release>` | Put a database that existed before MIG-Ace under its control. See [New and existing databases](/docs/first-run/). |
 | `--maintenance` | Allow snippets marked `requires-downtime`. |
 

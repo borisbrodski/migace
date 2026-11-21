@@ -47,3 +47,7 @@ npm install
 npm run dev      # local preview
 npm run build    # output in website/dist
 ```
+
+## Licence
+
+MIG-Ace is open source under the [Apache License 2.0](LICENSE). Files that MIG-Ace generates, such as migration scripts, can be used without the conditions of that licence; see [LICENSE-GENERATED-OUTPUT.md](LICENSE-GENERATED-OUTPUT.md).

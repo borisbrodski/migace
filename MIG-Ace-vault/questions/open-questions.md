@@ -28,7 +28,7 @@ status: open
 21. **Stability check for generated SQL:** store a hash of the generated statement per part and database in the release file. See [Language stability](../migql/stability.md).
 22. *Closed 2026-11-21:* `upgrade-from` keeps its name for now.
 23. **Format of acceptance scenarios.** See [Test concept](../testing/test-concept.md).
-24. **Rename of a column on the website:** the website writes `expand column customer.mail to email` in one release and `contract column customer.mail` in the next. The vault defines one statement, `rename column <table>.<old> to <new>`, with two phases. The two website examples are skipped in the tests until the website is changed or the vault defines the two statements.
+24. *Closed 2026-11-21:* the website now shows `rename column` with the `start` and `finish` phases. The two examples parse and are no longer skipped.
 25. **`upsert`:** the operation is listed in [Snippets](../architecture/snippets.md) and in M1-AC-08, but no note says how it is written. It is not implemented.
 26. **`former-names`, `before`, `after`:** the keys are listed in [Snippets](../architecture/snippets.md) without the form of their values. They are not implemented.
 27. **Comment after a one-line statement:** is `do: delete from t # why` allowed? It is accepted now, because YAML reads it the same way. M1-AC-14 can be read as: every ` #` in a one-line statement is an error.
@@ -36,3 +36,8 @@ status: open
 29. **Values in flow maps:** YAML and MigQL read `{ a: coalesce(x, 1) }` differently. Proposal in [the journal](../journal/2026-11-21-workspace-and-migql-parser.md): only literals and names in a flow map.
 30. **Quoted names:** how is a column written whose name is a keyword of the statement language? Proposal: double quotes, as in SQL.
 31. **Lists at the indentation of their key:** YAML allows `parts:` and `- name:` in the same column. MigQL does not. Support it, or keep the rule and improve the message.
+32. **Functions in expressions:** which functions may a snippet call? M3 proposes a list in `migql/functions.md`.
+33. **Automatic lock-safe forms:** `set not null` and a new foreign key are generated in the safe multi-step form. Should `create index` always be generated as `concurrently`, also when the author did not write it?
+34. **Contributor agreement:** do contributors sign an agreement that allows a later change of licence?
+
+Recommendations for questions 25 to 31 are in the [review of M0 and M1](../journal/2026-11-21-review-of-m0-and-m1.md).

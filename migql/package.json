@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "description": "MigQL, the language of MIG-Ace snippets: grammar, checks, language server, generators.",
+  "license": "Apache-2.0",
   "scripts": {
     "langium:generate": "langium generate",
     "build": "npm run langium:generate && tsc -p tsconfig.src.json",

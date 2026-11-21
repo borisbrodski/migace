@@ -54,7 +54,7 @@ langium-tools 0.4.0 sets these versions. **[direction]**
 
 ## Points to settle
 
-1. **Vitest version.** MIG-Ace's Vitest version is fixed by the peer dependency of langium-tools. A newer Vitest needs a new release of langium-tools first.
+1. **Vitest version.** MIG-Ace's Vitest version is fixed by the peer dependency of langium-tools. Vitest 2.0.5 has security advisories, three of them critical; they concern the test runner's own server and user interface. A newer Vitest needs a new release of langium-tools first.
 2. **Test helpers in a shipped tool.** langium-tools is one package, and Vitest is its peer dependency. If `cli/` or `migql/` depend on it at run time, installing MIG-Ace asks for Vitest. The roadmap of langium-tools already has the answer: a separate package for the test helpers. MIG-Ace needs that split before its first release.
 3. *Settled 2026-11-21:* the invalid examples stay outside the snapshot runner with an `initWorkspace` that loads `dsls/` only.
 4. **Generate run on Windows.** `tools/with-env.mjs` sets the variable without a shell feature. It was run on Linux only and has to be tried on Windows.
@@ -67,3 +67,7 @@ MIG-Ace needs these and they are not specific to MIG-Ace. They are candidates fo
 - A test suite driven by folders of valid and invalid examples, like the generator suite but for parsing and validation.
 - Markers for completion tests: a cursor marker and the expected proposals.
 - A cross-platform switch for the generate run.
+
+## Known problems in 0.4.0
+
+Four problems are written up as issue texts in [langium-tools issues](../journal/2026-11-21-langium-tools-issues.md).

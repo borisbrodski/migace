@@ -115,9 +115,10 @@ To be confirmed in the first milestone. **[open]**
 | M0 Workspace | the three stages exist and run an empty test of each level |
 | M1 MigQL parser | the catalogue format; parser tests from the catalogue; differential test against a YAML parser; fuzzing |
 | M2 Model | comparison tests on PGlite; property-based tests for the model; fingerprint stability |
-| M3 Script | script runtime on real PostgreSQL; fault injection; the client contract suite |
-| M4 Proof loop | the bookshop as system test; install against migrate |
-| M6 Releases and phases | upgrade-path simulation |
+| M3 PostgreSQL generation | expected SQL parsed by PostgreSQL's parser; generated SQL run on PGlite |
+| M4 Script | script runtime on real PostgreSQL; fault injection; the client contract suite |
+| M5 Proof loop | the bookshop as system test; install against migrate |
+| M7 Releases and phases | upgrade-path simulation |
 
 ## Open
 

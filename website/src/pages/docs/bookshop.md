@@ -78,7 +78,7 @@ Two details will matter later:
 | 1.2.0 | Search books by a part of the title. | [Native SQL](/docs/native-sql/) |
 | 1.2.1 | The status change in 1.2.0 had a bug. Fix and repair. | [Fixing mistakes](/docs/fixing-mistakes/) |
 | 1.3.0 | `customer.mail` becomes `customer.email`, without stopping the shop. | [Zero-downtime changes](/docs/zero-downtime/) |
-| 1.4.0 | The old `mail` column is removed. | [Zero-downtime changes](/docs/zero-downtime/) |
+| 1.4.0 | The order total gets a bigger number type. | [Views, functions and triggers](/docs/views-functions-triggers/) |
 
 ## Who is on which release
 

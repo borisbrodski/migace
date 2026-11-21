@@ -8,10 +8,7 @@ const { parse } = createMigql();
  * Examples that show syntax the vault does not define. They are skipped until the open
  * question is answered. The text is a piece of the example, the reason names the question.
  */
-const UNDEFINED_SYNTAX: Array<{ contains: string, reason: string }> = [
-    { contains: 'expand column customer.mail to email', reason: 'open question 24: the vault defines "rename column", the website "expand column"' },
-    { contains: 'contract column customer.mail', reason: 'open question 24: the vault defines "rename column", the website "contract column"' },
-];
+const UNDEFINED_SYNTAX: Array<{ contains: string, reason: string }> = [];
 
 const examples = websiteExamples();
 const snippets = examples.filter(example => example.kind !== 'settings');
@@ -22,7 +19,7 @@ describe('Examples of the website', () => {
         const count = (kind: string) => examples.filter(example => example.kind === kind).length;
 
         expect({ snippet: count('snippet'), parts: count('parts'), keys: count('keys'), settings: count('settings') })
-            .toEqual({ snippet: 18, parts: 33, keys: 14, settings: 11 });
+            .toEqual({ snippet: 17, parts: 34, keys: 14, settings: 11 });
     });
 
     for (const example of snippets) {
