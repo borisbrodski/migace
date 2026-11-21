@@ -1,12 +1,11 @@
 ---
 type: language
-status: proposal
-date: 2026-11-21
+status: mixed
 ---
 
 # Names and case
 
-**Status:** the rule below was proposed by the project owner on 2026-11-21 and is the working assumption. It is confirmed with question 38 in [Open questions](../questions/open-questions.md).
+The rule is decided: see [A name in MigQL is exact](../decisions/names-are-exact.md). The first part of the work is the spec [M3.1 Exact names](../specs/m3-1-exact-names.md).
 
 ## What must work
 
@@ -17,7 +16,7 @@ date: 2026-11-21
 
 ## The rule
 
-**A name is exact.** The database gets the name with the characters and the case that the snippet has, as if it were written in quotes in SQL. **[direction]**
+**A name is exact.** The database gets the name with the characters and the case that the snippet has, as if it were written in quotes in SQL. **[decided]**
 
 | Written in MigQL | Name in the database |
 |---|---|
@@ -26,10 +25,10 @@ date: 2026-11-21
 | `CUSTOMER` | `CUSTOMER` |
 | `"Customer"` | `Customer`, the same name as without quotes |
 
-- Double quotes do not change the meaning. They are needed only for a name that is a keyword of MigQL or that contains a character other than a letter, a digit or an underscore. **[direction]**
+- Double quotes do not change the meaning. They are needed only for a name that is a keyword of MigQL or that contains a character other than a letter, a digit or an underscore. **[decided]**
 - Two names are the same name when their characters are the same. `email` and `Email` are two names.
-- Keywords, names of functions and names of the built-in types are not case-sensitive: `ALTER TABLE`, `Upper(…)`, `VARCHAR(20)`. **[direction]**
-- A name may contain any character except a double quote and a line break. **[open]**: whether a double quote inside a name is ever needed.
+- Keywords, names of functions and names of the types that MigQL knows are not case-sensitive: `ALTER TABLE`, `Upper(…)`, `VARCHAR(20)`. **[decided]** A type name that MigQL does not know is the exact name of a type of the schema, such as an enumeration. **[direction]**
+- A name may contain any character except a double quote and a line break. **[open]**: whether a double quote inside a name is ever needed (question 40).
 
 ## Why not the rule of SQL
 
@@ -40,7 +39,7 @@ In SQL a name without quotes is not case-sensitive, and each database stores it 
 An application that sends names **without** quotes, which is what Hibernate does unless it is configured otherwise, on a database that stores such names in upper case. The application then looks for `DUE_DATE` in Oracle and for `due_date` in PostgreSQL, and no single exact name is right in both.
 
 - With PostgreSQL only, this case does not exist: the author writes names in lower case, as they are in the catalog.
-- When a database with another default form is added, a project needs a setting that says how its application sends names. **[open]** Liquibase has such a setting (`objectQuotingStrategy`) and so has jOOQ (`RenderQuotedNames`), for the same reason. A possible form: `names: exact` as the default, and a second value with which names are written without quotes and are not case-sensitive.
+- When a database with another default form is added, a project needs a setting that says how its application sends names. **[open]** (question 39) Liquibase has such a setting (`objectQuotingStrategy`) and so has jOOQ (`RenderQuotedNames`), for the same reason. A possible form: `names: exact` as the default, and a second value with which names are written without quotes and are not case-sensitive.
 
 ## Why most of it is already there
 
@@ -75,5 +74,4 @@ In PostgreSQL the columns `key` and `Key` are two columns, so the form with `sta
 
 ## Rejected alternatives
 
-- **The rule of SQL** (a name without quotes is not case-sensitive, a name in quotes is exact) as the only rule: see above. It may return as the second value of the setting.
-- **Quotes for keywords only, and upper case inside quotes is an error:** cannot serve an application whose ORM sends names in mixed case.
+See the [decision](../decisions/names-are-exact.md).

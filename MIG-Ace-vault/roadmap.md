@@ -14,7 +14,12 @@ A milestone starts when its spec note exists in `specs/`. Order and content are 
 | M1.1 MigQL follow-up | Windows, checks across a project, `upsert`, syntax decisions. | done; Windows job not run yet |
 | M2 Schema model | The model is read from PGlite and compared. Fingerprint. | done |
 | M3 PostgreSQL generation | Every construct becomes correct PostgreSQL, proven by PostgreSQL's parser and on a database. | done |
-| M4 Script | Snippets are compiled to a script that runs on real PostgreSQL, with the ledger. Java runner. | |
+| M3.1 Exact names | A name is exact, with or without quotes. Proven on a bookshop in mixed case. | spec ready |
+| M4.1 Plan and script | Snippets are compiled to a plan and a script with the ledger. Failures, conditions and checks, on PGlite. | spec ready |
+| M4.2 Real PostgreSQL | Temporary servers from binaries. Two runners, killed runs, locks. | spec ready |
+| M4.3 Client contract and Java runner | The adapter contract as data. Java library and command line. | spec ready |
+| M4.4 Install and replaceable objects | A new database gets the schema directly. Adopt. Views, functions and triggers. | spec follows the findings of M4.1 |
+| M4.5 Data parts | `batch` and `expect-rows`. | |
 | M5 Proof loop | Baseline, migration, comparison, second run, install on an empty database. The bookshop passes. | |
 | M6 Generation | `mig make` writes snippets from the comparison. | |
 | M7 Releases and phases | Release files, the guard against accidental edits, ordering, `start` and `finish`, upgrade-path simulation. | |

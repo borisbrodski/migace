@@ -12,6 +12,34 @@ status: mixed
 - Supporting another database means writing another compiler target. **[direction]**
 - The compiler first produces an intermediate plan (statements plus control data). The script is one rendering of that plan. **[direction]**
 
+## Inside the script
+
+How the script reaches its behaviour with an adapter that has no logic. **[direction]** The first implementation may change details where a test shows a problem; the reason is then written here.
+
+- **One statement, one transaction.** The adapter sends every statement on its own with autocommit on.
+- **The start.** The script takes the lock, creates or upgrades the ledger, creates its helper functions for this session only, and writes the row of the run.
+- **One step of a part is one statement of the script.** It is a block that:
+  1. does nothing if an earlier step failed in this run, or if the ledger says this step is done;
+  2. decides `when` before the first step, and `verify-before`;
+  3. runs the statement of the step;
+  4. checks `verify-after` after the last step;
+  5. writes the result into the ledger.
+
+  The statement and its record are committed together. A step is done completely, with its record, or not at all.
+- **A failure is caught inside the block.** The block undoes its statement, writes the error with all details into the ledger, marks the run as failed in a session setting, and ends without an error. Every later block then does nothing. The last statement of the script raises the error, and the adapter reports it. This is how the ledger gets the full error from an adapter that only stops.
+- **A part with several steps** is several such blocks. After a failure the next run continues at the step that failed, not at the first one.
+- **A statement that cannot run inside a block**, such as `create index concurrently`, is sent as it is. A guard query before it decides whether it runs and records the start; a statement after it records the end. If it fails, the adapter stops; the ledger shows a step that started and did not end. The next run first removes what the failed attempt left, such as an invalid index, and repeats the step.
+- **A connection that is lost** rolls back the current step. The ledger has no record of it, so the next run runs it.
+- **Progress** is reported with notices: one line per part that ran, was skipped or failed.
+
+### Checksum of a part
+
+The ledger stores a checksum for every part that ran. Conditions refer to it (`ran orders-status.backfill sha256:…`). **[direction]**
+
+- The checksum is computed from the operation of the part in a canonical form: the syntax tree of the statement, not its text. Formatting and comments do not change it.
+- It is not computed from the generated SQL. A newer MIG-Ace may generate better SQL for the same part, and the checksum of a part that already ran must stay the same.
+- The text of a `native` part is taken as it is, without the white space at the ends of lines.
+
 ## Adapters
 
 The script is executed through a JDBC connection or an equally thin adapter in another language. **[decided]** An adapter contains no logic. Its contract: **[direction]**

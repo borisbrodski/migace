@@ -9,6 +9,7 @@ The grammar supports only the YAML constructs that snippets need. **[decided]**
 
 - **Supported:** block mappings with plain keys, block sequences, single-line plain values, literal `|` blocks, `#` comments, single-line flow maps.
 - **Not supported:** anchors, aliases, tags, multiple documents, folded `>` scalars, multi-line plain scalars, quoted keys, tabs.
+- **One exception for quoted keys:** where a key is the name of a column, it may be written in double quotes: `"Line Item": 3`. YAML and MigQL read it as the same name. See [Names and case](names-and-case.md). **[direction]**
 
 Rules that keep MigQL and YAML in agreement. **[decided]**
 

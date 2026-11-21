@@ -42,4 +42,8 @@ status: open
 35. *Closed 2026-11-21:* see [MigQL answers after the PostgreSQL generation](../decisions/migql-answers-after-m3.md).
 36. *Closed 2026-11-21:* see [MigQL answers after the PostgreSQL generation](../decisions/migql-answers-after-m3.md).
 37. *Closed 2026-11-21:* see [MigQL answers after the PostgreSQL generation](../decisions/migql-answers-after-m3.md).
-38. **Case in names:** confirm the rule in [Names and case](../migql/names-and-case.md): a name is exact, with or without quotes. Sub-questions: the setting for an application that sends names without quotes on a database that stores them in upper case; whether a double quote inside a name is ever needed.
+38. *Closed 2026-11-21:* a name is exact, with or without quotes. See [the decision](../decisions/names-are-exact.md).
+39. **Names without quotes on a database with another default form:** an application that sends names without quotes looks for `DUE_DATE` in Oracle and for `due_date` in PostgreSQL. Exact names cannot serve both from one snippet. The form of the project setting is decided when the first such database is added. See [Names and case](../migql/names-and-case.md).
+40. **A double quote inside a name:** not supported. Is it ever needed?
+41. **Supported PostgreSQL versions:** which major versions MIG-Ace supports. The working assumption is every version that the PostgreSQL project still supports. See [M4.2](../specs/m4-2-real-postgresql.md).
+42. **Java level of the runner:** the lowest Java version the runner library must work with. Proposal: 11. See [M4.3](../specs/m4-3-client-contract-and-java-runner.md).
