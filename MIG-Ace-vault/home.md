@@ -30,15 +30,19 @@ Read [How to use this vault](how-to-use-this-vault.md) before you change anythin
 - [Multi-database support](architecture/multi-database.md)
 - [Not planned](architecture/not-planned.md)
 
-## Language
+## MigQL, the language of snippets
 
-- [Overview and name](language/overview.md)
-- [YAML profile](language/yaml-profile.md)
-- [Statement language](language/statement-language.md)
-- [Native SQL and dialects](language/native-sql-and-dialects.md)
-- [Generation of database-specific SQL](language/generation.md)
-- [Stability](language/stability.md)
-- [langium-tools](language/langium-tools.md): the helper library used to build and test the language
+- [Overview](migql/overview.md)
+- [YAML profile](migql/yaml-profile.md)
+- [Statement language](migql/statement-language.md)
+- [Native SQL and dialects](migql/native-sql-and-dialects.md)
+- [Generation of database-specific SQL](migql/generation.md)
+- [Stability](migql/stability.md)
+- [langium-tools](migql/langium-tools.md): the helper library used to build and test the language
+
+## Engineering
+
+- [Coding rules](engineering/coding-rules.md): strict test-driven development and the other rules for code
 
 ## Testing
 

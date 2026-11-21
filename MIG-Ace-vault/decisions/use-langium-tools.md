@@ -14,7 +14,7 @@ The language of snippets is a Langium project with many small syntax and generat
 
 MIG-Ace uses langium-tools for the code and the tests of the language. Improvements that are not specific to MIG-Ace go into langium-tools.
 
-See [langium-tools](../language/langium-tools.md) for what is used and what has to be settled.
+See [langium-tools](../migql/langium-tools.md) for what is used and what has to be settled.
 
 ## Consequences
 

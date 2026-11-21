@@ -10,7 +10,7 @@ A milestone starts when its spec note exists in `specs/`. Order and content are 
 | Milestone | Result |
 |---|---|
 | M0 Workspace | Folders, build, the three test stages, CI. No features. |
-| M1 Language | The grammar parses the catalogue of constructs, tested with langium-tools. This answers the open question whether Langium handles literal blocks, key-dependent lexing and error recovery. |
+| M1 MigQL parser | MigQL files are parsed and checked, tested with langium-tools. This answers the open question whether Langium handles literal blocks, key-dependent lexing and error recovery. |
 | M2 Schema model | The model is read from PGlite and compared. Fingerprint. |
 | M3 Script | Snippets are compiled to a script that runs on real PostgreSQL, with the ledger. Java runner. |
 | M4 Proof loop | Baseline, migration, comparison, second run, install on an empty database. The bookshop passes. |

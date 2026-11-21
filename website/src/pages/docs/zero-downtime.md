@@ -64,7 +64,7 @@ The bookshop wants `customer.email` instead of `customer.mail`. A plain rename w
 **Release 1.3.0: expand.** Both columns exist.
 
 ```yaml
-# migrations/20260907-1000-customer-email.mig.yaml
+# migrations/20260907-1000-customer-email.migql.yaml
 migration: 20260907-1000-customer-email
 uid: 01JH5P2R4T6V8X0Z2B4D6F8H0K
 doc: The e-mail column is renamed from mail to email, step 1 of 2
@@ -85,7 +85,7 @@ Version 1.3.0 of the application uses `email`. Version 1.2.0 keeps using `mail`.
 **Release 1.4.0: contract.** Only the new column remains.
 
 ```yaml
-# migrations/20261116-0900-customer-email-contract.mig.yaml
+# migrations/20261116-0900-customer-email-contract.migql.yaml
 migration: 20261116-0900-customer-email-contract
 uid: 01JK2M4P6R8T0V2X4Z6B8D0F2H
 doc: The e-mail column is renamed from mail to email, step 2 of 2

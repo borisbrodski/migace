@@ -14,7 +14,7 @@ The `Order` entity now has a `@ManyToOne` field for the status, so Hibernate exp
 ## The snippet
 
 ```yaml
-# migrations/20260518-1000-order-status.mig.yaml
+# migrations/20260518-1000-order-status.migql.yaml
 migration: 20260518-1000-order-status
 uid: 01JG1D5R8Y3B6F9J2L4N7Q0T3W
 doc: The order status moves from free text into the table order_status

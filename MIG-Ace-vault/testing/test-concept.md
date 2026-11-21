@@ -10,7 +10,7 @@ First plan. It follows the usual structure of a test concept: goals, test object
 ## Goals
 
 1. **Trust.** MIG-Ace changes production databases. A wrong statement destroys data. Every behaviour that reaches a database is tested on a real database.
-2. **Stable meaning.** Old snippets keep their meaning. See [Language stability](../language/stability.md).
+2. **Stable meaning.** Old snippets keep their meaning. See [Language stability](../migql/stability.md).
 3. **Fast feedback.** Most tests run in seconds without a database server.
 4. **Runs everywhere.** No test needs Docker. All tests run on Linux, macOS and Windows, including locked-down company machines.
 
@@ -18,8 +18,8 @@ First plan. It follows the usual structure of a test concept: goals, test object
 
 | Object | Folder | Risk |
 |---|---|---|
-| Grammar, checks, language server | `language/` | wrong parse, missing error, wrong completion |
-| Generators | `language/generators/<db>/` | wrong SQL |
+| Grammar, checks, language server | `migql/` | wrong parse, missing error, wrong completion |
+| Generators | `migql/generators/<db>/` | wrong SQL |
 | Schema model, comparison, fingerprint | `core/` | a difference that is not seen |
 | Ordering, release files, compiler | `core/` | wrong order, a change that is not detected |
 | Catalog reader, script runtime | `databases/<db>/` | ledger errors, lost resume, wrong phase |
@@ -64,8 +64,8 @@ The amounts follow the test pyramid: many unit tests, fewer integration tests, f
 
 ## Techniques
 
-- **Examples from the specs.** Tests are written before the code, from the acceptance criteria.
-- **The catalogue of constructs.** Each construct has valid snippets, invalid snippets with the expected error, and expected SQL. The expected SQL is a committed snapshot: a normal run compares, a generate run rewrites it and the diff is reviewed. See [Generation](../language/generation.md).
+- **Test-driven development.** Code is written in strict test-first cycles, see [Coding rules](../engineering/coding-rules.md). The acceptance criteria of a spec say which tests must exist at the end.
+- **The catalogue of constructs.** Each construct has valid snippets, invalid snippets with the expected error, and expected SQL. The expected SQL is a committed snapshot: a normal run compares, a generate run rewrites it and the diff is reviewed. See [Generation](../migql/generation.md).
 - **Golden files** for generated SQL, scripts, release files and messages. A changed golden file is always reviewed.
 - **Property-based tests** for the schema comparison, the ordering and the checksums. Example: formatting a snippet never changes its checksum.
 - **Differential tests.** Two ways to the same result must agree: the MIG-Ace parser and a reference YAML parser; PGlite and real PostgreSQL; installing and migrating.
@@ -93,7 +93,7 @@ Real PostgreSQL runs from binaries as a child process. Snapshots use PostgreSQL 
 
 - A milestone starts when its spec exists with numbered acceptance criteria.
 - A milestone is done when every acceptance criterion has a passing scenario, all stages are green, and no golden file changed without review.
-- Coverage is measured for `core/` and `language/`. A threshold is set after the first milestone, when there is a baseline. Mutation score is reported, not enforced, until then.
+- Coverage is measured for `core/` and `migql/`. A threshold is set after the first milestone, when there is a baseline. Mutation score is reported, not enforced, until then.
 
 ## Proposed tools
 
@@ -102,7 +102,7 @@ To be confirmed in the first milestone. **[open]**
 | Purpose | Tool |
 |---|---|
 | TypeScript tests | Vitest, in the version that langium-tools requires |
-| Language tests | [langium-tools](../language/langium-tools.md): matchers, marked text, generator snapshot tests |
+| Language tests | [langium-tools](../migql/langium-tools.md): matchers, marked text, generator snapshot tests |
 | Property-based tests | fast-check |
 | Mutation tests | Stryker |
 | Java tests | JUnit 5 |
@@ -113,7 +113,7 @@ To be confirmed in the first milestone. **[open]**
 | Milestone | Tests that come with it |
 |---|---|
 | M0 Workspace | the three stages exist and run an empty test of each level |
-| M1 Language | the catalogue format; parser tests from the catalogue; differential test against a YAML parser; fuzzing |
+| M1 MigQL parser | the catalogue format; parser tests from the catalogue; differential test against a YAML parser; fuzzing |
 | M2 Model | comparison tests on PGlite; property-based tests for the model; fingerprint stability |
 | M3 Script | script runtime on real PostgreSQL; fault injection; the client contract suite |
 | M4 Proof loop | the bookshop as system test; install against migrate |

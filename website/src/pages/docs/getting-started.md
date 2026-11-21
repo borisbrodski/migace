@@ -67,7 +67,7 @@ The new column is mandatory. Rows that already exist need a value.
 Which value should they get? (an expression, or empty to decide later)
 > 'BRONZE'
 
-Wrote migrations/20260302-0900-customer-loyalty.mig.yaml
+Wrote migrations/20260302-0900-customer-loyalty.migql.yaml
 ```
 
 You did not type a name. With an [LLM configured](/docs/generated-snippets/), MIG-Ace names the snippet and its parts. You can also choose the name: `mig make customer-loyalty`.
@@ -75,7 +75,7 @@ You did not type a name. With an [LLM configured](/docs/generated-snippets/), MI
 The column is mandatory, so MIG-Ace asked for a value and wrote three parts. It did not look whether `customer` has rows. Your production data is not visible when you build, so MIG-Ace always assumes that a table has rows.
 
 ```yaml
-# migrations/20260302-0900-customer-loyalty.mig.yaml
+# migrations/20260302-0900-customer-loyalty.migql.yaml
 migration: 20260302-0900-customer-loyalty
 uid: 01JF2A6QW3ZK8M4T7R9B5X0C1D
 doc: Every customer gets a loyalty level
@@ -96,7 +96,7 @@ parts:
 In CI, in a script, or with `mig make --batch`, MIG-Ace cannot ask. It writes the snippet with a `todo` and says so:
 
 ```text
-Wrote migrations/20260302-0900-customer-loyalty.mig.yaml
+Wrote migrations/20260302-0900-customer-loyalty.migql.yaml
   ! 1 TODO: part "fill-existing" needs a value for existing rows.
     The migration script cannot be built until every TODO is resolved.
 ```

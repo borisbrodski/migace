@@ -65,7 +65,7 @@ In a script, in CI, or with `--batch`, there is no one to ask. MIG-Ace then writ
 ```text
 $ mig make --batch
 
-Wrote migrations/20260302-0900-customer-loyalty.mig.yaml
+Wrote migrations/20260302-0900-customer-loyalty.migql.yaml
   ! 1 TODO: part "fill-existing" needs a value for existing rows.
     The migration script cannot be built until every TODO is resolved.
 ```
@@ -95,8 +95,8 @@ A single change to your entities can touch several tables. Without further setti
 $ mig make
 
 Wrote 2 snippets, one per table:
-  migrations/20260518-1000-order-status.mig.yaml
-  migrations/20260518-1001-orders.mig.yaml
+  migrations/20260518-1000-order-status.migql.yaml
+  migrations/20260518-1001-orders.migql.yaml
 
 Tip: "mig make --single-snippet" writes all changes into one snippet.
 ```
@@ -119,7 +119,7 @@ Grouping changes and finding good names is a task for a language model. If you c
 $ mig make
 
 Wrote 1 snippet:
-  migrations/20260518-1000-order-status.mig.yaml
+  migrations/20260518-1000-order-status.migql.yaml
   "The order status moves from free text into the table order_status"
 ```
 

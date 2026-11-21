@@ -12,7 +12,8 @@ status: mixed
 - Whether the branch is derived from the release files, as written here, or stated in the snippet is **[open]**.
 - An installation applies every snippet it has not run, in order, even when some sort before its newest applied snippet. This is normal and is recorded. **[direction]**
 - Reordering must always be possible, also after release. **[decided]** Inside a release it is done by changing the timestamp in the name. Optional `before` and `after` constraints exist for cases where a rename is not wanted. **[direction]**
-- **References between snippets use the slug**, the name without the timestamp, so that reordering does not break them. Slugs are unique in a project, and the build checks every reference. The ledger and the script use the `uid`. **[direction]**
+- **References between snippets use the slug**, the name without the timestamp, so that reordering does not break them. **[decided]**
+- **Slugs are unique in a project.** The build fails on a duplicate, and it checks that every reference points to an existing snippet and part. Archived snippets count. **[decided]** The ledger and the script use the `uid`.
 
 Why this order and not pure timestamp order: **[direction]**
 

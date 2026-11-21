@@ -19,7 +19,7 @@ Use `native` when you need a feature that only PostgreSQL has, or a statement th
 Release 1.2.0 lets customers find a book by typing any part of its title. PostgreSQL can do this quickly with a trigram index, which is a PostgreSQL feature.
 
 ```yaml
-# migrations/20260608-1500-book-title-search.mig.yaml
+# migrations/20260608-1500-book-title-search.migql.yaml
 migration: 20260608-1500-book-title-search
 uid: 01JG3N7V4C8Q1S6W9Y2A5E0H3K
 doc: Fast search for a part of a book title
@@ -61,7 +61,7 @@ So use `do` where you can and `native` where you must.
 If you write PostgreSQL-specific SQL in a `do` key, MIG-Ace says so:
 
 ```text
-migrations/20260608-1500-book-title-search.mig.yaml:12
+migrations/20260608-1500-book-title-search.migql.yaml:12
   "using gin" is PostgreSQL-specific and not part of the statement language.
   Move this statement to a native part.
 ```

@@ -1,0 +1,18 @@
+#!/bin/sh
+# Blocks a commit whose staged changes contain a word from .private-words.
+# The list is one word or phrase per line. It is not in git.
+# Install once per clone:  git config core.hooksPath tools/git-hooks
+
+root="$(git rev-parse --show-toplevel)"
+list="$root/.private-words"
+[ -f "$list" ] || exit 0
+
+words="$(mktemp)"
+trap 'rm -f "$words"' EXIT
+grep -v '^[[:space:]]*$' "$list" > "$words" || exit 0
+
+if git diff --cached -U0 | grep '^+' | grep -v '^+++' | grep -i -n -F -f "$words"; then
+  echo "Commit blocked: the staged changes contain a word from .private-words." >&2
+  exit 1
+fi
+exit 0

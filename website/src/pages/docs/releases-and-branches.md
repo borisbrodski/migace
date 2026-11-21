@@ -40,8 +40,8 @@ Commit this file. You never edit it by hand.
 Two developers work on two branches. Each adds a snippet.
 
 ```text
-feature/reviews     migrations/20260309-1400-review-table.mig.yaml
-feature/loyalty     migrations/20260302-0900-customer-loyalty.mig.yaml
+feature/reviews     migrations/20260309-1400-review-table.migql.yaml
+feature/loyalty     migrations/20260302-0900-customer-loyalty.migql.yaml
 ```
 
 Both branches are merged. Git sees two new files and has nothing to resolve. The snippets run in name order.
@@ -55,7 +55,7 @@ Harbour Books is on 1.1.0 and complains that the order list is slow. An index fi
 The snippet is written on the main branch and copied to the 1.1 branch with `git cherry-pick`.
 
 ```yaml
-# migrations/20260401-0830-orders-customer-index.mig.yaml
+# migrations/20260401-0830-orders-customer-index.migql.yaml
 migration: 20260401-0830-orders-customer-index
 uid: 01JFM8W1Y3A5C7E9G1J3L5N7Q9
 doc: The order list of a customer loads quickly

@@ -16,10 +16,10 @@ One statement in a snippet becomes SQL for each supported database. PostgreSQL i
 
 ## The catalogue of constructs
 
-Every construct of the language has one folder in `language/constructs/`.
+Every construct of the language has one folder in `migql/constructs/`.
 
 ```text
-language/constructs/alter-table-add-column/
+migql/constructs/alter-table-add-column/
 ├─ construct.md                 what it means, in plain language, with the rules
 ├─ dsls/                        valid snippets
 ├─ generated/

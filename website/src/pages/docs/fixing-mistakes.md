@@ -76,7 +76,7 @@ The next release records the new version and removes the `changed` line. From th
 A repair snippet runs only where it is needed.
 
 ```yaml
-# migrations/20260622-0900-repair-order-status.mig.yaml
+# migrations/20260622-0900-repair-order-status.migql.yaml
 repair: 20260622-0900-repair-order-status
 uid: 01JG8T3B6X9D2F5H7K1M4Q0W8Z
 doc: Orders wrongly set to UNKNOWN by release 1.2.0 get their real status

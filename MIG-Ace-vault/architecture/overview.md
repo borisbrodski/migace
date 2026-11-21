@@ -24,7 +24,7 @@ MIG-Ace is a schema migration framework. It migrates a database that already con
 5. **Avoid native SQL.** Native SQL is dialect-specific and has to exist once per supported database, so the neutral statement language covers as much as possible. **[decided]**
 6. **No framework code stays in the database, and all migration logic is in a generated script.** A small runner library only sends that script to the database. **[direction]**
 7. **Editor support is a first-class requirement.** **[decided]**
-8. **Old snippets keep their meaning.** An update of MIG-Ace never changes what a released snippet does. See [Language stability](../language/stability.md). **[direction]**
+8. **Old snippets keep their meaning.** An update of MIG-Ace never changes what a released snippet does. See [Language stability](../migql/stability.md). **[direction]**
 
 ## System overview
 
@@ -36,7 +36,7 @@ flowchart LR
     hand["hand-written DDL"] --> schema
     schema --> A[("scratch schema A")]
     base["baseline with data"] --> B[("scratch schema B")]
-    snip["migrations/*.mig.yaml"] --> comp["compiler"]
+    snip["migrations/*.migql.yaml"] --> comp["compiler"]
     comp --> script["migration script per dialect"]
     script --> B
     A --> cmp{"models equal?"}

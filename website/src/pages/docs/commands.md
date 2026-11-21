@@ -30,7 +30,7 @@ Comparing schema/ with the migrated release 1.0.0
   + foreign key fk_review_customer
   + index ix_review_book
 
-Wrote migrations/20260309-1400-review-table.mig.yaml
+Wrote migrations/20260309-1400-review-table.migql.yaml
   ! Add a testdata entry for the new table review.
 ```
 

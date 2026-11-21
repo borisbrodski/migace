@@ -37,12 +37,12 @@ It follows the parts above your cursor too. A column added in the first part of 
 ## Errors while you type
 
 ```text
-20260525-1100-orders-ship-by.mig.yaml:14
+20260525-1100-orders-ship-by.migql.yaml:14
   Unknown column "shipby" in table orders. Did you mean "ship_by"?
 ```
 
 ```text
-20260601-0900-book-price-check.mig.yaml:9
+20260601-0900-book-price-check.migql.yaml:9
   Constraint without a name. Suggested name: ck_book_price
 ```
 
@@ -69,11 +69,11 @@ The editor also keeps a small PostgreSQL in memory. It runs the statement you ar
 |---|---|
 | VS Code | Install the MIG-Ace extension. |
 | IntelliJ IDEA | Install the MIG-Ace plugin. |
-| Neovim and others | Use `mig ls` as the language server for `*.mig.yaml` files. |
+| Neovim and others | Use `mig ls` as the language server for `*.migql.yaml` files. |
 
 ## Without the extension
 
-Snippet files end in `.mig.yaml` and are valid YAML. Any editor shows them with YAML colours.
+Snippet files end in `.migql.yaml` and are valid YAML. Any editor shows them with YAML colours.
 
 For basic help without the MIG-Ace extension, point your editor's YAML support at the MIG-Ace schema. It then completes the keys of the file format and shows their documentation. Statements inside `do` are plain text in this mode.
 

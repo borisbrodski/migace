@@ -5,11 +5,11 @@ status: mixed
 
 # Snippets: files, structure, test data
 
-The language inside a snippet is described in the [language notes](../language/overview.md).
+The language inside a snippet is described in the [language notes](../migql/overview.md).
 
 ## Files and identity
 
-- A snippet is one file `migrations/<name>.mig.yaml`. **[decided]**
+- A snippet is one file `migrations/<name>.migql.yaml`. **[decided]**
 - Every snippet file is valid YAML. Without MIG-Ace tooling, any YAML editor with the published `schema.json` gives basic editing support. **[decided]**
 - `uid` is the identity of a snippet. It is generated once and never changes. The ledger is keyed by it. **[direction]**
 - The name (`YYYYMMDD-HHMM-slug`) defines the position. Renaming a snippet reorders it. Installations that already ran it match by `uid`. **[direction]**

@@ -14,6 +14,15 @@ MIG-Ace migrates a database that already contains data and then proves the resul
 
 `main` is the current release. Work happens on `candidate`. Changes are pushed directly, without pull requests.
 
+## Setting up a clone
+
+```sh
+git checkout candidate
+git config core.hooksPath tools/git-hooks
+```
+
+The hook blocks a commit that contains a word from the file `.private-words` in the root of the clone. Create that file yourself, with one word or phrase per line. It is not in git.
+
 ## Website
 
 The website is an [Astro](https://astro.build) project in [`website/`](website/). The workflow [`.github/workflows/website.yml`](.github/workflows/website.yml) builds it and publishes it to GitHub Pages on every push to `main` that touches `website/`.

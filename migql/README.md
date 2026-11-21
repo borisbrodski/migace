@@ -2,7 +2,7 @@
 
 The language of snippets, as one Langium project: grammar, checks, language server, the catalogue of constructs and the generators per database.
 
-See `MIG-Ace-vault/language/overview.md`.
+See `MIG-Ace-vault/migql/overview.md`.
 
 | Folder | Content |
 |---|---|

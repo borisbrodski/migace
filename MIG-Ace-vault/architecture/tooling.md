@@ -10,7 +10,7 @@ status: mixed
 - The tool is written in TypeScript. Nothing of it runs at migration time. **[direction]**
 - The snippet language and its language server are built with Langium. **[direction]** One grammar covers the YAML profile and the statement language. **[decided]**
 - The same parser serves the build and the editor.
-- The language is built and tested with [langium-tools](../language/langium-tools.md). **[decided]**
+- The language is built and tested with [langium-tools](../migql/langium-tools.md). **[decided]**
 
 ## Language server and editors
 

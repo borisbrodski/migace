@@ -20,7 +20,8 @@ Every statement in the architecture and language notes carries a marker.
 | Folder | Content |
 |---|---|
 | `architecture/` | How MIG-Ace works. One note per topic. |
-| `language/` | The language used in snippets: syntax, meaning, generation, stability. |
+| `migql/` | MigQL, the language used in snippets: syntax, meaning, generation, stability. |
+| `engineering/` | Rules for writing code. |
 | `testing/` | The test concept and its plans. |
 | `decisions/` | One note per decision: context, decision, rejected alternatives. |
 | `specs/` | What to build next, with acceptance criteria. One note per milestone or feature. |

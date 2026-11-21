@@ -24,6 +24,7 @@ lead: The terms used on this site, in alphabetical order.
 | **Lock** | While a statement changes a table, PostgreSQL prevents others from using it in conflicting ways. A long lock makes the application wait. |
 | **Migration** | The statements that turn an older schema into the current one. |
 | **Migration script** | The single SQL file that MIG-Ace builds from all snippets. This is what you run in production. |
+| **MigQL** | The language of snippets: the file format and the SQL-like statements in `do` keys. Snippet files end in `.migql.yaml`. See [Statements](/docs/statements/). |
 | **Native SQL** | SQL in PostgreSQL's own dialect, as opposed to the MIG-Ace statement language. See [Native SQL](/docs/native-sql/). |
 | **Part** | One named step in a snippet. A part holds exactly one operation. |
 | **Project file** | `migace.yaml`, the settings your whole team shares. See [Configuration](/docs/configuration/). |
@@ -35,8 +36,8 @@ lead: The terms used on this site, in alphabetical order.
 | **Rolling update** | Replacing application instances one at a time, so the application stays available. Old and new versions run side by side for a while. |
 | **Runner** | The small program that sends the migration script to the database. |
 | **Schema** | The structure of a database: its tables, columns, constraints, indexes, views and functions. |
-| **Snippet** | One `.mig.yaml` file that describes one change. See [Snippets](/docs/snippets/). |
-| **Statement language** | The SQL-like language used in `do` keys. See [Statements](/docs/statements/). |
+| **Snippet** | One `.migql.yaml` file that describes one change. See [Snippets](/docs/snippets/). |
+| **Statement language** | Another word for MigQL. |
 | **Test data** | Rows a snippet brings along for the tables it changes. See [Test data](/docs/test-data/). |
 | **User file** | `~/.config/migace/config.yaml`, the settings of your own computer. See [Configuration](/docs/configuration/). |
 | **uid** | The permanent identity of a snippet. The name can change, the `uid` cannot. |

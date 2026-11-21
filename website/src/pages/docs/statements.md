@@ -1,9 +1,11 @@
 ---
 layout: ../../layouts/Doc.astro
 title: Statements
-description: The statement language used in the do key - schema statements, update, delete, insert and expressions.
+description: MigQL, the language used in the do key - schema statements, update, delete, insert and expressions.
 lead: The statement in a do key looks like the SQL you know. MIG-Ace reads and checks it, and then writes the exact PostgreSQL statement for you.
 ---
+
+The language of snippets is called **MigQL**, and snippet files end in `.migql.yaml`.
 
 ## Why not plain PostgreSQL SQL?
 

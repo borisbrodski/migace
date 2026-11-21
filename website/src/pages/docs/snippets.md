@@ -10,7 +10,7 @@ lead: A snippet is one file that describes one change. It is made of named parts
 Release 1.1.0 of the bookshop adds book reviews. `mig make` [wrote this snippet](/docs/generated-snippets/) after the `Review` entity was added.
 
 ```yaml
-# migrations/20260309-1400-review-table.mig.yaml
+# migrations/20260309-1400-review-table.migql.yaml
 migration: 20260309-1400-review-table
 uid: 01JF4C9S2M7H5K3P8V6N1Y0E4R
 doc: Customers can review books

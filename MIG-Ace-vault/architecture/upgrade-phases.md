@@ -22,7 +22,8 @@ During a rolling upgrade, old and new application versions run at the same time.
 
 - A part is in phase `start` unless it is marked `phase: finish`. **[decided]**
 - There is one migration script. The runner chooses the phase: `start`, `finish` or `all`. **[direction]**
-- The default is `start`. `all` is for upgrades with the application stopped. **[decided]**
+- Without a phase the script does everything: start parts and finish parts. This is `all`. **[decided]**
+- `start` and `finish` are given explicitly, for a rolling upgrade. An application that runs the script at its own start during a rolling upgrade must pass `start`. **[decided]**
 - `start` never runs a finish part. Only `finish` declares that older versions are gone. **[decided]**
 - There is no registry of running application instances, because the application has no way to sign off. **[decided]**
 - A part that fails is retried on the next run. Nothing after the failed part runs. **[decided]**
@@ -31,8 +32,9 @@ During a rolling upgrade, old and new application versions run at the same time.
 - `all` is `finish` for what is pending, followed by the remaining snippets in order. **[direction]**
 
 ```text
-migace-runner --phase start  ...   # before or while new instances roll out
-migace-runner --phase finish ...   # when no old instance is left
+migace-runner ...                 # everything, for an upgrade with the application stopped
+migace-runner --phase start  ...   # rolling upgrade: before or while new instances roll out
+migace-runner --phase finish ...   # rolling upgrade: when no old instance is left
 ```
 
 ## Who assigns the phase

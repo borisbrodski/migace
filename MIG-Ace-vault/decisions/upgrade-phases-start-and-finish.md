@@ -12,9 +12,10 @@ During a rolling upgrade old and new application versions run together. Changes 
 
 ## Decision
 
-A part is marked `phase: finish` when it breaks older versions. The default phase of a run is `start`. `start` never runs finish parts; only `finish` declares that older versions are gone. A failed part is retried on the next run and blocks everything after it.
+A part is marked `phase: finish` when it breaks older versions. Without a phase the script runs both phases; `start` and `finish` are given explicitly for a rolling upgrade. `start` never runs finish parts; only `finish` declares that older versions are gone. A failed part is retried on the next run and blocks everything after it.
 
 ## Rejected alternatives
 
 - A registry of running application instances that lets `finish` check: the application has no way to sign off.
 - Finishing the previous upgrade automatically when the next one starts: assumes that old versions are gone.
+- `start` as the default phase: agreed on 2026-11-19 and changed on 2026-11-21. A migration script that is started without parameters must leave a finished database.

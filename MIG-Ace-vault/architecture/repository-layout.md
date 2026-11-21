@@ -11,7 +11,7 @@ migace/
 ├─ README.md
 ├─ MIG-Ace-vault/            this vault
 │
-├─ language/                 the language of snippets, one Langium project
+├─ migql/                 the language of snippets, one Langium project
 │  ├─ grammar/               grammar files: YAML profile, statements, expressions
 │  ├─ src/                   parser services, checks, language server
 │  ├─ constructs/            catalogue: one folder per construct with examples and expected SQL
@@ -41,8 +41,8 @@ migace/
 
 ## Rules
 
-- `core/` imports nothing from `databases/` and nothing from `language/generators/`. Database-specific code is reached through interfaces that `core/` defines.
-- The language server is part of `language/`, because Langium builds it from the same services as the parser. `editors/` holds only thin clients.
+- `core/` imports nothing from `databases/` and nothing from `migql/generators/`. Database-specific code is reached through interfaces that `core/` defines.
+- The language server is part of `migql/`, because Langium builds it from the same services as the parser. `editors/` holds only thin clients.
 - `examples/bookshop/` is a tested project. The end-to-end tests run on it, and the website takes its examples from it.
 - Nothing in the repository comes from a real or private project.
 
@@ -50,9 +50,9 @@ migace/
 
 A new database, for example MySQL or SQL Server, touches three places and nothing else:
 
-1. `language/generators/<database>/`: statements to that database's SQL.
+1. `migql/generators/<database>/`: statements to that database's SQL.
 2. `databases/<database>/`: catalog reader, script runtime and temporary databases.
-3. `language/constructs/*/generated/<database>/`: the expected SQL for every construct.
+3. `migql/constructs/*/generated/<database>/`: the expected SQL for every construct.
 
 ## Adding a client
 

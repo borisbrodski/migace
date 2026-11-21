@@ -43,7 +43,7 @@ The same comparison also works the other way round. When the two differ because 
 A snippet is a YAML file. The statements inside it look like the SQL you already know.
 
 ```yaml
-# migrations/20260302-0900-customer-loyalty.mig.yaml
+# migrations/20260302-0900-customer-loyalty.migql.yaml
 migration: 20260302-0900-customer-loyalty
 uid: 01JF2A6QW3ZK8M4T7R9B5X0C1D
 doc: Every customer gets a loyalty level
