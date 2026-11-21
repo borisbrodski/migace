@@ -143,6 +143,25 @@ Copy rows from another table:
         where o.created_at < date '2020-01-01'
 ```
 
+## Names
+
+A name is taken exactly as you write it. The database gets the same characters in the same case, on every database.
+
+| You write | Name in the database |
+|---|---|
+| `customer` | `customer` |
+| `Customer` | `Customer` |
+| `"Customer"` | `Customer`, the same name as without quotes |
+
+- `email` and `Email` are two names. A table can have both.
+- A change of case is an ordinary rename: `rename column customer.key to Key`.
+- Double quotes are needed only for a name that is a word of the language, such as `"index"`, or that contains other characters, such as `"Line Item"`. They never change the case.
+- Keywords, functions and types are not case-sensitive. `ALTER TABLE` and `VARCHAR(20)` work as in SQL.
+
+This is different from SQL, where a name without quotes is not case-sensitive and every database stores it in its own way. An application that sends its names in quotes, as Hibernate does when quoting is switched on, then finds a column on one database and not on another. With exact names it finds it everywhere.
+
+If your application sends names without quotes, write them in lower case for PostgreSQL. A name in the wrong case is not a silent mistake: the [proof loop](/docs/proof-loop/) reports that the two names differ only in case.
+
 ## Values and expressions
 
 | You can write | Example |
