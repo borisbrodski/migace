@@ -21,6 +21,7 @@ One note per decision. Earlier alternatives are listed so that they are not prop
 | 2026-11-19 | [Upgrades have two phases: start and finish](upgrade-phases-start-and-finish.md) | decided |
 | 2026-11-19 | [Snippets are ordered by branch, then timestamp](branch-plus-timestamp-order.md) | direction |
 | 2026-11-21 | [A test run simulates customers upgrading through different paths](upgrade-path-simulation.md) | decided |
+| 2026-11-21 | [The language is built and tested with langium-tools](use-langium-tools.md) | decided |
 | 2026-11-21 | [An Obsidian vault in the repository; main is the release, work happens on candidate](vault-and-branches.md) | decided |
 
 ## Earlier decisions that were replaced

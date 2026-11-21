@@ -65,7 +65,7 @@ The amounts follow the test pyramid: many unit tests, fewer integration tests, f
 ## Techniques
 
 - **Examples from the specs.** Tests are written before the code, from the acceptance criteria.
-- **The catalogue of constructs.** Each construct has valid snippets, invalid snippets with the expected error, and expected SQL. See [Generation](../language/generation.md).
+- **The catalogue of constructs.** Each construct has valid snippets, invalid snippets with the expected error, and expected SQL. The expected SQL is a committed snapshot: a normal run compares, a generate run rewrites it and the diff is reviewed. See [Generation](../language/generation.md).
 - **Golden files** for generated SQL, scripts, release files and messages. A changed golden file is always reviewed.
 - **Property-based tests** for the schema comparison, the ordering and the checksums. Example: formatting a snippet never changes its checksum.
 - **Differential tests.** Two ways to the same result must agree: the MIG-Ace parser and a reference YAML parser; PGlite and real PostgreSQL; installing and migrating.
@@ -101,7 +101,8 @@ To be confirmed in the first milestone. **[open]**
 
 | Purpose | Tool |
 |---|---|
-| TypeScript tests | Vitest |
+| TypeScript tests | Vitest, in the version that langium-tools requires |
+| Language tests | [langium-tools](../language/langium-tools.md): matchers, marked text, generator snapshot tests |
 | Property-based tests | fast-check |
 | Mutation tests | Stryker |
 | Java tests | JUnit 5 |

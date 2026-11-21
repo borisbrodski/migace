@@ -22,6 +22,7 @@ Read only the notes a task needs. Do not load the whole vault.
 - **Examples use the bookshop only.** Never add names, code, data or examples from any real or private project.
 - **Dependencies.** `core/` imports nothing from `databases/` or `language/generators/`.
 - **Tests.** Written from the acceptance criteria before the code. No test may need Docker. See `MIG-Ace-vault/testing/test-concept.md`.
+- **Langium.** The language is built and tested with `langium-tools`. Read `MIG-Ace-vault/language/langium-tools.md` first.
 - **Invented names.** Command names, option names and setting names on the website are provisional unless the vault marks them `[decided]`.
 
 ## Commands

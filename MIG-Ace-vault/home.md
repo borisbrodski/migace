@@ -38,6 +38,7 @@ Read [How to use this vault](how-to-use-this-vault.md) before you change anythin
 - [Native SQL and dialects](language/native-sql-and-dialects.md)
 - [Generation of database-specific SQL](language/generation.md)
 - [Stability](language/stability.md)
+- [langium-tools](language/langium-tools.md): the helper library used to build and test the language
 
 ## Testing
 

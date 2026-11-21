@@ -52,7 +52,7 @@ A new database, for example MySQL or SQL Server, touches three places and nothin
 
 1. `language/generators/<database>/`: statements to that database's SQL.
 2. `databases/<database>/`: catalog reader, script runtime and temporary databases.
-3. `language/constructs/*/expected/<database>.sql`: the expected SQL for every construct.
+3. `language/constructs/*/generated/<database>/`: the expected SQL for every construct.
 
 ## Adding a client
 
