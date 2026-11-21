@@ -34,15 +34,15 @@ Every generated constraint and index gets a name, so later snippets can refer to
 
 Some changes need a decision. `mig make` asks in the terminal.
 
-**A mandatory column on a table that has rows:**
+**A new mandatory column.** MIG-Ace always assumes that the table has rows, because production data is not visible at build time:
 
 ```text
 $ mig make
 
   + column customer.loyalty_level varchar(10), mandatory
 
-customer has rows, and the new column is mandatory.
-Which value should existing rows get? (an expression, or empty to decide later)
+The new column is mandatory. Rows that already exist need a value.
+Which value should they get? (an expression, or empty to decide later)
 > 'BRONZE'
 ```
 
@@ -157,7 +157,7 @@ The key does not belong into the project file. Each developer sets it in the use
 
 `mig make` gives you the structure. You add what only you know:
 
-- [Data steps](/docs/data-migrations/) that go beyond a single value, such as converting old values.
+- [Data parts](/docs/data-migrations/) that go beyond a single value, such as converting old values.
 - [Test data](/docs/test-data/) for new tables and columns.
 - [Conditions](/docs/conditions/), in the rare cases where they are needed.
 

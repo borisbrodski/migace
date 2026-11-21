@@ -75,7 +75,7 @@ MIG-Ace differs in what happens around that step.
 | | Other generators | MIG-Ace |
 |---|---|---|
 | **What is compared** | The entity model, as the tool understands it | Two real PostgreSQL databases, including your hand-written SQL |
-| **A mandatory column on a table with rows** | Generated as written; fails later on real data | MIG-Ace asks for the value and writes the data step |
+| **A mandatory column on a table with rows** | Generated as written; fails later on real data | MIG-Ace asks for the value and writes the data part |
 | **An open decision** | A comment, if anything | A `todo` that fails the build |
 | **After generating** | You review and hope | `mig test` proves the result on a database with data |
 | **Names and grouping** | Fixed patterns | Fixed patterns, or an LLM of your choice |
@@ -108,7 +108,7 @@ Atlas is the closest relative of MIG-Ace. You describe the schema you want, and 
 
 ### Django migrations
 
-Django writes a migration whenever a model class changes, keeps migrations in a graph, and lets you add data steps in Python.
+Django writes a migration whenever a model class changes, keeps migrations in a graph, and lets you add data parts in Python.
 
 **Choose Django migrations** when your application is a Django application. They are not usable from Java.
 

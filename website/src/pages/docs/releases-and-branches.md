@@ -116,10 +116,12 @@ After some years a project has hundreds of snippets that every store ran long ag
 $ mig archive --up-to 1.1.0
 Moved 2 snippets to migrations/archive/
 The starting schema is now release 1.1.0.
+Set upgrade-from: 1.1.0 in migace.yaml.
 ```
 
 - The old snippets move to a backup folder and leave the migration script.
 - The starting point of all migrations moves forward to that release.
+- `upgrade-from` in the [project file](/docs/configuration/) is set to that release, because older databases can no longer be upgraded in one step.
 - MIG-Ace still knows the archived snippets by their `uid`, so the records in older databases stay meaningful.
 
 A database that is older than the new starting point is told which release to install first.

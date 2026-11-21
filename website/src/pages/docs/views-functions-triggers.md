@@ -77,7 +77,7 @@ The only rule for the files is the usual one: run in name order on an empty data
 
 ## What happens in a run
 
-1. **Before the snippets**, functions and procedures that are new are created. A snippet can then use them, for example in an index or in a data step.
+1. **Before the snippets**, functions and procedures that are new are created. A snippet can then use them, for example in an index or in a data part.
 2. **The snippets run.**
 3. **After the snippets**, changed functions are replaced, views and triggers are created or replaced, and objects you removed from the schema folder are dropped.
 
@@ -115,9 +115,9 @@ In this one case the view is missing for a short time. If your application has t
 
 An administrator at Harbour Books gave the reporting user access to `v_order_totals`. When the view is replaced, MIG-Ace puts that permission back.
 
-## Triggers and data steps
+## Triggers and data parts
 
-Triggers stay active while snippets run. A data step that changes a million rows in `order_item` fires `trg_order_item_total` a million times. Keep that in mind when you plan a large [data migration](/docs/data-migrations/).
+Triggers stay active while snippets run. A data part that changes a million rows in `order_item` fires `trg_order_item_total` a million times. Keep that in mind when you plan a large [data migration](/docs/data-migrations/).
 
 ## Objects your administrators add
 

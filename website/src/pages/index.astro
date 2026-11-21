@@ -10,8 +10,8 @@ const make = `$ mig make
 
   + column customer.loyalty_level varchar(10), mandatory
 
-customer has rows, and the new column is mandatory.
-Which value should existing rows get?
+The new column is mandatory. Rows that already exist need a value.
+Which value should they get?
 > 'BRONZE'
 
 Wrote migrations/20260302-0900-customer-loyalty.mig.yaml`;

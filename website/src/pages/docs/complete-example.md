@@ -96,7 +96,7 @@ testdata:
 | `default-unknown` | `expect-rows` limits the damage. `verify-after` states the result. | [Data migrations](/docs/data-migrations/) |
 | `status-fk` | A foreign key. MIG-Ace adds it without blocking the table for long. | [Zero-downtime changes](/docs/zero-downtime/) |
 | `status-mandatory` | The column becomes mandatory only after every row has a value. | [Zero-downtime changes](/docs/zero-downtime/) |
-| `testdata-before` | Untidy rows in the old shape, so the data steps are really tested. | [Test data](/docs/test-data/) |
+| `testdata-before` | Untidy rows in the old shape, so the data parts are really tested. | [Test data](/docs/test-data/) |
 | `testdata` | A full row for the new table and a minimal row for the changed one. | [Test data](/docs/test-data/) |
 
 ## What is not in the snippet

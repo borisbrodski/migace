@@ -51,10 +51,10 @@ If the condition is false, the part is skipped and recorded as skipped. That is 
 **The history of this database**
 
 ```yaml
-      when: ran 20260518-1000-order-status.link-status from 1.2.0
+      when: ran order-status.link-status from 1.2.0
 ```
 
-This is true if this database ran the part `link-status` in the version that release 1.2.0 shipped. It is how a [repair](/docs/fixing-mistakes/) finds the databases that need it.
+This is true if this database ran the part `link-status` in the version that release 1.2.0 shipped. The snippet is named without the date and time at the start of its file name. The reference therefore still works after the snippet was [moved](/docs/fixing-mistakes/). It is how a [repair](/docs/fixing-mistakes/) finds the databases that need it.
 
 You can combine conditions with `and`, `or` and `not`.
 
@@ -96,7 +96,7 @@ A `when` at the top applies to every part.
 ```yaml
 repair: 20260622-0900-repair-order-status
 uid: 01JG8T3B6X9D2F5H7K1M4Q0W8Z
-when: ran 20260518-1000-order-status.link-status from 1.2.0
+when: ran order-status.link-status from 1.2.0
 ```
 
 ## Skipped is checked again

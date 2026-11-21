@@ -80,7 +80,7 @@ A repair snippet runs only where it is needed.
 repair: 20260622-0900-repair-order-status
 uid: 01JG8T3B6X9D2F5H7K1M4Q0W8Z
 doc: Orders wrongly set to UNKNOWN by release 1.2.0 get their real status
-when: ran 20260518-1000-order-status.link-status from 1.2.0
+when: ran order-status.link-status from 1.2.0
 
 parts:
   - relink:

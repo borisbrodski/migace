@@ -12,6 +12,19 @@ The picture shows both uses of the comparison. `mig test` uses it to prove your 
 
 Every migration makes a claim: *if you run me on an older database, you get the schema the application needs.* Most tools trust that claim. MIG-Ace tests it in every build.
 
+## Why there are two databases
+
+MIG-Ace compares two databases. Both are temporary, both are built during the build, and neither is your production database.
+
+| | Database A: expected | Database B: migrated |
+|---|---|---|
+| What it stands for | The database your application expects | A database of a customer after the upgrade |
+| Where it comes from | Your [schema files](/docs/desired-schema/), run on an empty database | An older release with data, on which your snippets ran |
+| Who defines it | Hibernate, from your entity classes, plus your own SQL files | Your migration snippets |
+| Contains data | No | Yes |
+
+Two different sources describe the same thing. The entity classes say what the schema must be. The snippets say how an existing database gets there. If both are right, A and B are equal. If they differ, one of them is wrong, and the build tells you where.
+
 ## The six steps
 
 **1. Build schema A, the expected schema.**

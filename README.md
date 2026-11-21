@@ -7,7 +7,12 @@ Provable schema migrations for PostgreSQL & Hibernate.
 MIG-Ace migrates a database that already contains data and then proves the result is identical to the schema your application expects (generated from the Hibernate model). Every snippet is logged part by part and can be re-run safely.
 
 - **Website:** https://migace.openbrod.org
-- **Design:** [ARCHITECTURE.md](ARCHITECTURE.md) records what is decided, what is the working direction and what is still open.
+- **Design:** the Obsidian vault [`MIG-Ace-vault/`](MIG-Ace-vault/home.md) holds the specs and internal documentation: what is decided, what is the working direction and what is still open.
+- **Layout:** [repository layout](MIG-Ace-vault/architecture/repository-layout.md).
+
+## Branches
+
+`main` is the current release. Work happens on `candidate`. Changes are pushed directly, without pull requests.
 
 ## Website
 

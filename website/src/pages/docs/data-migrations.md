@@ -2,10 +2,12 @@
 layout: ../../layouts/Doc.astro
 title: Data migrations
 description: Changing rows safely - batches, checks before and after, and expected row counts.
-lead: Many schema changes need the existing rows to change too. MIG-Ace treats these data steps as carefully as the schema steps.
+lead: Many schema changes need the existing rows to change too. MIG-Ace treats these data parts as carefully as the parts that change the schema.
 ---
 
-## A data step is a normal part
+## A data part is a normal part
+
+A data part is a part that changes rows. In SQL terms it is DML (`insert`, `update`, `delete`). The parts that change tables and columns are DDL. A data migration is one or more data parts.
 
 In release 1.2.0 every order gets a ship-by date. Existing orders get three days after their creation.
 
@@ -45,7 +47,7 @@ For small tables you do not need `batch`.
 
 ## State what must be true afterwards: `verify-after`
 
-A data step can state its result. If the statement is not true after the part ran, the part fails.
+A data part can state its result. If the statement is not true after the part ran, the part fails.
 
 ```yaml
   - fill-ship-by:
@@ -114,8 +116,8 @@ When the four kinds are not enough, write a full condition:
                     where not exists (select 1 from order_status s where s.id = o.status_id))
 ```
 
-## Data steps are tested on data
+## Data parts are tested on data
 
-The proof loop runs every data step on an older release with rows in it, and on the [test data](/docs/test-data/) of earlier snippets. A data step that only works on an empty table does not pass the build.
+The proof loop runs every data part on an older release with rows in it, and on the [test data](/docs/test-data/) of earlier snippets. A data part that only works on an empty table does not pass the build.
 
 The [complete example](/docs/complete-example/) shows these features together in the order-status change.

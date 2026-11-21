@@ -158,6 +158,10 @@ Copy rows from another table:
 
 Text needs single quotes. A word without quotes is a column name, so `code: OPEN` is reported as an unknown column.
 
+## Your snippets keep their meaning
+
+A snippet you write today is run by databases for years. An update of MIG-Ace therefore never changes what a released statement does: the same statement keeps producing SQL with the same effect.
+
 ## What the statement language leaves out
 
 - Joins in `update` and `delete`. Use a subquery, as in the `link-status` example.

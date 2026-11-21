@@ -63,8 +63,8 @@ $ mig make
 Comparing schema/ with the migrated release 1.0.0
   + column customer.loyalty_level varchar(10), mandatory
 
-customer has rows, and the new column is mandatory.
-Which value should existing rows get? (an expression, or empty to decide later)
+The new column is mandatory. Rows that already exist need a value.
+Which value should they get? (an expression, or empty to decide later)
 > 'BRONZE'
 
 Wrote migrations/20260302-0900-customer-loyalty.mig.yaml
@@ -72,7 +72,7 @@ Wrote migrations/20260302-0900-customer-loyalty.mig.yaml
 
 You did not type a name. With an [LLM configured](/docs/generated-snippets/), MIG-Ace names the snippet and its parts. You can also choose the name: `mig make customer-loyalty`.
 
-MIG-Ace saw that the column is mandatory and that the table has rows, so it asked for a value and wrote three parts:
+The column is mandatory, so MIG-Ace asked for a value and wrote three parts. It did not look whether `customer` has rows. Your production data is not visible when you build, so MIG-Ace always assumes that a table has rows.
 
 ```yaml
 # migrations/20260302-0900-customer-loyalty.mig.yaml

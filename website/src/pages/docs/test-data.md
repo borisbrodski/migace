@@ -79,7 +79,7 @@ testdata:
 
 ## Rows that must exist before the snippet runs
 
-A data step needs rows in the old shape. The release-1.2.0 snippet that turns the free-text status into a table wants to see the untidy values that exist in real databases.
+A data part needs rows in the old shape. The release-1.2.0 snippet that turns the free-text status into a table wants to see the untidy values that exist in real databases.
 
 ```yaml
 testdata-before:
@@ -104,7 +104,7 @@ test data
     Add a testdata entry with "fill: all" to 20260309-1400-review-table.
 ```
 
-Only affected tables are checked: those whose columns changed, and those that a data step wrote to. A snippet that only adds an index triggers no check.
+Only affected tables are checked: those whose columns changed, and those that a data part wrote to. A snippet that only adds an index triggers no check.
 
 ## Let the editor write the skeleton
 

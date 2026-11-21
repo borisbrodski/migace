@@ -60,7 +60,7 @@ The editor also keeps a small PostgreSQL in memory. It runs the statement you ar
 
 - Hover over a column to see its type and the snippet that introduced it.
 - Hover over a statement to see the exact PostgreSQL statements MIG-Ace will run for it.
-- Jump from `ran 20260518-1000-order-status.link-status` to that part.
+- Jump from `ran order-status.link-status` to that part.
 - Find every snippet that touches a table.
 
 ## Installation

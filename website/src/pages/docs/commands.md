@@ -42,7 +42,7 @@ Wrote migrations/20260309-1400-review-table.mig.yaml
 | `--batch` | Ask no questions. Open decisions become `todo` entries. This is also the behaviour when no terminal is attached. |
 | `--empty` | Write an empty snippet, for example for a data-only change. |
 
-A generated snippet is a starting point. You add what MIG-Ace cannot know: data steps and test data. See [Generated snippets](/docs/generated-snippets/).
+A generated snippet is a starting point. You add what MIG-Ace cannot know: data parts and test data. See [Generated snippets](/docs/generated-snippets/).
 
 ## `mig test`
 
@@ -76,6 +76,8 @@ Run it in your release build and commit the file it writes. It also removes the 
 ```text
 $ mig archive --up-to 1.1.0
 ```
+
+Moves old snippets to the archive, moves the starting schema forward and sets `upgrade-from` in `migace.yaml`.
 
 See [Releases and branches](/docs/releases-and-branches/).
 

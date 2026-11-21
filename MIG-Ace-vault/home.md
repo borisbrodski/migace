@@ -1,0 +1,52 @@
+---
+type: home
+---
+
+# MIG-Ace vault
+
+Specifications and internal documentation of MIG-Ace. Nothing is implemented yet. This vault is the reference for the design.
+
+Read [How to use this vault](how-to-use-this-vault.md) before you change anything.
+
+## Start here
+
+- [Overview](architecture/overview.md): purpose, principles, the big picture
+- [Repository layout](architecture/repository-layout.md)
+- [Roadmap](roadmap.md)
+- [Glossary](glossary.md)
+
+## Architecture
+
+- [Desired schema and schema model](architecture/desired-schema-and-model.md)
+- [Replaceable objects](architecture/replaceable-objects.md)
+- [The proof loop](architecture/proof-loop.md)
+- [Snippets](architecture/snippets.md)
+- [Snippet generation](architecture/snippet-generation.md)
+- [Ordering, changes and releases](architecture/ordering-and-releases.md)
+- [Upgrade phases](architecture/upgrade-phases.md)
+- [Execution and ledger](architecture/execution-and-ledger.md)
+- [Tooling](architecture/tooling.md)
+- [Configuration](architecture/configuration.md)
+- [Multi-database support](architecture/multi-database.md)
+- [Not planned](architecture/not-planned.md)
+
+## Language
+
+- [Overview and name](language/overview.md)
+- [YAML profile](language/yaml-profile.md)
+- [Statement language](language/statement-language.md)
+- [Native SQL and dialects](language/native-sql-and-dialects.md)
+- [Generation of database-specific SQL](language/generation.md)
+- [Stability](language/stability.md)
+
+## Testing
+
+- [Test concept](testing/test-concept.md)
+- [Upgrade-path simulation](testing/upgrade-path-simulation.md)
+
+## Decisions, questions, work
+
+- [Decisions](decisions/index.md)
+- [Open questions](questions/open-questions.md)
+- [Specs](specs/README.md)
+- [Journal](journal/README.md)
