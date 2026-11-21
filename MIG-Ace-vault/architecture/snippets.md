@@ -47,7 +47,7 @@ parts:
           - { code: 'PAID', label: 'Paid' }
 ```
 
-- `key` is one column, or a list of columns.
+- `key` is one column, or a list of columns: `key: [book_id, currency]`. **[decided]**
 - Every row gives a value for every key column.
 - Columns that are not the key are updated when the row exists.
 

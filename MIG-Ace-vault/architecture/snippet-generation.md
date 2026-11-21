@@ -15,3 +15,4 @@ MIG-Ace generates snippets for most simple schema changes. This is a main featur
 - In `--batch` mode, or when no console is attached, it does not ask. It writes a `todo` into the snippet and reports it clearly. **[decided]**
 - While a `todo` is present, building the migration script fails. **[decided]**
 - A possible rename (one column removed, a similar one added) is asked about, not guessed. **[direction]**
+- A new index on a table that exists before the snippet is written as `create index concurrently`. The generator of SQL never adds the word itself; the zero-downtime check reports a plain `create index` on such a table. **[decided]**

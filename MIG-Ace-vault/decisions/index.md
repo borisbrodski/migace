@@ -22,6 +22,7 @@ One note per decision. Earlier alternatives are listed so that they are not prop
 | 2026-11-19 | [Snippets are ordered by branch, then timestamp](branch-plus-timestamp-order.md) | direction |
 | 2026-11-21 | [A test run simulates customers upgrading through different paths](upgrade-path-simulation.md) | decided |
 | 2026-11-21 | [MigQL syntax decisions after the first implementation](migql-syntax-after-m1.md) | decided |
+| 2026-11-21 | [MigQL answers after the PostgreSQL generation](migql-answers-after-m3.md) | decided |
 | 2026-11-21 | [MIG-Ace is licensed under the Apache License 2.0](apache-license.md) | decided |
 | 2026-11-21 | [The language is called MigQL, and snippet files end in .migql.yaml](migql-name-and-extension.md) | decided |
 | 2026-11-21 | [Snippets are referenced by their slug, and slugs are unique](references-by-slug.md) | decided |

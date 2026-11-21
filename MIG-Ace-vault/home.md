@@ -35,6 +35,7 @@ Read [How to use this vault](how-to-use-this-vault.md) before you change anythin
 - [Overview](migql/overview.md)
 - [YAML profile](migql/yaml-profile.md)
 - [Statement language](migql/statement-language.md)
+- [Names and case](migql/names-and-case.md)
 - [Native SQL and dialects](migql/native-sql-and-dialects.md)
 - [Generation of database-specific SQL](migql/generation.md)
 - [Stability](migql/stability.md)

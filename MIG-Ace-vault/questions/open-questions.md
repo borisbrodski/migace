@@ -37,8 +37,9 @@ status: open
 30. *Closed 2026-11-21:* see [MigQL syntax decisions after the first implementation](../decisions/migql-syntax-after-m1.md).
 31. *Closed 2026-11-21:* see [MigQL syntax decisions after the first implementation](../decisions/migql-syntax-after-m1.md).
 32. **Functions in expressions:** which functions may a snippet call? The working list is in [Functions](../migql/functions.md): eleven functions, taken from the website and from what a subquery needs.
-33. **Automatic lock-safe forms:** `set not null` and a new foreign key are generated in the safe multi-step form. Should `create index` always be generated as `concurrently`, also when the author did not write it?
+33. *Closed 2026-11-21:* see [MigQL answers after the PostgreSQL generation](../decisions/migql-answers-after-m3.md).
 34. **Contributor agreement:** do contributors sign an agreement that allows a later change of licence?
-35. **`rename column` before the upgrade phases exist:** M3 generates a plain `alter table … rename column`. That is right when no older application version runs. Is this the form for a run without a phase, or must the statement wait for the phases?
-36. **Details of a type in `ensure column`:** the length of `varchar` and `char` can grow. Should a `numeric` with a larger precision be widened too, and what about `timestamp(3)` and other types with details?
-37. **A list of key columns:** `upsert` accepts `key: [book_id, currency]`, a YAML flow list. Confirm the form.
+35. *Closed 2026-11-21:* see [MigQL answers after the PostgreSQL generation](../decisions/migql-answers-after-m3.md).
+36. *Closed 2026-11-21:* see [MigQL answers after the PostgreSQL generation](../decisions/migql-answers-after-m3.md).
+37. *Closed 2026-11-21:* see [MigQL answers after the PostgreSQL generation](../decisions/migql-answers-after-m3.md).
+38. **Case in names:** confirm the rules in [Names and case](../migql/names-and-case.md): a name without quotes is not case-sensitive, a name in quotes is exact, and names that differ only in case are allowed where the database allows them. Sub-question: is a double quote inside a name ever needed?
