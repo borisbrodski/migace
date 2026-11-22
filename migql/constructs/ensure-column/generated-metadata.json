@@ -7,6 +7,10 @@
     {
       "filename": "postgresql/20260610-0910-review-title.sql",
       "overwrite": true
+    },
+    {
+      "filename": "postgresql/20260801-1000-loyalty-level-mixed-case.sql",
+      "overwrite": true
     }
   ]
 }

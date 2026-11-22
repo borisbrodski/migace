@@ -146,22 +146,108 @@ describe('PostgreSQL: other operations', () => {
     });
 });
 
-// M3-AC-03
+// M3.1-AC-10
 describe('PostgreSQL: names', () => {
     test.each([
-        ['update Customer set Loyalty_Level = 1', 'update customer set loyalty_level = 1;'],
+        ['update customer set loyalty_level = 1', 'update customer set loyalty_level = 1;'],
+        ['update Customer set Loyalty_Level = 1', 'update "Customer" set "Loyalty_Level" = 1;'],
+        ['update CUSTOMER set LEVEL = 1', 'update "CUSTOMER" set "LEVEL" = 1;'],
         ['update "customer" set "loyalty_level" = 1', 'update customer set loyalty_level = 1;'],
         ['update "Customer" set "Loyalty Level" = "Customer"."Old" where "naïve" = 1',
             'update "Customer" set "Loyalty Level" = "Customer"."Old" where "naïve" = 1;'],
         ['update "order" o set "index" = "table"."column", "user" = 1', 'update "order" o set index = "table"."column", "user" = 1;'],
         ['update t set value = key + date + type + data + next + required + finish', 'update t set value = key + date + type + data + next + required + finish;'],
-        ['alter table "order" add column "Total" VARCHAR(10)', 'alter table "order" add column "Total" varchar(10);'],
+        ['update update set table = column + index where create is null', 'update update set "table" = "column" + index where "create" is null;'],
         ['create index "Ix" on "order" ("index", id)', 'create index "Ix" on "order" (index, id);'],
-        ['update t set c = UPPER(Trim(Name))', 'update t set c = upper(trim(name));'],
         ['update t set c = next value for "Bookshop_Seq"', `update t set c = nextval('"Bookshop_Seq"');`],
-        ['update t set c = next value for Bookshop_Seq', "update t set c = nextval('bookshop_seq');"],
+        ['update t set c = next value for Bookshop_Seq', `update t set c = nextval('"Bookshop_Seq"');`],
+        ['update t set c = next value for bookshop_seq', "update t set c = nextval('bookshop_seq');"],
+        // M3.1-AC-03
+        ["update customer C set name = 'x' where C.id = 1", `update customer "C" set name = 'x' where "C".id = 1;`],
+        ['delete from review R where exists (select 1 from book B where B.id = R.book_id)',
+            'delete from review "R" where exists (select 1 from book "B" where "B".id = "R".book_id);'],
     ])('%s', async (source, sql) => {
         expect(await statement(source)).toBe(sql);
+    });
+
+    // M3.1-AC-04
+    test('keywords and functions are not case-sensitive, names are', async () => {
+        expect(await statement('ALTER TABLE customer ADD COLUMN x INTEGER NOT NULL DEFAULT 0')).toBe('alter table customer add column x integer not null default 0;');
+        await clear();
+        expect(await statement('UPDATE t SET c = UPPER(Trim(Name)) WHERE Coalesce(c, 1) IS NULL')).toBe('update t set c = upper(trim("Name")) where coalesce(c, 1) is null;');
+    });
+});
+
+// M3.1-AC-08, M3.1-AC-09
+describe('PostgreSQL: types', () => {
+    test.each([
+        ['VARCHAR(20)', 'varchar(20)'],
+        ['Integer', 'integer'],
+        ['bigint', 'bigint'],
+        ['NUMERIC(12, 2)', 'numeric(12, 2)'],
+        ['Timestamp', 'timestamp'],
+        ['loyalty_level', 'loyalty_level'],
+        ['Loyalty_Level', '"Loyalty_Level"'],
+        ['"Loyalty Level"', '"Loyalty Level"'],
+        ['"varchar"', 'varchar'],
+    ])('the type %s is generated as %s', async (type, generated) => {
+        expect(await statement(`alter table customer add column c ${type}`)).toBe(`alter table customer add column c ${generated};`);
+    });
+
+    test('a cast uses the same rule', async () => {
+        expect(await statement('update t set c = cast(a as DATE), d = cast(b as Mood)')).toBe('update t set c = cast(a as date), d = cast(b as "Mood");');
+    });
+});
+
+// M3.1-AC-11
+describe('PostgreSQL: names in texts and in queries of the catalog', () => {
+    test('set not null names its helper constraint with the exact names', async () => {
+        expect(await statement('alter table "Orders" alter column "Due Date" set not null')).toBe([
+            '-- step 1 of 4',
+            'alter table "Orders" add constraint "Orders_Due Date_not_null" check ("Due Date" is not null) not valid;',
+            '-- step 2 of 4',
+            'alter table "Orders" validate constraint "Orders_Due Date_not_null";',
+            '-- step 3 of 4',
+            'alter table "Orders" alter column "Due Date" set not null;',
+            '-- step 4 of 4',
+            'alter table "Orders" drop constraint "Orders_Due Date_not_null";',
+        ].join('\n'));
+    });
+
+    test('ensure column looks for the exact names', async () => {
+        const sql = await statement('ensure column Orders.DueDate Mood');
+
+        expect(sql).toContain(`    where a.attrelid = '"Orders"'::regclass and a.attname = 'DueDate' and a.attnum > 0 and not a.attisdropped;`);
+        expect(sql).toContain('        alter table "Orders" add column "DueDate" "Mood";');
+        expect(sql).toContain(`    elsif existing.atttypid = '"Mood"'::regtype and existing.atttypmod = -1 then`);
+        expect(sql).toContain(`raise exception 'ensure column Orders.DueDate "Mood": the column exists as %. It can neither be kept nor widened.', existing.type;`);
+    });
+});
+
+// M3.1-AC-12
+describe('PostgreSQL: hostile names', () => {
+    const HOSTILE = ["x'; drop table customer; --", 'x; drop table customer', '-- drop table customer', 'back\\slash', "a'b\\'c", '$ensure$; drop table customer; --', '100% %s'];
+
+    test.each(HOSTILE)('the name %s cannot end an identifier and start a new statement', async hostile => {
+        const sql = await statement(`update "${hostile}" set "${hostile}" = next value for "${hostile}" where "${hostile}"."${hostile}" = 1`);
+
+        const parsed = parseSync(sql);
+        expect(parsed.stmts).toHaveLength(1);
+        expect(Object.keys(parsed.stmts![0].stmt!)).toEqual(['UpdateStmt']);
+    });
+
+    test.each(HOSTILE)('the name %s cannot leave the code of ensure column', async hostile => {
+        const sql = await statement(`ensure column "${hostile}"."${hostile}" "${hostile}"`);
+
+        const parsed = parseSync(sql);
+        expect(parsed.stmts).toHaveLength(1);
+        expect(Object.keys(parsed.stmts![0].stmt!)).toEqual(['DoStmt']);
+    });
+
+    test.each(HOSTILE)('the name %s cannot leave the steps of set not null', async hostile => {
+        const sql = await statement(`alter table "${hostile}" alter column "${hostile}" set not null`);
+
+        expect(parseSync(sql).stmts!.map(each => Object.keys(each.stmt!)[0])).toEqual(['AlterTableStmt', 'AlterTableStmt', 'AlterTableStmt', 'AlterTableStmt']);
     });
 });
 
@@ -195,7 +281,7 @@ describe('PostgreSQL: formatting of the snippet', () => {
         const oneLine = await statement("update orders o set status_id = (select s.id from order_status s where s.code = upper(trim(o.status))) where o.status_id is null");
         await clear();
         const formatted = await statement(
-            'UPDATE   orders O', '  SET status_id = ( SELECT s.id   FROM order_status s -- look it up',
+            'UPDATE   orders o', '  SET status_id = ( SELECT s.id   FROM order_status s -- look it up',
             '                     WHERE s.code = UPPER( TRIM( o.status ) ) )', '', 'WHERE  o.status_id   IS NULL');
 
         expect(formatted).toBe(oneLine);

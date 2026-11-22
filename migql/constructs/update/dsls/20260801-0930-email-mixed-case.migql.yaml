@@ -1,0 +1,9 @@
+migration: 20260801-0930-email-mixed-case
+doc: Email and email are two columns
+
+parts:
+  - copy-email:
+      do: |
+        update Customer C
+        set Email = upper(C.email)
+        where C.Email is null and C."Id" > 0

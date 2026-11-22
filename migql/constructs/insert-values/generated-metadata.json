@@ -7,6 +7,10 @@
     {
       "filename": "postgresql/20260518-1030-open-status.sql",
       "overwrite": true
+    },
+    {
+      "filename": "postgresql/20260801-0950-order-status-yaml-form-mixed-case.sql",
+      "overwrite": true
     }
   ]
 }

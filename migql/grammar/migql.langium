@@ -347,11 +347,19 @@ DataType:
     name=Name ('(' parameters+=INT (',' parameters+=INT)* ')')?;
 
 /**
- * A name of a table, a column or another object. Some keywords are accepted as names.
- * Any other keyword, and a name with upper-case letters or other characters, is written in double quotes.
+ * A name of a table, a column or another object. It is exact: `email` and `Email` are two names,
+ * and double quotes do not change a name.
+ *
+ * A keyword is accepted as a name without quotes if it never stands where the grammar has to
+ * choose between it and a name. The list with the reasons is in the vault, migql/keywords.md.
+ * Every other keyword, and a name with other characters, is written in double quotes.
  */
 Name returns string:
-    ID | QUOTED_ID | 'value' | 'key' | 'date' | 'type' | 'data' | 'next' | 'required' | 'finish';
+    ID | QUOTED_ID
+    | 'value' | 'key' | 'date' | 'type' | 'data' | 'next' | 'required' | 'finish' | 'all' | 'by'
+    | 'create' | 'alter' | 'drop' | 'add' | 'rename' | 'update' | 'delete' | 'insert'
+    | 'table' | 'column' | 'index'
+    | 'on' | 'to' | 'for' | 'into' | 'values';
 
 // Tokens of the envelope. The MigQL lexer produces them; the patterns are never used.
 terminal INDENT: 'synthetic:indent';
@@ -372,4 +380,4 @@ terminal DECIMAL returns number: /[0-9]+\.[0-9]+/;
 terminal INT returns number: /[0-9]+/;
 terminal STRING: /'(?:[^']|'')*'/;
 terminal ID: /[_a-zA-Z][\w_]*/;
-terminal QUOTED_ID: /"[^"\r\n]+"/;
+terminal QUOTED_ID: /"(?:[^"\r\n]|"")*"/;

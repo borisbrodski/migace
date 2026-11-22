@@ -90,8 +90,9 @@ function misreadByYaml(rest: string, value: string, kind: ValueKind | undefined)
         return { message: 'Free text is not put in quotes. Remove the quotes, or use a literal block: write | after the key and the text on the lines below it.', at: 0 };
     }
     const isOneQuotedText = /^'(?:[^']|'')*'$/.test(value);
+    const isOneQuotedName = /^"[^"]*"$/.test(value);
     const isList = first === '[' && value.endsWith(']');
-    if (first !== '' && '\'"@`%[]},'.includes(first) && !isOneQuotedText && !isList) {
+    if (first !== '' && '\'"@`%[]},'.includes(first) && !isOneQuotedText && !isOneQuotedName && !isList) {
         return { message: `YAML reads a value that starts with ${first} differently.${LITERAL_BLOCK_ADVICE}`, at: 0 };
     }
     const comment = /\s#/.exec(rest);
@@ -104,6 +105,14 @@ function misreadByYaml(rest: string, value: string, kind: ValueKind | undefined)
         return { message: `YAML does not allow ": " inside a value that stands on the line of its key.${LITERAL_BLOCK_ADVICE}`, at: colon.index };
     }
     return undefined;
+}
+
+/** Says what a name in double quotes has that MigQL does not support. */
+function unsupportedName(image: string): string | undefined {
+    if (image === '""') {
+        return 'A name cannot be empty. Write the name between the double quotes.';
+    }
+    return image.slice(1, -1).includes('"') ? 'A double quote inside a name is not supported. Choose a name without it.' : undefined;
 }
 
 interface Level {
@@ -253,7 +262,8 @@ class Scan {
             }
             return;
         }
-        const entry = /^([A-Za-z_][\w-]*):(?:[ ]+|$)/.exec(rest);
+        const entry = /^([A-Za-z_][\w-]*):(?:[ ]+|$)/.exec(rest)
+            ?? (this.top.context.quotedNames ? /^("[^"\r\n]*"):(?:[ ]+|$)/.exec(rest) : null);
         if (!entry) {
             if (/^[A-Za-z_][\w-]*$/.test(rest.trimEnd())) {
                 // A key that is still being typed. The parser says which keys fit here.
@@ -390,6 +400,12 @@ class Scan {
             return token;
         };
         this.tokens.push(...result.tokens.map(move));
+        for (const token of result.tokens.filter(each => each.tokenType.name === 'QUOTED_ID')) {
+            const problem = unsupportedName(token.image);
+            if (problem) {
+                this.errors.push({ message: problem, offset: token.startOffset, line: token.startLine!, column: token.startColumn!, length: token.image.length });
+            }
+        }
         this.hidden.push(...(result.groups.hidden ?? []).map(move));
         for (const error of result.errors) {
             const offset = start.offset + error.offset;

@@ -7,6 +7,10 @@
     {
       "filename": "postgresql/20260518-1010-link-status.sql",
       "overwrite": true
+    },
+    {
+      "filename": "postgresql/20260801-0930-email-mixed-case.sql",
+      "overwrite": true
     }
   ]
 }

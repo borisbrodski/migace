@@ -7,6 +7,10 @@
     {
       "filename": "postgresql/20260401-0830-orders-customer-index.sql",
       "overwrite": true
+    },
+    {
+      "filename": "postgresql/20260801-1010-customer-email-mixed-case.sql",
+      "overwrite": true
     }
   ]
 }

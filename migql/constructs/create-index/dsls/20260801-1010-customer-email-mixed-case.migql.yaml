@@ -1,0 +1,5 @@
+migration: 20260801-1010-customer-email-mixed-case
+
+parts:
+  - index:
+      do: create index "IX Customer Email" on Customer (Email, email)

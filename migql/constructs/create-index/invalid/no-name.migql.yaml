@@ -1,6 +1,6 @@
-# expect: Expected a name, but found "on". "on" is a keyword. To use it as a name, write it in double quotes: "on".
+# expect: Expected "on", but found "review".
 migration: 20260101-0900-example
 
 parts:
   - p:
-      do: create index <<{|on|}>> review (book_id)
+      do: create index on <<{|review|}>> (book_id)

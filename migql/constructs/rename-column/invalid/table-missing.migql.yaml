@@ -1,6 +1,6 @@
-# expect: Expected ".", but found "to".
+# expect: Expected ".", but the value ends here.
 migration: 20260101-0900-example
 
 parts:
   - p:
-      do: rename column mail <<{|to|}>> email
+      do: rename column mail<<{||}>>

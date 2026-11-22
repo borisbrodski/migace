@@ -1,3 +1,4 @@
+import { exactName } from './model/names.js';
 import { type CstNode, DefaultValueConverter, type GrammarAST, type ValueType } from 'langium';
 
 export class MigqlValueConverter extends DefaultValueConverter {
@@ -5,6 +6,8 @@ export class MigqlValueConverter extends DefaultValueConverter {
     protected override runConverter(rule: GrammarAST.AbstractRule, input: string, cstNode: CstNode): ValueType {
         switch (rule.name) {
             case 'STRING': return input.slice(1, -1).replace(/''/g, "'");
+            case 'Name':
+            case 'NAME': return exactName(input);
             case 'TEXT': return isLiteralBlock(cstNode) ? blockText(input, cstNode.range.start.character) : input;
             default: return super.runConverter(rule, input, cstNode);
         }

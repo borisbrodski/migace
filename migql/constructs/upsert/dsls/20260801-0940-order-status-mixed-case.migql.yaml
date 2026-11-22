@@ -1,0 +1,10 @@
+migration: 20260801-0940-order-status-mixed-case
+
+parts:
+  - statuses:
+      upsert:
+        into: "Order Status"
+        key: Code
+        rows:
+          - { Code: 'OPEN', "Display Label": 'Open' }
+          - { Code: 'PAID', "Display Label": 'Paid' }

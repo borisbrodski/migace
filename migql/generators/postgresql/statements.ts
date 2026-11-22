@@ -2,8 +2,8 @@ import type {
     AlterTable, ColumnChange, ColumnConstraint, ColumnDefinition, ConstraintRule, DataType, EnsureColumn, Expression, Statement,
     TableConstraint,
 } from '../../src/generated/ast.js';
-import { dataType, expression, select } from './expressions.js';
-import { name, plain, quoted, text } from './names.js';
+import { dataType, expression, isKnownType, select, typeName } from './expressions.js';
+import { name, text } from './names.js';
 
 /** A construct that the generator does not translate yet. */
 export class NotGeneratedYet extends Error { }
@@ -80,7 +80,7 @@ function alterTable(node: AlterTable): Step[] {
  */
 function setNotNull(table: string, columnName: string): Step[] {
     const alter = `alter table ${name(table)}`;
-    const check = quoted(`${plain(table)}_${plain(columnName)}_not_null`);
+    const check = name(`${table}_${columnName}_not_null`);
     return [
         { sql: `${alter} add constraint ${check} check (${name(columnName)} is not null) not valid` },
         { sql: `${alter} validate constraint ${check}` },
@@ -89,8 +89,8 @@ function setNotNull(table: string, columnName: string): Step[] {
     ];
 }
 
-/** Types whose details PostgreSQL stores as a length. A column of such a type can be made longer. */
-const WITH_LENGTH = new Set(['varchar', 'character varying', 'char', 'character', 'bpchar']);
+/** The details of these types are a length. A column of such a type can be made longer. */
+const WITH_LENGTH = new Set(['varchar', 'char']);
 
 /**
  * `ensure column` cannot be decided when the script is built: the column may or may not exist in
@@ -100,46 +100,74 @@ function ensureColumn(node: EnsureColumn): string {
     const table = name(node.table);
     const columnName = name(node.column.name);
     const type = node.column.type;
-    const wanted = `${plain(node.table)}.${plain(node.column.name)} ${dataType(type)}`;
-    const isType = `existing.atttypid = ${text(name(type.name))}::regtype`;
-    const modifier = typeModifier(type);
-    const widen = WITH_LENGTH.has(plain(type.name)) && type.parameters.length === 1
-        ? [`    elsif ${isType} and existing.atttypmod between 5 and ${modifier - 1} then`,
-            `        alter table ${table} alter column ${columnName} type ${dataType(type)};`]
-        : [];
-    return [
-        'do $ensure$',
+    const wanted = `${node.table}.${node.column.name} ${dataType(type)}`;
+    const isType = `existing.atttypid = ${text(typeName(type))}::regtype`;
+    const widen = widerThan(type);
+    const body = [
         'declare',
         '    existing record;',
         'begin',
         '    select a.atttypid, a.atttypmod, format_type(a.atttypid, a.atttypmod) as type into existing',
         '    from pg_attribute a',
-        `    where a.attrelid = ${text(table)}::regclass and a.attname = ${text(plain(node.column.name))} and a.attnum > 0 and not a.attisdropped;`,
+        `    where a.attrelid = ${text(table)}::regclass and a.attname = ${text(node.column.name)} and a.attnum > 0 and not a.attisdropped;`,
         '    if not found then',
         `        alter table ${table} add column ${column(node.column)};`,
-        `    elsif ${isType} and existing.atttypmod = ${modifier} then`,
+        `    elsif ${isType} and existing.atttypmod = ${typeModifier(type)} then`,
         '        null;',
-        ...widen,
+        ...(widen ? [
+            `    elsif ${isType} and ${widen} then`,
+            `        alter table ${table} alter column ${columnName} type ${dataType(type)};`,
+        ] : []),
         '    else',
-        `        raise exception ${text(`ensure column ${wanted}: the column exists as %. It can neither be kept nor widened.`)}, existing.type;`,
+        // A percent sign in a name would be taken for a place to fill in, so it is doubled.
+        `        raise exception ${text(`ensure column ${wanted.replace(/%/g, '%%')}: the column exists as %. It can neither be kept nor widened.`)}, existing.type;`,
         '    end if;',
         'end',
-        '$ensure$',
     ].join('\n');
+    const quote = dollarQuote(body);
+    return `do ${quote}\n${body}\n${quote}`;
 }
 
-/** The number in which PostgreSQL stores the details of a type: the length plus 4, or -1 without details. */
+/** A delimiter for the code that the code itself does not contain, so that no name inside it can end the code. */
+function dollarQuote(body: string): string {
+    for (let number = 0; ; number++) {
+        const quote = `$ensure${number === 0 ? '' : number}$`;
+        if (!body.includes(quote)) {
+            return quote;
+        }
+    }
+}
+
+/**
+ * The number in which PostgreSQL stores the details of a type: the length plus 4, precision and scale
+ * packed into one number plus 4, or -1 without details.
+ */
 function typeModifier(type: DataType): number {
+    const known = isKnownType(type) ? typeName(type) : undefined;
     if (type.parameters.length === 0) {
         return -1;
     }
-    if (WITH_LENGTH.has(plain(type.name)) && type.parameters.length === 1) {
+    if (known && WITH_LENGTH.has(known) && type.parameters.length === 1) {
         return type.parameters[0] + 4;
     }
-    if (['numeric', 'decimal'].includes(plain(type.name))) {
+    if (known === 'numeric') {
         return ((type.parameters[0] << 16) | (type.parameters[1] ?? 0)) + 4;
     }
     throw new NotGeneratedYet(`"ensure column" knows the details of varchar, char and numeric only, not of ${dataType(type)}.`);
+}
+
+/** The condition under which an existing column of the same type is narrower than the wanted one, if the type can be widened. */
+function widerThan(type: DataType): string | undefined {
+    const known = isKnownType(type) ? typeName(type) : undefined;
+    if (known && WITH_LENGTH.has(known) && type.parameters.length === 1) {
+        return `existing.atttypmod between 5 and ${type.parameters[0] + 3}`;
+    }
+    if (known === 'numeric' && type.parameters.length > 0) {
+        const [precision, scale = 0] = type.parameters;
+        // A larger precision with the same scale keeps every stored value as it is.
+        return `existing.atttypmod <> -1 and (existing.atttypmod - 4) & 65535 = ${scale} and (existing.atttypmod - 4) >> 16 < ${precision}`;
+    }
+    return undefined;
 }
 
 function names(written: string[]): string {

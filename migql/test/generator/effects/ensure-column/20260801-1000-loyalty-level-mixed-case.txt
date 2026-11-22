@@ -1,0 +1,2 @@
+unexpected  column Customer.Loyalty Level
+different   column Customer.key: type details: expected 10, actual 40

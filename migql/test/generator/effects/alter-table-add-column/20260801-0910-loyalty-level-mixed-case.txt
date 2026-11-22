@@ -1,0 +1,2 @@
+unexpected  column Customer.CreatedAt
+unexpected  column Customer.Loyalty Level

@@ -11,6 +11,10 @@
     {
       "filename": "postgresql/20260520-0900-price-history.sql",
       "overwrite": true
+    },
+    {
+      "filename": "postgresql/20260801-0900-order-item-mixed-case.sql",
+      "overwrite": true
     }
   ]
 }

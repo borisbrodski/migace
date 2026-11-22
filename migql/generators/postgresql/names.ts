@@ -15,21 +15,12 @@ const RESERVED = new Set(`
 const PLAIN = /^[a-z_][a-z0-9_]*$/;
 
 /**
- * The name as the database knows it. A name without quotes is not case-sensitive, and
- * PostgreSQL stores it in lower case. A name in double quotes is kept as it is written.
+ * A name as it is written in PostgreSQL. A name in MigQL is exact, so it is written in double quotes
+ * wherever PostgreSQL would read it differently without them: upper-case letters, a reserved word,
+ * other characters. A plain lower-case name needs none.
  */
-export function plain(written: string): string {
-    return written.startsWith('"') ? written.slice(1, -1) : written.toLowerCase();
-}
-
-/** A name as it is written in PostgreSQL: in double quotes only where PostgreSQL would read it differently without. */
-export function quoted(plainName: string): string {
-    return PLAIN.test(plainName) && !RESERVED.has(plainName) ? plainName : `"${plainName.replace(/"/g, '""')}"`;
-}
-
-/** The PostgreSQL form of a name as the author wrote it in a snippet. */
-export function name(written: string): string {
-    return quoted(plain(written));
+export function name(exact: string): string {
+    return PLAIN.test(exact) && !RESERVED.has(exact) ? exact : `"${exact.replace(/"/g, '""')}"`;
 }
 
 /** A text as a PostgreSQL literal. A quote inside it is doubled, so the text cannot end the literal. */

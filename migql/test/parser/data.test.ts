@@ -175,14 +175,14 @@ describe('Parser: names in double quotes', () => {
 
         expect(document).toHaveNoErrors();
         const statement = partsOf(document.parseResult.value)[0].entries.filter(isDoEntry)[0].statement;
-        expect(statement).toMatchObject({ table: '"order"', assignments: [{ column: '"index"' }, { column: '"Mixed Case"' }] });
+        expect(statement).toMatchObject({ table: 'order', assignments: [{ column: 'index' }, { column: 'Mixed Case' }] });
     });
 
     test('a keyword without quotes is an error that advises the quotes', async () => {
-        const parsed = await parseMarked(part('do: alter table orders add column <<{|index|}>> integer'));
+        const parsed = await parseMarked(part('do: alter table orders add column <<{|where|}>> integer'));
 
         expect(parsed).toHaveDocumentIssues([
-            error('Expected a name, but found "index". "index" is a keyword. To use it as a name, write it in double quotes: "index".', 0),
+            error('Expected a name, but found "where". "where" is a keyword. To use it as a name, write it in double quotes: "where".', 0),
         ], DIAGNOSTICS_ONLY);
     });
 });

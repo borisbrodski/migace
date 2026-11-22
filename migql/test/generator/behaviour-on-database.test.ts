@@ -136,14 +136,45 @@ describe('ensure column on a database', () => {
         await expect(runPart('do: ensure column orders.due_by date')).rejects.toThrow('the column exists as timestamp without time zone');
     });
 
-    test('a number with precision is kept if it is the same', async () => {
-        await bookshop('alter table book add column weight numeric(8, 3)');
-        const before = await model();
+    // M3.1-AC-25
+    describe('a number with precision', () => {
+        const weight = async () => (await model()).tables.find(table => table.name === 'book')!.columns.find(column => column.name === 'weight');
 
-        await runPart('do: ensure column book.weight numeric(8, 3)');
+        test('is kept if precision and scale are the same', async () => {
+            await bookshop('alter table book add column weight numeric(8, 3)');
+            const before = await model();
 
-        expect(compare(before, await model())).toEqual([]);
-        await expect(runPart('do: ensure column book.weight numeric(10, 3)')).rejects.toThrow('the column exists as numeric(8,3)');
+            await runPart('do: ensure column book.weight numeric(8, 3)');
+
+            expect(compare(before, await model())).toEqual([]);
+        });
+
+        test('is widened when the precision grows and the scale stays, and its values stay', async () => {
+            await bookshop('alter table book add column weight numeric(8, 3)',
+                "insert into book (id, title, author, price_cents, stock, weight) values (1, 'T', 'A', 1, 1, 12345.678)");
+
+            await runPart('do: ensure column book.weight numeric(10, 3)');
+
+            expect(await weight()).toMatchObject({ type: 'numeric', typeDetails: '10,3' });
+            expect(await rows('select weight::text as weight from book')).toEqual([{ weight: '12345.678' }]);
+        });
+
+        test.each([
+            ['the scale changes', 'numeric(10, 2)', 'numeric(8,3)'],
+            ['the scale grows with the precision', 'numeric(12, 5)', 'numeric(8,3)'],
+            ['the precision is smaller', 'numeric(6, 3)', 'numeric(8,3)'],
+        ])('fails when %s', async (_what, wanted, existing) => {
+            await bookshop('alter table book add column weight numeric(8, 3)');
+
+            await expect(runPart(`do: ensure column book.weight ${wanted}`)).rejects.toThrow(`the column exists as ${existing}. It can neither be kept nor widened.`);
+            expect(await weight()).toMatchObject({ typeDetails: '8,3' });
+        });
+
+        test('fails when the column has no precision at all', async () => {
+            await bookshop('alter table book add column weight numeric');
+
+            await expect(runPart('do: ensure column book.weight numeric(10, 3)')).rejects.toThrow('the column exists as numeric.');
+        });
     });
 });
 

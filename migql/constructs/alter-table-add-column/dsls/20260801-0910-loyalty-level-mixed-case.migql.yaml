@@ -1,0 +1,8 @@
+migration: 20260801-0910-loyalty-level-mixed-case
+
+parts:
+  - add-column:
+      do: alter table Customer add column "Loyalty Level" varchar(10)
+
+  - add-upper-case-column:
+      do: alter table Customer add column CreatedAt timestamp

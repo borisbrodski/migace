@@ -7,6 +7,10 @@
     {
       "filename": "postgresql/20260701-0900-book-prices.sql",
       "overwrite": true
+    },
+    {
+      "filename": "postgresql/20260801-0940-order-status-mixed-case.sql",
+      "overwrite": true
     }
   ]
 }

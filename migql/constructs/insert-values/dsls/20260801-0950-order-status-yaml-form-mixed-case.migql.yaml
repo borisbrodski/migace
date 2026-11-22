@@ -1,0 +1,10 @@
+migration: 20260801-0950-order-status-yaml-form-mixed-case
+doc: The insert in YAML form. A column name with a space is a key in double quotes.
+
+parts:
+  - add-status:
+      insert:
+        into: "Order Status"
+        values:
+          Code: 'SHIPPED'
+          "Display Label": 'Shipped'

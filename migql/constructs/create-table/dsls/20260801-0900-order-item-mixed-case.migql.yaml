@@ -1,0 +1,14 @@
+migration: 20260801-0900-order-item-mixed-case
+doc: Names are exact. A name with a space or with a keyword is written in double quotes.
+
+parts:
+  - create-table:
+      do: |
+        create table "Order Item" (
+          Id          bigint  not null,
+          "Line Item" integer not null,
+          Quantity    integer not null default 1,
+          "check"     varchar(10),
+          primary key (Id),
+          constraint "UQ Order Item" unique ("Line Item")
+        )

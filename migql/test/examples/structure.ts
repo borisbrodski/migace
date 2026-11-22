@@ -57,7 +57,7 @@ class TokenReader {
     private entries(): Structure {
         const map: Record<string, Structure> = {};
         while (this.index < this.tokens.length && !this.is('DASH') && !this.is('DEDENT')) {
-            const key = this.next().image.replace(/:$/, '');
+            const key = unquoted(this.next().image.replace(/:$/, ''));
             if (this.is(':')) {
                 this.index++;
             }
@@ -103,7 +103,7 @@ function flowMap(tokens: IToken[]): Structure {
     for (let index = 0; index <= tokens.length; index++) {
         if (index === tokens.length || tokens[index].image === ',') {
             if (index > start) {
-                map[tokens[start].image] = text(tokens.slice(start + 2, index));
+                map[unquoted(tokens[start].image)] = text(tokens.slice(start + 2, index));
             }
             start = index + 1;
         }
@@ -115,9 +115,17 @@ function flowList(tokens: IToken[]): Structure {
     return tokens.filter(token => token.image !== ',').map(token => text([token]));
 }
 
+/** A name in double quotes is the name without them, for YAML as for MigQL. */
+function unquoted(image: string): string {
+    return /^"[^"]*"$/.test(image) ? image.slice(1, -1) : image;
+}
+
 function text(tokens: IToken[]): string {
     if (tokens.length === 0) {
         return 'null';
+    }
+    if (tokens.length === 1 && tokens[0].tokenType.name === 'QUOTED_ID') {
+        return scalar(unquoted(tokens[0].image));
     }
     if (tokens.length === 1 && tokens[0].tokenType.name === 'STRING') {
         return scalar(tokens[0].image.slice(1, -1).replace(/''/g, "'"));

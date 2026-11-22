@@ -1,0 +1,169 @@
+extension pg_trgm
+
+extension plpgsql
+
+sequence BookshopSeq
+  cache: 1
+  cycle: no
+  increment: 50
+  max: 9223372036854775807
+  min: 1
+  start: 1
+  type: bigint
+
+table Book
+
+column Book.Author
+  nullable: no
+  type: character varying
+  type details: 200
+
+column Book.Id
+  nullable: no
+  type: bigint
+
+column Book.PriceCents
+  nullable: no
+  type: integer
+
+column Book.Stock
+  nullable: no
+  type: integer
+
+column Book.Title
+  nullable: no
+  type: character varying
+  type details: 200
+
+column Book.title
+  nullable: yes
+  type: character varying
+  type details: 200
+
+primary key Book.Book_pkey
+  columns: Id
+
+table Customer
+
+column Customer.CreatedAt
+  nullable: no
+  type: timestamp without time zone
+
+column Customer.Email
+  nullable: yes
+  type: character varying
+  type details: 255
+
+column Customer.Id
+  nullable: no
+  type: bigint
+
+column Customer.Name
+  nullable: no
+  type: character varying
+  type details: 100
+
+primary key Customer.Customer_pkey
+  columns: Id
+
+table Order
+
+column Order.CreatedAt
+  nullable: no
+  type: timestamp without time zone
+
+column Order.CustomerId
+  nullable: no
+  type: bigint
+
+column Order.Id
+  nullable: no
+  type: bigint
+
+column Order.Status
+  nullable: no
+  type: character varying
+  type details: 20
+
+column Order.TotalCents
+  nullable: no
+  type: integer
+
+primary key Order.Order_pkey
+  columns: Id
+
+foreign key Order.Order_CustomerId_fkey
+  columns: CustomerId
+  on delete: no action
+  on update: no action
+  references: Customer (Id)
+
+index Order.IX_Order_Customer
+  columns: "CustomerId"
+  method: btree
+  unique: no
+
+table OrderItem
+
+column OrderItem.BookId
+  nullable: no
+  type: bigint
+
+column OrderItem.Id
+  nullable: no
+  type: bigint
+
+column OrderItem.OrderId
+  nullable: no
+  type: bigint
+
+column OrderItem.PriceCents
+  nullable: no
+  type: integer
+
+column OrderItem.Quantity
+  nullable: no
+  type: integer
+
+primary key OrderItem.OrderItem_pkey
+  columns: Id
+
+foreign key OrderItem.OrderItem_BookId_fkey
+  columns: BookId
+  on delete: no action
+  on update: no action
+  references: Book (Id)
+
+foreign key OrderItem.OrderItem_OrderId_fkey
+  columns: OrderId
+  on delete: no action
+  on update: no action
+  references: Order (Id)
+
+trigger OrderItem.TRG_OrderItem_Total
+  events: insert, delete, update
+  function: RefreshOrderTotal()
+  level: row
+  timing: after
+
+view V_OrderTotals
+  definition:
+    | SELECT "CustomerId",
+    |    count(*) AS "Orders",
+    |    sum("TotalCents") AS "TotalCents"
+    |   FROM "Order" o
+    |  GROUP BY "CustomerId";
+
+function RefreshOrderTotal()
+  body:
+    |
+    |begin
+    |  update "Order" o
+    |  set "TotalCents" = (select coalesce(sum(i."Quantity" * i."PriceCents"), 0)
+    |                      from "OrderItem" i
+    |                      where i."OrderId" = o."Id")
+    |  where o."Id" = coalesce(new."OrderId", old."OrderId");
+    |  return null;
+    |end 
+  language: plpgsql
+  returns: trigger

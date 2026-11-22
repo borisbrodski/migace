@@ -40,7 +40,7 @@ export const MigqlModule: Module<MigqlServices, PartialLangiumServices & MigqlAd
         TokenBuilder: () => new MigqlTokenBuilder(),
         Lexer: services => new MigqlLexer(services),
         ValueConverter: () => new MigqlValueConverter(),
-        ParserErrorMessageProvider: () => new MigqlParserErrorMessageProvider(),
+        ParserErrorMessageProvider: services => new MigqlParserErrorMessageProvider(services),
     },
 };
 

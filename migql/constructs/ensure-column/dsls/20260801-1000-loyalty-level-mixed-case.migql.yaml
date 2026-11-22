@@ -1,0 +1,8 @@
+migration: 20260801-1000-loyalty-level-mixed-case
+
+parts:
+  - loyalty-level:
+      do: ensure column Customer."Loyalty Level" varchar(20)
+
+  - key-is-longer:
+      do: ensure column Customer.key varchar(40)

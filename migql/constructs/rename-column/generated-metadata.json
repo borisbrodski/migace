@@ -1,6 +1,10 @@
 {
   "generatedFiles": [
     {
+      "filename": "postgresql/20260801-0920-key-to-upper-case.sql",
+      "overwrite": true
+    },
+    {
       "filename": "postgresql/20260907-1000-customer-email.sql",
       "overwrite": true
     },

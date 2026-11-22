@@ -23,16 +23,21 @@ export interface Context {
     names?: KeySpec;
     /** Set where a list item is a flow map: `- { id: 1 }`. */
     flowItems?: boolean;
+    /** Set where the keys are names of columns. Such a key may stand in double quotes: `"Line Item": 3`. */
+    quotedNames?: boolean;
 }
 
 const word: KeySpec = { value: 'word' };
 const text: KeySpec = { value: 'text' };
 const statement: KeySpec = { value: 'statement' };
 
+/** One line per column: the name of the column and its value. */
+const columns: Context = { names: statement, quotedNames: true };
+
 const insert: Context = {
     keys: {
         into: statement,
-        values: { children: { names: statement } },
+        values: { children: columns },
         rows: { children: { flowItems: true } },
     },
 };
@@ -76,7 +81,7 @@ const testRow: Context = {
         table: statement,
         as: statement,
         fill: statement,
-        row: { value: 'statement', children: { names: statement } },
+        row: { value: 'statement', children: columns },
     },
 };
 

@@ -242,3 +242,22 @@ describe('Lexer: a list of names on one line', () => {
         expect(tokens(inPart('upsert:', '  key: [book_id, currency]')).slice(8, 15)).toEqual(['key:', '[', 'ID(book_id)', ',', 'ID(currency)', ']', 'EOL()']);
     });
 });
+
+// M3.1-AC-15
+describe('Lexer: a column name in double quotes as a key', () => {
+    test('is a name where the keys are columns', () => {
+        expect(tokens(inPart('insert:', '  values:', '    "Line Item": 3', '    Code: 1')).slice(8, 18)).toEqual([
+            'values:', 'INDENT()', 'NAME("Line Item")', ':', 'INT(3)', 'EOL()', 'NAME(Code)', ':', 'INT(1)', 'EOL()',
+        ]);
+        expect(lexerErrors("testdata:\n  - table: t\n    row:\n      \"Line Item\": 3\n")).toEqual([]);
+    });
+
+    test('stays an error everywhere else', () => {
+        expect(lexerErrors('"uid": A\n')).toEqual(['Quoted keys are not part of MigQL. Write the key without quotes.@1:1+5']);
+        expect(lexerErrors('let:\n  "a b": true\n')).toEqual(['Quoted keys are not part of MigQL. Write the key without quotes.@2:3+5']);
+    });
+
+    test('a value that is one name in double quotes means the same in YAML', () => {
+        expect(tokens(inPart('insert:', '  into: "Order Status"')).slice(8, 11)).toEqual(['into:', 'QUOTED_ID("Order Status")', 'EOL()']);
+    });
+});

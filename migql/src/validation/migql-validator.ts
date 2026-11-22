@@ -10,6 +10,7 @@ import {
 } from '../generated/ast.js';
 import { FUNCTIONS } from '../functions.js';
 import type { MigqlServices } from '../migql-module.js';
+import { sameName } from '../model/names.js';
 import { slugOf } from '../model/snippet.js';
 
 export function registerValidationChecks(services: MigqlServices): void {
@@ -148,8 +149,8 @@ export class MigqlValidator {
 
         const keys = upsert.entries.filter(isKeyEntry).flatMap(entry => entry.columns);
         for (const row of upsert.entries.filter(isRowsEntry).flatMap(entry => entry.rows)) {
-            const given = new Set(row.map.values.map(value => value.column));
-            const absent = keys.filter(key => !given.has(key)).map(key => `"${key}"`);
+            const given = row.map.values.map(value => value.column);
+            const absent = keys.filter(key => !given.some(column => sameName(column, key))).map(key => `"${key}"`);
             if (absent.length > 0) {
                 accept('error', `This row has no value for the key column${absent.length > 1 ? 's' : ''} ${absent.join(' and ')}. ` +
                     'Every row of an upsert gives all key columns.', { node: row.map });

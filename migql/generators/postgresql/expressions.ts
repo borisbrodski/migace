@@ -1,4 +1,5 @@
 import type { DataType, Expression, Select } from '../../src/generated/ast.js';
+import { knownType } from '../../src/types.js';
 import { name, text } from './names.js';
 
 /** Functions of the statement language that PostgreSQL spells differently. All others keep their name. */
@@ -49,10 +50,20 @@ export function select(query: Select): string {
 }
 
 export function dataType(type: DataType): string {
-    return name(type.name) + (type.parameters.length > 0 ? `(${type.parameters.join(', ')})` : '');
+    return typeName(type) + (type.parameters.length > 0 ? `(${type.parameters.join(', ')})` : '');
+}
+
+/** A type that MigQL knows has the same name in PostgreSQL. Every other type is a type of the schema with an exact name. */
+export function typeName(type: DataType): string {
+    return isKnownType(type) ? knownType(type.name)! : name(type.name);
+}
+
+/** A type name in quotes is always a type of the schema, also when it is spelled like a type that MigQL knows. */
+export function isKnownType(type: DataType): boolean {
+    return knownType(type.name) !== undefined && !type.$cstNode?.text.startsWith('"');
 }
 
 function functionCall(written: string, args: string[]): string {
     const special = FUNCTIONS[written.toLowerCase()];
-    return special ? special(args) : `${name(written)}(${args.join(', ')})`;
+    return special ? special(args) : `${written.toLowerCase()}(${args.join(', ')})`;
 }
