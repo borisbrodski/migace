@@ -20,7 +20,8 @@
     "build": "npm run build --workspaces --if-present",
     "lint": "eslint .",
     "test": "npm run test --workspaces --if-present && vitest run --dir tools",
-    "test:generate": "npm run test:generate --workspaces --if-present"
+    "test:generate": "npm run test:generate --workspaces --if-present",
+    "test:server": "npm run build && npm run test:server --workspaces --if-present"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.0",

@@ -10,12 +10,20 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.src.json",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:server": "vitest run --config vitest.server.config.ts"
   },
   "dependencies": {
-    "@migace/core": "*"
+    "@migace/core": "*",
+    "pg": "^8.23.1"
   },
   "devDependencies": {
-    "@electric-sql/pglite": "^0.5.17"
+    "@electric-sql/pglite": "^0.5.17",
+    "@types/pg": "^8.23.1"
+  },
+  "optionalDependencies": {
+    "@embedded-postgres/linux-x64": "^18.7.0-beta.19",
+    "@embedded-postgres/windows-x64": "^18.7.0-beta.19",
+    "embedded-postgres-15-linux-x64": "npm:@embedded-postgres/linux-x64@^15.20.0-beta.19"
   }
 }

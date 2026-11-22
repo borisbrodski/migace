@@ -8,5 +8,7 @@ export default defineConfig({
     },
     test: {
         include: ['test/**/*.test.ts'],
+        // The tests in test/server start a real PostgreSQL. They run with "npm run test:server".
+        exclude: ['test/server/**'],
     },
 });

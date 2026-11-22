@@ -1,0 +1,14 @@
+import { fileURLToPath } from 'node:url';
+import { defineConfig } from 'vitest/config';
+
+export default defineConfig({
+    resolve: {
+        // Tests use the sources of core/, so that core/ does not have to be built first.
+        alias: { '@migace/core': fileURLToPath(new URL('../../core/src/index.ts', import.meta.url)) },
+    },
+    test: {
+        include: ['test/server/**/*.test.ts'],
+        testTimeout: 60_000,
+        hookTimeout: 60_000,
+    },
+});

@@ -48,7 +48,25 @@ The script is a text file with LF line endings. Lines that start with `-- @migac
 - The script contains nothing that only one client understands.
 - No text of a snippet can be taken for a marker line. A statement of a part is a text literal inside a call of a function of the script; a quote in it is doubled. A part with a line that starts with `-- @migace` is rejected when the script is written.
 
+Parameters of a run. Their names are provisional. **[direction]**
+
+| Session setting | Meaning | Default |
+|---|---|---|
+| `migace.schema` | The schema of the migration. | the current schema of the session |
+| `migace.lock_timeout` | How long a step waits for a lock before it gives up. | `5s` |
+| `migace.lock_attempts` | How often a step is tried when it got no lock. | `3` |
+| `migace.lock_wait` | The pause between two attempts. | `1s` |
+
+A step that got no lock writes a ledger row with the state `no lock` for every attempt. When the last attempt fails, the run ends with a failure that names the snippet, the part and the tables that other sessions hold locks on.
+
+Rights. **[direction]**
+
+- The script runs as the owner of the schema. It needs no superuser. It creates its ledger tables in the schema and its functions for the session only.
+- An application that checks the fingerprint at its start needs `usage` on the schema and `select` on the meta table (`mig_meta`). It needs no right on the other ledger tables.
+
 What the first implementation does differently from the list above, and why:
+
+- **Waiting for the lock of the run is a loop.** A plain call of `pg_advisory_lock` keeps a transaction open while it waits. `create index concurrently` of the run that holds the lock waits for every older transaction, so the two waited for each other and PostgreSQL ended one of them. The script now tries the lock, ends its transaction, pauses and tries again.
 
 - **A step is a call, not a block.** The logic of a step is in functions that the script creates for the session (`pg_temp.migace_step` and others). A step is then one short `select`, and the statement of the part is an argument. This keeps the script small and makes hostile text harmless.
 - **The search path** is the schema of the migration, followed by what the session had. See question 46.

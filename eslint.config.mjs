@@ -14,7 +14,7 @@ export default tseslint.config(
     },
     {
         files: ['**/*.mjs'],
-        languageOptions: { globals: { process: 'readonly', console: 'readonly' } },
+        languageOptions: { globals: { process: 'readonly', console: 'readonly', setInterval: 'readonly' } },
     },
     {
         // Database-specific code is reached through interfaces that core/ defines.

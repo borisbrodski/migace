@@ -6,6 +6,9 @@ name: Build
 on:
   push:
     branches-ignore: [main]
+  schedule:
+    # Every night: the oldest supported PostgreSQL version.
+    - cron: '0 3 * * *'
   workflow_dispatch:
 
 permissions:
@@ -31,6 +34,8 @@ jobs:
       - run: npm run build
       - run: npm run lint
       - run: npm test
+      # The tests that start a real PostgreSQL server from the package of binaries.
+      - run: npm run test:server
       # The expected files in the repository must be what the generators produce now.
       - run: npm run test:generate
       - name: The generate run changed no file
@@ -40,3 +45,20 @@ jobs:
             git diff
             exit 1
           fi
+
+  oldest-postgresql:
+    # The server tests on the oldest PostgreSQL version that is still supported. The newest one runs on every push.
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: candidate
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.2
+          cache: npm
+      - run: npm ci
+      - run: npm run test:server
+        env:
+          MIGACE_POSTGRESQL_BINARIES: ${{ github.workspace }}/node_modules/embedded-postgres-15-linux-x64/native

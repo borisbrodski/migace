@@ -7,6 +7,11 @@ export const LEDGER_FORMAT = 1;
 
 const MARKER = '-- @migace';
 
+/** The defaults of the parameters of a run that deal with locks. A runner can set `migace.lock_timeout` and the others. */
+const LOCK_TIMEOUT = '5s';
+const LOCK_ATTEMPTS = 3;
+const LOCK_WAIT = '1s';
+
 /** The plan cannot be written as a script. */
 export class ScriptError extends Error { }
 
@@ -99,7 +104,18 @@ function start(prefix: string): Section[] {
         // search path stays behind it, so that types and operators of extensions are still found.
         statement("select set_config('search_path', quote_ident(coalesce(nullif(current_setting('migace.schema', true), ''), current_schema())) || ', ' || current_setting('search_path'), false)"),
         statement("select set_config('migace.failed', '', false), set_config('migace.executed', '0', false), set_config('migace.skip', '', false), set_config('migace.run', '', false)"),
-        statement("select pg_advisory_lock(hashtext('migace ' || current_schema()))"),
+        // One run at a time. A run that waits here must not hold a transaction open: "create index concurrently" of the run
+        // that has the lock waits for every older transaction, and the two would wait for each other. So the wait is a loop
+        // that ends its transaction before every pause.
+        statement(`do $migace$
+begin
+    while not pg_try_advisory_lock(hashtext('migace ' || current_schema())) loop
+        commit;
+        perform pg_sleep(0.2);
+        commit;
+    end loop;
+end
+$migace$`),
         statement(`do $migace$
 declare
     v_format integer;
@@ -229,11 +245,18 @@ begin
     return true;
 end
 $migace$`,
+        `create or replace function pg_temp.migace_setting(p_name text, p_default text) returns text language plpgsql as $migace$
+begin
+    return coalesce(nullif(current_setting('migace.' || p_name, true), ''), p_default);
+end
+$migace$`,
         `create or replace function pg_temp.migace_step(${identity}, p_sql text, ${conditions},
     p_after text[], p_after_text text[], p_stop text) returns void language plpgsql as $migace$
 declare
     v_untrue integer;
     v_started timestamptz := clock_timestamp();
+    v_attempts integer := pg_temp.migace_setting('lock_attempts', '${LOCK_ATTEMPTS}')::integer;
+    v_locked text;
     v_code text;
     v_message text;
     v_detail text;
@@ -242,23 +265,43 @@ begin
     if not pg_temp.migace_begin(p_uid, p_snippet, p_part, p_checksum, p_step, p_steps, p_sql, p_when, p_when_text, p_before, p_before_text) then
         return;
     end if;
-    begin
-        if p_stop is not null then
-            raise exception using message = p_stop, errcode = 'MA001';
-        end if;
-        execute p_sql;
-        if p_step = p_steps then
-            v_untrue := pg_temp.migace_first_untrue(p_after);
-            if v_untrue > 0 then
-                raise exception using message = 'verify-after is not true: ' || p_after_text[v_untrue], errcode = 'MA002';
+    for v_attempt in 1 .. v_attempts loop
+        begin
+            if p_stop is not null then
+                raise exception using message = p_stop, errcode = 'MA001';
             end if;
-        end if;
-        perform pg_temp.migace_record(p_uid, p_snippet, p_part, p_checksum, p_step, p_steps, 'done', p_sql, v_started, null, null, null, null);
-    exception when others then
-        get stacked diagnostics v_code = returned_sqlstate, v_message = message_text, v_detail = pg_exception_detail, v_context = pg_exception_context;
-        perform pg_temp.migace_fail(p_uid, p_snippet, p_part, p_checksum, p_step, p_steps, p_sql, v_started, v_code, v_message, v_detail, v_context);
-        return;
-    end;
+            -- A statement that waits for a lock makes everybody behind it wait too. It gives up after this time.
+            perform set_config('lock_timeout', pg_temp.migace_setting('lock_timeout', '${LOCK_TIMEOUT}'), true);
+            execute p_sql;
+            if p_step = p_steps then
+                v_untrue := pg_temp.migace_first_untrue(p_after);
+                if v_untrue > 0 then
+                    raise exception using message = 'verify-after is not true: ' || p_after_text[v_untrue], errcode = 'MA002';
+                end if;
+            end if;
+            perform pg_temp.migace_record(p_uid, p_snippet, p_part, p_checksum, p_step, p_steps, 'done', p_sql, v_started, null, null, null, null);
+            exit;
+        exception
+            when lock_not_available then
+                select string_agg(distinct c.relname, ', ' order by c.relname) into v_locked
+                from pg_locks l join pg_class c on c.oid = l.relation join pg_namespace n on n.oid = c.relnamespace
+                where l.granted and l.pid <> pg_backend_pid() and l.locktype = 'relation' and c.relkind in ('r', 'p') and n.nspname = current_schema();
+                v_message := format('no lock within %s, attempt %s of %s. Locked by another session: %s',
+                    pg_temp.migace_setting('lock_timeout', '${LOCK_TIMEOUT}'), v_attempt, v_attempts, coalesce(v_locked, 'unknown'));
+                if v_attempt = v_attempts then
+                    perform pg_temp.migace_fail(p_uid, p_snippet, p_part, p_checksum, p_step, p_steps, p_sql, v_started, '55P03', v_message, null, null);
+                    return;
+                end if;
+                perform pg_temp.migace_record(p_uid, p_snippet, p_part, p_checksum, p_step, p_steps, 'no lock', p_sql, v_started, '55P03', v_message, null, null);
+                raise notice '%, part %: %', p_snippet, p_part, v_message;
+                perform pg_sleep(extract(epoch from pg_temp.migace_setting('lock_wait', '${LOCK_WAIT}')::interval));
+                v_started := clock_timestamp();
+            when others then
+                get stacked diagnostics v_code = returned_sqlstate, v_message = message_text, v_detail = pg_exception_detail, v_context = pg_exception_context;
+                perform pg_temp.migace_fail(p_uid, p_snippet, p_part, p_checksum, p_step, p_steps, p_sql, v_started, v_code, v_message, v_detail, v_context);
+                return;
+        end;
+    end loop;
     perform set_config('migace.executed', (current_setting('migace.executed')::integer + 1)::text, false);
     if p_step = p_steps then
         raise notice '%, part %: done', p_snippet, p_part;
