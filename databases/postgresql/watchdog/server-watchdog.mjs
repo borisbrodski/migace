@@ -42,6 +42,16 @@ if (started.status !== 0) {
     process.stdin.on('end', stop);
     process.stdin.on('close', stop);
     process.stdin.resume();
+    // A second sign, because on Windows the end of the input did not arrive when the process was killed:
+    // the process that started this watchdog is gone.
+    const parent = process.ppid;
+    setInterval(() => {
+        try {
+            process.kill(parent, 0);
+        } catch {
+            stop();
+        }
+    }, 500);
 }
 
 let stopping = false;
