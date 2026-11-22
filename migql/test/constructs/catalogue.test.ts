@@ -2,6 +2,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { describe, expect, test } from 'vitest';
+import { IssueCodes } from '../../src/validation/migql-validator.js';
 import { createMigql, DIAGNOSTICS_ONLY, error } from '../support.js';
 
 /**
@@ -16,10 +17,14 @@ const CATALOGUE = fileURLToPath(new URL('../../constructs', import.meta.url));
 // M1-AC-15
 const REQUIRED = [
     'create-table', 'alter-table-add-column', 'alter-table-drop-column', 'alter-table-alter-column',
-    'alter-table-add-constraint', 'create-index', 'drop-table', 'drop-index', 'ensure-column', 'rename-column',
+    'alter-table-add-constraint', 'create-index', 'drop-table', 'drop-index',
     'update', 'delete', 'insert-values', 'insert-select',
     // M1.1-AC-13
     'upsert',
+    // M3.2-AC-02
+    'alter-table-rename-column',
+    // M3.2-AC-13
+    'column-ensure', 'column-rename', 'column-set-not-null', 'constraint-add-check', 'constraint-add-foreign-key',
 ];
 
 const { parse, parseMarked } = createMigql();
@@ -52,7 +57,9 @@ describe.each(constructs)('Construct %s', construct => {
             validation: true,
         });
 
-        expect(document).toHaveNoIssues();
+        // A plain statement for which an action exists gets a warning that names the action. That is what its example shows.
+        const others = (document.diagnostics ?? []).filter(diagnostic => diagnostic.code !== IssueCodes.DoHasAction);
+        expect(others.map(diagnostic => diagnostic.message)).toEqual([]);
     });
 
     test.each(invalid)('invalid/%s fails at the marked places', async file => {
@@ -62,6 +69,6 @@ describe.each(constructs)('Construct %s', construct => {
 
         const parsed = await parseMarked(text);
 
-        expect(parsed).toHaveDocumentIssues(expected.map((message, marker) => error(message, marker)), DIAGNOSTICS_ONLY);
+        expect(parsed).toHaveDocumentIssues(expected.map((message, marker) => error(message, marker)), { ...DIAGNOSTICS_ONLY, ignoreNonErrorDiagnostics: true });
     });
 });

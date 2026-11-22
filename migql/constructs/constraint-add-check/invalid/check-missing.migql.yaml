@@ -1,0 +1,6 @@
+# expect: The action "constraint-add-check" needs the parameter "check". Its parameters: name, table, check.
+migration: 20260101-0900-example
+
+parts:
+  - p:
+      <<{|constraint-add-check|}>>: { name: ck_book_price, table: book }

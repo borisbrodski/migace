@@ -56,7 +56,7 @@ parts:
       do: update customer set loyalty_level = 'BRONZE'
 
   - make-mandatory:
-      do: alter table customer alter column loyalty_level set not null
+      column-set-not-null: { table: customer, column: loyalty_level }
 ```
 
 The script that MIG-Ace builds from your snippets can be run again and again. Parts that already ran are skipped, so a run that stopped halfway simply continues.

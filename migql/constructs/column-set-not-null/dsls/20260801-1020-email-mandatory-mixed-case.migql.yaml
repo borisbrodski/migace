@@ -1,0 +1,7 @@
+migration: 20260801-1020-email-mandatory-mixed-case
+
+parts:
+  - make-mandatory:
+      column-set-not-null:
+        table: Customer
+        column: "Email"

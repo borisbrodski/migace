@@ -1,0 +1,2 @@
+unexpected  column book.weight
+unexpected  column review.title

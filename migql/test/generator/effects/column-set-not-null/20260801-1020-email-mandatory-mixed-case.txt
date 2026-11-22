@@ -1,0 +1,1 @@
+different   column Customer.Email: nullable: expected yes, actual no

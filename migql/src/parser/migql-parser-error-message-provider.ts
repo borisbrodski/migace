@@ -75,7 +75,11 @@ function quoteAdvice(keyword: string): string {
     return ` "${keyword}" is a keyword. To use it as a name, write it in double quotes: "${keyword}".`;
 }
 
-function describe(names: string[], nameKeywords: Set<string>): string {
+/** Statements that became actions are still read, to explain themselves. Nobody should be told to write them. */
+const REMOVED_STATEMENTS = ['ensure', 'rename'];
+
+function describe(allNames: string[], nameKeywords: Set<string>): string {
+    const names = allNames.includes('ensure') ? allNames.filter(name => !REMOVED_STATEMENTS.includes(name)) : allNames;
     if (names.includes('STRING') && names.includes('INT')) {
         return 'a value';
     }

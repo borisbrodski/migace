@@ -85,16 +85,27 @@ describe('Statements that change rows, on a database', () => {
     });
 });
 
-// M3-AC-09
-describe('ensure column on a database', () => {
+// M3-AC-09, M3.2-AC-15
+describe('column-ensure on a database', () => {
     const noteType = async () => (await model()).tables.find(table => table.name === 'orders')!.columns.find(column => column.name === 'note');
+    const ENSURE_NOTE = 'column-ensure: { table: orders, column: note, type: varchar(500) }';
 
     test('the column is missing: it is added', async () => {
         await bookshop();
 
-        await runPart('do: ensure column orders.note varchar(500)');
+        await runPart(ENSURE_NOTE);
 
         expect(await noteType()).toEqual({ name: 'note', type: 'character varying', typeDetails: '500', nullable: true });
+    });
+
+    test('the column is missing: it is added with its default and as mandatory', async () => {
+        await bookshop("insert into customer (id, name, created_at) values (1, 'Jo', now())",
+            "insert into orders (id, customer_id, status, created_at, total_cents) values (1, 1, 'OPEN', now(), 0)");
+
+        await runPart('column-ensure:', '  table: orders', '  column: note', '  type: varchar(500)', "  default: 'none'", '  not-null: true');
+
+        expect(await noteType()).toEqual({ name: 'note', type: 'character varying', typeDetails: '500', nullable: false, default: "'none'::character varying" });
+        expect(await rows('select note from orders')).toEqual([{ note: 'none' }]);
     });
 
     test('the column is narrower: it is widened, and its values stay', async () => {
@@ -103,7 +114,7 @@ describe('ensure column on a database', () => {
             "insert into customer (id, name, created_at) values (1, 'Jo', now())",
             "insert into orders (id, customer_id, status, created_at, total_cents, note) values (1, 1, 'OPEN', now(), 0, 'Ring twice')");
 
-        await runPart('do: ensure column orders.note varchar(500)');
+        await runPart(ENSURE_NOTE);
 
         expect(await noteType()).toMatchObject({ type: 'character varying', typeDetails: '500' });
         expect(await rows('select note from orders')).toEqual([{ note: 'Ring twice' }]);
@@ -113,7 +124,7 @@ describe('ensure column on a database', () => {
         await bookshop('alter table orders add column note varchar(500)');
         const before = await model();
 
-        await runPart('do: ensure column orders.note varchar(500)');
+        await runPart(ENSURE_NOTE);
 
         expect(compare(before, await model())).toEqual([]);
     });
@@ -125,26 +136,27 @@ describe('ensure column on a database', () => {
     ])('the column is %s: the part fails with a clear message', async (_what, type, shown) => {
         await bookshop(`alter table orders add column note ${type}`);
 
-        await expect(runPart('do: ensure column orders.note varchar(500)')).rejects.toThrow(
-            `ensure column orders.note varchar(500): the column exists as ${shown}. It can neither be kept nor widened.`);
+        await expect(runPart(ENSURE_NOTE)).rejects.toThrow(
+            `column-ensure orders.note varchar(500): the column exists as ${shown}. It can neither be kept nor widened.`);
     });
 
     test('a type without details is kept, and another type fails', async () => {
         await bookshop('alter table orders add column ship_by date', 'alter table orders add column due_by timestamp');
 
-        await runPart('do: ensure column orders.ship_by date');
-        await expect(runPart('do: ensure column orders.due_by date')).rejects.toThrow('the column exists as timestamp without time zone');
+        await runPart('column-ensure: { table: orders, column: ship_by, type: date }');
+        await expect(runPart('column-ensure: { table: orders, column: due_by, type: date }')).rejects.toThrow('the column exists as timestamp without time zone');
     });
 
     // M3.1-AC-25
     describe('a number with precision', () => {
         const weight = async () => (await model()).tables.find(table => table.name === 'book')!.columns.find(column => column.name === 'weight');
+        const ensureWeight = (type: string) => runPart('column-ensure:', '  table: book', '  column: weight', `  type: ${type}`);
 
         test('is kept if precision and scale are the same', async () => {
             await bookshop('alter table book add column weight numeric(8, 3)');
             const before = await model();
 
-            await runPart('do: ensure column book.weight numeric(8, 3)');
+            await ensureWeight('numeric(8, 3)');
 
             expect(compare(before, await model())).toEqual([]);
         });
@@ -153,7 +165,7 @@ describe('ensure column on a database', () => {
             await bookshop('alter table book add column weight numeric(8, 3)',
                 "insert into book (id, title, author, price_cents, stock, weight) values (1, 'T', 'A', 1, 1, 12345.678)");
 
-            await runPart('do: ensure column book.weight numeric(10, 3)');
+            await ensureWeight('numeric(10, 3)');
 
             expect(await weight()).toMatchObject({ type: 'numeric', typeDetails: '10,3' });
             expect(await rows('select weight::text as weight from book')).toEqual([{ weight: '12345.678' }]);
@@ -166,52 +178,73 @@ describe('ensure column on a database', () => {
         ])('fails when %s', async (_what, wanted, existing) => {
             await bookshop('alter table book add column weight numeric(8, 3)');
 
-            await expect(runPart(`do: ensure column book.weight ${wanted}`)).rejects.toThrow(`the column exists as ${existing}. It can neither be kept nor widened.`);
+            await expect(ensureWeight(wanted)).rejects.toThrow(`the column exists as ${existing}. It can neither be kept nor widened.`);
             expect(await weight()).toMatchObject({ typeDetails: '8,3' });
         });
 
         test('fails when the column has no precision at all', async () => {
             await bookshop('alter table book add column weight numeric');
 
-            await expect(runPart('do: ensure column book.weight numeric(10, 3)')).rejects.toThrow('the column exists as numeric.');
+            await expect(ensureWeight('numeric(10, 3)')).rejects.toThrow('the column exists as numeric.');
         });
     });
 });
 
-// M3-AC-19
-describe('A form that does not lock for long leaves the same schema as the simple form', () => {
-    test('set not null', async () => {
-        await bookshop("insert into customer (id, name, mail, created_at) values (1, 'Jo', 'jo@example.org', now())");
-        await exec('alter table customer alter column mail set not null');
-        const simple = await model();
-        await bookshop("insert into customer (id, name, mail, created_at) values (1, 'Jo', 'jo@example.org', now())");
+// M3.2-AC-18
+describe('An action leads to the same schema as the plain statement under do', () => {
+    const JO = "insert into customer (id, name, mail, created_at) values (1, 'Jo', 'jo@example.org', now())";
+    const REVIEW = 'create table review (id bigint primary key, book_id bigint not null, stars integer not null)';
 
-        await runPart('do: alter table customer alter column mail set not null');
+    test.each([
+        ['column-set-not-null', [JO], 'do: alter table customer alter column mail set not null', ['column-set-not-null: { table: customer, column: mail }']],
+        ['constraint-add-foreign-key', [REVIEW], 'do: alter table review add constraint fk_review_book foreign key (book_id) references book (id)',
+            ['constraint-add-foreign-key: { name: fk_review_book, table: review, columns: book_id, references: book, referenced-columns: id }']],
+        ['constraint-add-check', [REVIEW], 'do: alter table review add constraint ck_review_stars check (stars between 1 and 5)',
+            ['constraint-add-check:', '  name: ck_review_stars', '  table: review', '  check: stars between 1 and 5']],
+        ['column-rename', [JO], 'do: alter table customer rename column mail to email', ['column-rename: { table: customer, from: mail, to: email }']],
+        ['column-ensure', [], 'do: alter table orders add column note varchar(500)', ['column-ensure: { table: orders, column: note, type: varchar(500) }']],
+    ])('%s', async (_action, setup, plain, action) => {
+        await bookshop(...setup);
+        await runPart(plain);
+        const afterPlain = await model();
+        await bookshop(...setup);
 
-        expect(differencesText(compare(simple, await model()))).toBe('');
+        await runPart(...action);
+
+        expect(differencesText(compare(afterPlain, await model()))).toBe('');
+    });
+});
+
+describe('Steps of an action that fail', () => {
+    // M3.2-AC-16
+    test('column-set-not-null fails before it changes anything when a constraint has the name of its helper', async () => {
+        await bookshop(
+            "insert into customer (id, name, mail, created_at) values (1, 'Jo', 'jo@example.org', now())",
+            'alter table customer add constraint customer_mail_not_null check (length(mail) > 3)');
+        const before = await model();
+
+        await expect(runPart('column-set-not-null: { table: customer, column: mail }')).rejects.toThrow(/constraint "customer_mail_not_null" for relation "customer" already exists/);
+
+        expect(compare(before, await model())).toEqual([]);
     });
 
-    test('set not null fails in its second step when a row has no value, and the column stays optional', async () => {
+    test('column-set-not-null fails in its second step when a row has no value, and the column stays optional', async () => {
         await bookshop("insert into customer (id, name, created_at) values (1, 'Jo', now())");
 
-        await expect(runPart('do: alter table customer alter column mail set not null')).rejects.toThrow(/customer_mail_not_null/);
+        await expect(runPart('column-set-not-null: { table: customer, column: mail }')).rejects.toThrow(/customer_mail_not_null/);
 
         expect((await model()).tables.find(table => table.name === 'customer')!.columns.find(column => column.name === 'mail')!.nullable).toBe(true);
     });
 
-    test('a new foreign key', async () => {
-        const review = 'create table review (id bigint primary key, book_id bigint not null)';
-        await bookshop(review);
-        await exec('alter table review add constraint fk_review_book foreign key (book_id) references book (id)');
-        const simple = await model();
-        await bookshop(review);
+    test('constraint-add-check fails in its second step when a row breaks the rule', async () => {
+        await bookshop("insert into book (id, title, author, price_cents, stock) values (1, 'T', 'A', -5, 1)");
 
-        await runPart('do: alter table review add constraint fk_review_book foreign key (book_id) references book (id)');
-
-        expect(differencesText(compare(simple, await model()))).toBe('');
+        await expect(runPart('constraint-add-check:', '  name: ck_book_price', '  table: book', '  check: price_cents >= 0')).rejects.toThrow(/ck_book_price/);
     });
+});
 
-    test('an index that is built concurrently', async () => {
+describe('Statements outside a transaction', () => {
+    test('an index that is built concurrently leaves the same schema as the plain index', async () => {
         await bookshop();
         await exec('create index ix_book_author on book (author)');
         const simple = await model();

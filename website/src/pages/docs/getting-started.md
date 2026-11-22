@@ -88,7 +88,7 @@ parts:
       do: update customer set loyalty_level = 'BRONZE'
 
   - make-mandatory:
-      do: alter table customer alter column loyalty_level set not null
+      column-set-not-null: { table: customer, column: loyalty_level }
 ```
 
 ### If nobody is there to answer

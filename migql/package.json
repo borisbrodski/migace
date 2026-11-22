@@ -10,7 +10,7 @@
     "build": "npm run langium:generate && tsc -p tsconfig.src.json",
     "pretest": "npm run langium:generate",
     "test": "vitest run",
-    "test:generate": "npm run langium:generate && node ../tools/with-env.mjs GENERATOR_TEST=generate vitest run test/generator/catalogue.test.ts"
+    "test:generate": "npm run langium:generate && node ../tools/with-env.mjs GENERATOR_TEST=generate vitest run test/constructs/descriptions.test.ts && node ../tools/with-env.mjs GENERATOR_TEST=generate vitest run test/generator/catalogue.test.ts test/schema"
   },
   "dependencies": {
     "langium": "^4.4.2",
@@ -20,6 +20,7 @@
     "@electric-sql/pglite": "^0.5.17",
     "@migace/core": "*",
     "@migace/postgresql": "*",
+    "ajv": "^8.20.0",
     "fast-check": "^4.10.3",
     "langium-cli": "^4.4.1",
     "libpg-query": "^18.2.4",

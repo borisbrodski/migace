@@ -1,0 +1,12 @@
+{
+  "generatedFiles": [
+    {
+      "filename": "postgresql/20260601-0910-book-price-check.sql",
+      "overwrite": true
+    },
+    {
+      "filename": "postgresql/20260601-0920-stock-check.sql",
+      "overwrite": true
+    }
+  ]
+}

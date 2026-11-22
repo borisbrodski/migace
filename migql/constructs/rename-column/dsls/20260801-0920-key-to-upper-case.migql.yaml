@@ -1,6 +1,0 @@
-migration: 20260801-0920-key-to-upper-case
-doc: A change of case is an ordinary rename
-
-parts:
-  - rename:
-      do: rename column Customer.key to Key

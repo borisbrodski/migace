@@ -1,3 +1,5 @@
+import { ACTIONS } from '../actions/catalogue.js';
+
 /**
  * What the lexer has to know about the keys of a snippet: how the value of a key is read
  * and which keys may follow below it. The grammar defines the structure; this table only
@@ -14,6 +16,15 @@ export interface KeySpec {
     value?: ValueKind;
     /** The context of the lines nested below this key. */
     children?: Context;
+    /** Set where the lines below the key are the items of a list. */
+    list?: boolean;
+    /** The words the value may be, where it is one of a fixed set. */
+    words?: readonly string[];
+    /**
+     * What a YAML parser sees in the value, where that is more exact than "any single value":
+     * a text, `true` or `false`, or one name or a list of names.
+     */
+    yaml?: 'text' | 'boolean' | 'names';
 }
 
 export interface Context {
@@ -25,6 +36,8 @@ export interface Context {
     flowItems?: boolean;
     /** Set where the keys are names of columns. Such a key may stand in double quotes: `"Line Item": 3`. */
     quotedNames?: boolean;
+    /** The keys that must be there. */
+    required?: readonly string[];
 }
 
 const word: KeySpec = { value: 'word' };
@@ -38,16 +51,18 @@ const insert: Context = {
     keys: {
         into: statement,
         values: { children: columns },
-        rows: { children: { flowItems: true } },
+        rows: { children: { flowItems: true }, list: true },
     },
+    required: ['into'],
 };
 
 const upsert: Context = {
     keys: {
         into: statement,
-        key: statement,
-        rows: { children: { flowItems: true } },
+        key: { value: 'statement', yaml: 'names' },
+        rows: { children: { flowItems: true }, list: true },
     },
+    required: ['into', 'key', 'rows'],
 };
 
 const checks: Context = {
@@ -59,19 +74,23 @@ const checks: Context = {
     },
 };
 
-const partBody: Context = {
+/** The parameters of an action, one per line. Which ones an action has is checked later, with a better message. */
+const actionParameters: Context = { names: statement };
+
+export const partBody: Context = {
     keys: {
-        'do': statement,
+        'do': { value: 'statement', yaml: 'text' },
+        ...Object.fromEntries(ACTIONS.map(action => [action.name, { value: 'statement', children: actionParameters } satisfies KeySpec])),
         'insert': { children: insert },
         'upsert': { children: upsert },
         'native': { children: { names: text } },
         'stop': text,
         'when': statement,
-        'verify-before': { value: 'statement', children: checks },
-        'verify-after': { value: 'statement', children: checks },
+        'verify-before': { value: 'statement', children: checks, list: true },
+        'verify-after': { value: 'statement', children: checks, list: true },
         'batch': statement,
         'expect-rows': statement,
-        'phase': statement,
+        'phase': { value: 'statement', words: ['finish'] },
         'todo': text,
     },
 };
@@ -80,7 +99,7 @@ const testRow: Context = {
     keys: {
         table: statement,
         as: statement,
-        fill: statement,
+        fill: { value: 'statement', words: ['all', 'required'] },
         row: { value: 'statement', children: columns },
     },
 };
@@ -93,11 +112,11 @@ export const snippetContext: Context = {
         'doc': text,
         'when': statement,
         'let': { children: { names: statement } },
-        'parts': { children: { names: { children: partBody } } },
-        'testdata': { children: testRow },
-        'testdata-before': { children: testRow },
+        'parts': { children: { names: { children: partBody } }, list: true },
+        'testdata': { children: testRow, list: true },
+        'testdata-before': { children: testRow, list: true },
         'changed': text,
         'retired': text,
-        'requires-downtime': statement,
+        'requires-downtime': { value: 'statement', yaml: 'boolean' },
     },
 };

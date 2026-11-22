@@ -1,5 +1,0 @@
-migration: 20260907-1000-customer-email
-
-parts:
-  - rename:
-      do: rename column customer.mail to email

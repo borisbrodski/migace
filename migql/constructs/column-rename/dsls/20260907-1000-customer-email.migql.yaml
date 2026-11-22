@@ -1,0 +1,5 @@
+migration: 20260907-1000-customer-email
+
+parts:
+  - rename:
+      column-rename: { table: customer, from: mail, to: email }

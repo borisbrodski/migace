@@ -1,0 +1,3 @@
+unexpected  column Customer.E Mail
+missing     column Customer.Email
+different   column Customer.key: name: expected key, actual Key (the names differ only in case)

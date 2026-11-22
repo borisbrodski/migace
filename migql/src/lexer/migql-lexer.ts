@@ -115,6 +115,36 @@ function unsupportedName(image: string): string | undefined {
     return image.slice(1, -1).includes('"') ? 'A double quote inside a name is not supported. Choose a name without it.' : undefined;
 }
 
+/**
+ * The items of a flow map, split at the commas that stand outside quotes and brackets.
+ * `start` is the place of the item in the text; `separated` says that a comma stands before it.
+ */
+function flowItems(text: string): Array<{ text: string, start: number, separated: boolean }> {
+    const items: Array<{ text: string, start: number, separated: boolean }> = [];
+    let start = 0;
+    let depth = 0;
+    let quote = '';
+    for (let index = 0; index <= text.length; index++) {
+        const character = text.charAt(index);
+        if (quote) {
+            quote = character === quote ? '' : quote;
+        } else if (character === "'" || character === '"') {
+            quote = character;
+        } else if ('([{'.includes(character) && character !== '') {
+            depth++;
+        } else if (')]}'.includes(character) && character !== '') {
+            depth--;
+        }
+        if (index === text.length || (character === ',' && depth === 0 && !quote)) {
+            if (text.substring(start, index).trim().length > 0 || index < text.length || start > 0) {
+                items.push({ text: text.substring(start, index), start, separated: start > 0 });
+            }
+            start = index + 1;
+        }
+    }
+    return items;
+}
+
 interface Level {
     indent: number;
     context: Context;
@@ -382,8 +412,53 @@ class Scan {
         this.skipBelow = entryColumn;
     }
 
-    /** Hands a piece of the text to the statement lexer and moves its tokens to their place in the file. */
+    /** Reads a value in the statement language. A value in `{ … }` is a flow map with keys of its own. */
     private scanStatement(source: Span): void {
+        const text = this.text.substring(source.start.offset, source.end);
+        if (text.startsWith('{') && !text.includes('\n')) {
+            this.scanFlowMap(text, source.start.column - 1);
+        } else {
+            this.lexStatement(source);
+        }
+    }
+
+    /**
+     * Reads `{ key: value, … }` on the current line. A key is a name, whatever word it is:
+     * `table`, `from` and `not-null` are keys here and no keywords. The values are read by the statement lexer.
+     */
+    private scanFlowMap(text: string, column: number): void {
+        const closed = text.endsWith('}') && text.length > 1;
+        this.emit('{', '{', column);
+        for (const item of flowItems(closed ? text.slice(1, -1) : text.slice(1))) {
+            const start = column + 1 + item.start;
+            if (item.separated) {
+                this.emit(',', ',', start - 1);
+            }
+            if (item.text.trim().length === 0) {
+                continue;
+            }
+            const key = /^(\s*)("[^"]*"|[A-Za-z_][\w-]*)(\s*):(?=\s|$)/.exec(item.text);
+            if (!key) {
+                this.lexStatement(this.span(start, item.text.length));
+                continue;
+            }
+            const keyColumn = start + key[1].length;
+            this.emit('NAME', key[2], keyColumn);
+            this.emit(':', ':', keyColumn + key[2].length + key[3].length);
+            const value = item.text.substring(key[0].length);
+            const valueStart = start + key[0].length + (value.length - value.trimStart().length);
+            this.lexStatement(this.span(valueStart, value.trim().length));
+        }
+        if (closed) {
+            this.emit('}', '}', column + text.length - 1);
+        }
+    }
+
+    /** Hands a piece of the text to the statement lexer and moves its tokens to their place in the file. */
+    private lexStatement(source: Span): void {
+        if (source.end <= source.start.offset) {
+            return;
+        }
         const start = source.start;
         const result = this.statementLexer.tokenize(this.text.substring(start.offset, source.end));
         const move = (token: IToken): IToken => {

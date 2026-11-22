@@ -1,0 +1,2 @@
+unexpected  check constraint book.CK Book Title
+unexpected  check constraint book.ck_book_stock

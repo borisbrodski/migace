@@ -20,7 +20,7 @@ describe('Exact names on a database', () => {
     test('a change of case only is an ordinary rename', async () => {
         await bookshop('alter table customer add column key varchar(10)');
 
-        await runPart('do: rename column customer.key to Key');
+        await runPart('column-rename: { table: customer, from: key, to: Key }');
 
         expect(await columnsOf('customer')).toContain('Key');
         expect(await columnsOf('customer')).not.toContain('key');

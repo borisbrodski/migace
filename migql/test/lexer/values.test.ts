@@ -113,7 +113,7 @@ describe('Lexer: flow maps', () => {
     test('a flow map on one line is read with the tokens of the statement language', () => {
         expect(tokens("testdata:\n  - table: orders\n    row: { status: 'shipped ', total_cents: 100 }\n")).toEqual([
             'testdata:', 'INDENT()', 'DASH(-)', 'table:', 'ID(orders)', 'EOL()',
-            'row:', '{', 'ID(status)', ':', "STRING('shipped ')", ',', 'ID(total_cents)', ':', 'INT(100)', '}', 'EOL()',
+            'row:', '{', 'NAME(status)', ':', "STRING('shipped ')", ',', 'NAME(total_cents)', ':', 'INT(100)', '}', 'EOL()',
             'DEDENT()',
         ]);
     });
@@ -121,8 +121,8 @@ describe('Lexer: flow maps', () => {
     test('a list item may be a flow map', () => {
         expect(tokens(inPart('insert:', '  rows:', '    - { id: 1 }', '    - { id: 2 }'))).toEqual([
             ...PART_START, 'insert:', 'INDENT()', 'rows:', 'INDENT()',
-            'DASH(-)', '{', 'ID(id)', ':', 'INT(1)', '}', 'EOL()',
-            'DASH(-)', '{', 'ID(id)', ':', 'INT(2)', '}', 'EOL()',
+            'DASH(-)', '{', 'NAME(id)', ':', 'INT(1)', '}', 'EOL()',
+            'DASH(-)', '{', 'NAME(id)', ':', 'INT(2)', '}', 'EOL()',
             'DEDENT()', 'DEDENT()', ...PART_END,
         ]);
     });

@@ -1,0 +1,13 @@
+migration: 20260601-0920-stock-check
+
+parts:
+  - stock-known:
+      constraint-add-check: { name: ck_book_stock, table: book, check: true }
+
+  - title-or-author:
+      constraint-add-check:
+        name: "CK Book Title"
+        table: book
+        check: |
+          length(trim(title)) > 0
+            or author is not null

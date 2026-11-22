@@ -80,7 +80,7 @@ doc: The e-mail column is renamed from mail to email
 
 parts:
   - rename-mail:
-      do: rename column customer.mail to email
+      column-rename: { table: customer, from: mail, to: email }
 ```
 
 MIG-Ace splits it over the two phases:

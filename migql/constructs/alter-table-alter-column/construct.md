@@ -16,3 +16,7 @@ alter table <table> alter column <column> drop default
 - One statement changes one property.
 - `type` and `set data type` mean the same.
 - `set not null` needs every row to have a value. Fill the rows in an earlier part.
+
+## Actions
+
+- `do` runs `set not null` as one statement. It reads the whole table under a lock that blocks everybody. The action [`column-set-not-null`](../column-set-not-null/construct.md) has the same result in four steps that do not.

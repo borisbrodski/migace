@@ -1,4 +1,5 @@
 import type { DataType, Expression, Select } from '../../src/generated/ast.js';
+import type { TypeSpec } from '../../src/actions/parameters.js';
 import { knownType } from '../../src/types.js';
 import { name, text } from './names.js';
 
@@ -50,17 +51,25 @@ export function select(query: Select): string {
 }
 
 export function dataType(type: DataType): string {
+    return typeText(typeSpec(type));
+}
+
+export function typeSpec(type: DataType): TypeSpec {
+    return { name: type.name, parameters: type.parameters, quoted: type.$cstNode?.text.startsWith('"') ?? false };
+}
+
+export function typeText(type: TypeSpec): string {
     return typeName(type) + (type.parameters.length > 0 ? `(${type.parameters.join(', ')})` : '');
 }
 
 /** A type that MigQL knows has the same name in PostgreSQL. Every other type is a type of the schema with an exact name. */
-export function typeName(type: DataType): string {
-    return isKnownType(type) ? knownType(type.name)! : name(type.name);
+export function typeName(type: TypeSpec): string {
+    return knownTypeOf(type) ?? name(type.name);
 }
 
-/** A type name in quotes is always a type of the schema, also when it is spelled like a type that MigQL knows. */
-export function isKnownType(type: DataType): boolean {
-    return knownType(type.name) !== undefined && !type.$cstNode?.text.startsWith('"');
+/** The type of the list of MigQL, if it is one. A type name in quotes is always a type of the schema. */
+export function knownTypeOf(type: TypeSpec): string | undefined {
+    return type.quoted ? undefined : knownType(type.name);
 }
 
 function functionCall(written: string, args: string[]): string {

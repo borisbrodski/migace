@@ -1,0 +1,5 @@
+migration: 20260610-0900-orders-note
+
+parts:
+  - note-column:
+      column-ensure: { table: orders, column: note, type: varchar(500) }

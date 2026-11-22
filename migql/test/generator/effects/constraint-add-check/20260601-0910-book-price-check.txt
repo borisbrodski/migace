@@ -1,0 +1,1 @@
+unexpected  check constraint book.ck_book_price

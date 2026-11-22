@@ -1,0 +1,6 @@
+# expect: Expected "column", but found "mail".
+migration: 20260101-0900-example
+
+parts:
+  - p:
+      do: alter table customer rename <<{|mail|}>> to email

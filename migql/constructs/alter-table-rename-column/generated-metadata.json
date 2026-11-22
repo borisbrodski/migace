@@ -1,0 +1,12 @@
+{
+  "generatedFiles": [
+    {
+      "filename": "postgresql/20260801-1030-key-to-upper-case-plain.sql",
+      "overwrite": true
+    },
+    {
+      "filename": "postgresql/20260907-1020-customer-email-plain.sql",
+      "overwrite": true
+    }
+  ]
+}

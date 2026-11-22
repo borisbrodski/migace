@@ -75,7 +75,7 @@ describe('Validation: one operation per part', () => {
         const parsed = await parseMarked(lines(NAME, 'parts:', '  - <<{|p|}>>:', '      when: true'));
 
         expect(parsed).toHaveDocumentIssues([
-            error('The part "p" has no operation. Add one of: do, insert, upsert, native, stop.', 0),
+            error('The part "p" has no operation. Add one of: do, insert, upsert, native, stop, or an action such as column-set-not-null.', 0),
         ]);
     });
 
@@ -83,7 +83,7 @@ describe('Validation: one operation per part', () => {
         const parsed = await parseMarked(lines(NAME, 'parts:', '  - <<{|p|}>>:'));
 
         expect(parsed).toHaveDocumentIssues([
-            error('The part "p" has no operation. Add one of: do, insert, upsert, native, stop.', 0),
+            error('The part "p" has no operation. Add one of: do, insert, upsert, native, stop, or an action such as column-set-not-null.', 0),
         ]);
     });
 

@@ -1,0 +1,6 @@
+# expect: The action "column-ensure" needs the parameter "type". Its parameters: table, column, type, [default], [not-null].
+migration: 20260101-0900-example
+
+parts:
+  - p:
+      <<{|column-ensure|}>>: { table: orders, column: note }

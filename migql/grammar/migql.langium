@@ -61,12 +61,21 @@ Part:
     DASH name=NAME ':' (INDENT entries+=PartEntry+ DEDENT)?;
 
 PartEntry:
-    DoEntry | InsertEntry | UpsertEntry | NativeEntry | StopEntry
+    DoEntry | ActionEntry | InsertEntry | UpsertEntry | NativeEntry | StopEntry
     | WhenEntry | VerifyEntry | BatchEntry | ExpectRowsEntry | PhaseEntry | TodoEntry;
 
 DoEntry:
     /** One statement in the statement language. It is checked and then translated for the database. */
     'do:' statement=Statement EOL;
+
+/**
+ * An action: an operation for which MIG-Ace chooses the statements. Its parameters are YAML keys,
+ * on one line in `{ … }` or one per line. The catalogue of actions is in src/actions/catalogue.ts,
+ * the descriptions are in constructs/<action>/construct.md.
+ */
+ActionEntry:
+    action=('column-ensure:' | 'column-rename:' | 'column-set-not-null:' | 'constraint-add-check:' | 'constraint-add-foreign-key:')
+    (map=FlowMap EOL | INDENT values+=ColumnValue+ DEDENT);
 
 InsertEntry:
     /** Inserts rows, written as YAML: `into`, and `values` for one row or `rows` for several. */
@@ -104,7 +113,7 @@ FlowMap:
     {infer FlowMap} '{' (values+=FlowValue (',' values+=FlowValue)*)? '}';
 
 FlowValue infers ColumnValue:
-    column=Name ':' value=Expression;
+    column=NAME ':' value=Expression;
 
 IntoEntry:
     'into:' table=Name EOL;
@@ -178,8 +187,15 @@ TableEntry:
 // ---------------------------------------------------------------------------------------------
 
 Statement:
-    CreateTable | AlterTable | CreateIndex | DropTable | DropIndex | EnsureColumn | RenameColumn
-    | Update | Delete | Insert;
+    CreateTable | AlterTable | CreateIndex | DropTable | DropIndex
+    | Update | Delete | Insert
+    | RemovedStatement;
+
+// Two statements of the first implementation that are actions now. They are still read,
+// so that the error can show the author the action with the same content.
+RemovedStatement:
+    {infer RemovedEnsureColumn} 'ensure' 'column' table=Name '.' column=ColumnDefinition
+    | {infer RemovedRenameColumn} 'rename' 'column' table=Name '.' column=Name 'to' newName=Name;
 
 CreateTable:
     'create' 'table' name=Name '(' elements+=TableElement (',' elements+=TableElement)* ')';
@@ -216,7 +232,8 @@ AlterTable:
 AlterAction:
     'add' ({infer AddColumn} 'column' column=ColumnDefinition | {infer AddConstraint} constraint=TableConstraint)
     | 'drop' {infer DropColumn} 'column' column=Name
-    | 'alter' {infer AlterColumn} 'column' column=Name change=ColumnChange;
+    | 'alter' {infer AlterColumn} 'column' column=Name change=ColumnChange
+    | 'rename' {infer RenameColumn} 'column' column=Name 'to' newName=Name;
 
 ColumnChange:
     'set' ({infer SetNotNull} 'not' 'null' | {infer SetType} 'data' 'type' type=DataType | {infer SetDefault} 'default' value=Additive)
@@ -232,12 +249,6 @@ DropTable:
 
 DropIndex:
     'drop' 'index' concurrently?='concurrently'? name=Name;
-
-EnsureColumn:
-    'ensure' 'column' table=Name '.' column=ColumnDefinition;
-
-RenameColumn:
-    'rename' 'column' table=Name '.' column=Name 'to' newName=Name;
 
 Delete:
     'delete' 'from' table=Name alias=Name? ('where' condition=Expression)?;
@@ -304,6 +315,7 @@ Primary infers Expression:
     | {infer NextValueExpression} 'next' 'value' 'for' sequence=Name
     | Literal
     | {infer Placeholder} '?'
+    | {infer NameList} '[' names+=Name (',' names+=Name)* ']'
     | StateCondition
     | RanCondition
     | FunctionCall

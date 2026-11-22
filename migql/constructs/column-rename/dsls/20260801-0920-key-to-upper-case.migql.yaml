@@ -1,0 +1,9 @@
+migration: 20260801-0920-key-to-upper-case
+doc: A change of case is an ordinary rename
+
+parts:
+  - rename:
+      column-rename: { table: Customer, from: key, to: Key }
+
+  - rename-with-space:
+      column-rename: { table: Customer, from: Email, to: "E Mail" }

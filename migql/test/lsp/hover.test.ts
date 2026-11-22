@@ -37,8 +37,8 @@ describe('Hover', () => {
     });
 
     test('a part that is not generated yet says so', async () => {
-        await at(lines(NAME, 'parts:', '  - ens<|>ure:', '      do: ensure column orders.shipped_at timestamp(3)'),
-            '"ensure column" knows the details of varchar, char and numeric only, not of timestamp(3).');
+        await at(lines(NAME, 'parts:', '  - ens<|>ure:', '      column-ensure: { table: orders, column: shipped_at, type: timestamp(3) }'),
+            '"column-ensure" knows the details of varchar, char and numeric only, not of timestamp(3).');
     });
 
     test('a key shows what it is for', async () => {
@@ -46,5 +46,18 @@ describe('Hover', () => {
             /^Runs a data statement in portions/);
         await at(lines(NAME, 'parts:', '  - p:', '      do: delete from t', '      verify-<|>after: true'),
             /^Fails the part after it ran if the condition is not true/);
+    });
+
+    // M3.2-AC-24
+    test('the key of an action shows its description', async () => {
+        await at(lines(NAME, 'parts:', '  - p:', '      column-set-<|>not-null: { table: customer, column: loyalty_level }'),
+            /^\*\*column-set-not-null\*\*\n\nMakes a column mandatory without blocking the table while its rows are read\.\n\n## Result/);
+    });
+
+    test('a parameter of an action shows its description, on one line and in a block', async () => {
+        await at(lines(NAME, 'parts:', '  - p:', '      column-rename: { table: customer, fr<|>om: mail, to: email }'),
+            '**from** of column-rename\n\nThe name the column has now.');
+        await at(lines(NAME, 'parts:', '  - p:', '      constraint-add-foreign-key:', '        name: fk', '        table: review', '        col<|>umns: book_id', '        references: book'),
+            '**columns** of constraint-add-foreign-key\n\nThe column that points to the other table, or a list of columns: `[book_id, currency]`.');
     });
 });

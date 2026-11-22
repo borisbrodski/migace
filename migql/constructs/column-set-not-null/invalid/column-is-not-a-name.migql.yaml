@@ -1,0 +1,6 @@
+# expect: The parameter "column" of "column-set-not-null" takes a name.
+migration: 20260101-0900-example
+
+parts:
+  - p:
+      column-set-not-null: { table: customer, column: <<{|customer.mail|}>> }

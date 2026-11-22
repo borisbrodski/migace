@@ -55,7 +55,21 @@ describe('Loading a project', () => {
         expect(project.files).toHaveLength(3);
         expect(project.problems.map(problem => `${problem.file}:${problem.line}:${problem.column} ${problem.severity} ${problem.message}`)).toEqual([
             '20260302-0900-a.migql.yaml:4:18 error Expected "from", but found "t".',
-            '20260303-0900-b.migql.yaml:3:5 error The part "p" has no operation. Add one of: do, insert, upsert, native, stop.',
+            '20260303-0900-b.migql.yaml:3:5 error The part "p" has no operation. Add one of: do, insert, upsert, native, stop, or an action such as column-set-not-null.',
+        ]);
+    });
+});
+
+// M3.2-AC-20
+describe('Warnings of a project', () => {
+    test('a do with a statement for which an action exists is returned as a warning, not as an error', async () => {
+        const project = await loadProject(folderWith({
+            '20260302-0900-a.migql.yaml': snippet('20260302-0900-a', 'parts:', '  - p:', '      do: alter table customer alter column mail set not null'),
+        }));
+
+        expect(project.problems.map(problem => `${problem.file}:${problem.line}:${problem.column} ${problem.severity} ${problem.message}`)).toEqual([
+            '20260302-0900-a.migql.yaml:4:11 warning do runs this statement as it is written. It reads all rows while nobody can use the table. ' +
+                'The action "column-set-not-null" has the same result without that.',
         ]);
     });
 });

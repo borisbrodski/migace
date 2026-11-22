@@ -68,3 +68,19 @@ describe('Random changes to valid snippets', () => {
         }), { seed: 20261121, numRuns: 1000 });
     }, 60_000);
 });
+
+describe('Random changes to valid snippets, with the checks', () => {
+    test('no check fails on a snippet that could only be parsed in part', async () => {
+        const { validate, clear } = createMigql();
+
+        await fc.assert(fc.asyncProperty(fc.constantFrom(...validFiles), fc.array(change, { minLength: 1, maxLength: 4 }), async (file, changes) => {
+            const text = changes.reduce((current, apply) => apply(current), file);
+
+            const document = await validate(text);
+
+            const crashed = (document.diagnostics ?? []).map(diagnostic => String(diagnostic.message)).filter(message => message.includes('An error occurred'));
+            expect(crashed).toEqual([]);
+            await clear();
+        }), { seed: 20261122, numRuns: 500 });
+    }, 120_000);
+});

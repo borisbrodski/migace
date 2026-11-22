@@ -1,0 +1,1 @@
+different   column customer.loyalty_level: nullable: expected yes, actual no

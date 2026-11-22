@@ -70,9 +70,7 @@ Give every constraint and index a name. MIG-Ace reports an unnamed one in a snip
 
 ```yaml
   - fk-book:
-      do: |
-        alter table review
-        add constraint fk_review_book foreign key (book_id) references book
+      constraint-add-foreign-key: { name: fk_review_book, table: review, columns: book_id, references: book }
 ```
 
 If two objects have the same definition and different names, MIG-Ace reports that as a naming difference, separately from real differences.

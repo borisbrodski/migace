@@ -1,0 +1,13 @@
+migration: 20260309-1430-review-foreign-keys
+
+parts:
+  - fk-book:
+      constraint-add-foreign-key: { name: fk_review_book, table: review, columns: book_id, references: book }
+
+  - fk-customer:
+      constraint-add-foreign-key:
+        name: fk_review_customer
+        table: review
+        columns: customer_id
+        references: customer
+        referenced-columns: id

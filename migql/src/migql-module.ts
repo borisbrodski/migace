@@ -4,6 +4,7 @@ import { createDefaultModule, createDefaultSharedModule, type DefaultSharedModul
 import { MigqlGeneratedModule, MigqlGeneratedSharedModule } from './generated/module.js';
 import { MigqlTokenBuilder } from './lexer/migql-token-builder.js';
 import { MigqlCodeActionProvider } from './lsp/migql-code-action-provider.js';
+import { MigqlCompletionProvider } from './lsp/migql-completion-provider.js';
 import { MigqlHoverProvider } from './lsp/migql-hover-provider.js';
 import { MigqlLexer } from './lexer/migql-lexer.js';
 import { MigqlValidator, registerValidationChecks } from './validation/migql-validator.js';
@@ -26,6 +27,7 @@ export type MigqlServices = LangiumServices & MigqlAddedServices;
 export const MigqlModule: Module<MigqlServices, PartialLangiumServices & MigqlAddedServices> = {
     lsp: {
         HoverProvider: services => new MigqlHoverProvider(services),
+        CompletionProvider: services => new MigqlCompletionProvider(services),
         CodeActionProvider: () => new MigqlCodeActionProvider(),
     },
     references: {

@@ -1,0 +1,6 @@
+# expect: The action "constraint-add-foreign-key" needs the parameter "name". Its parameters: name, table, columns, references, [referenced-columns].
+migration: 20260101-0900-example
+
+parts:
+  - p:
+      <<{|constraint-add-foreign-key|}>>: { table: review, columns: book_id, references: book }

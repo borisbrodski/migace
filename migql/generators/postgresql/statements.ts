@@ -1,9 +1,8 @@
 import type {
-    AlterTable, ColumnChange, ColumnConstraint, ColumnDefinition, ConstraintRule, DataType, EnsureColumn, Expression, Statement,
-    TableConstraint,
+    AlterTable, ColumnChange, ColumnConstraint, ColumnDefinition, ConstraintRule, Expression, Statement, TableConstraint,
 } from '../../src/generated/ast.js';
-import { dataType, expression, isKnownType, select, typeName } from './expressions.js';
-import { name, text } from './names.js';
+import { dataType, expression, select } from './expressions.js';
+import { name } from './names.js';
 
 /** A construct that the generator does not translate yet. */
 export class NotGeneratedYet extends Error { }
@@ -16,161 +15,56 @@ export interface Step {
 }
 
 /**
- * The PostgreSQL statements for one statement of the statement language.
- * Most statements are one step. Some are written in several steps that do not lock a table for long.
+ * The PostgreSQL statement for one statement of the statement language.
+ * `do` runs what was written: one statement in, one statement out, and nothing added.
  */
-export function statement(node: Statement): Step[] {
+export function statement(node: Statement): Step {
     switch (node.$type) {
-        case 'CreateTable': return [{
+        case 'CreateTable': return {
             sql: [
                 `create table ${name(node.name)} (`,
                 node.elements.map(element => '    ' + (element.$type === 'ColumnDefinition' ? column(element) : constraint(element))).join(',\n'),
                 ')',
             ].join('\n'),
-        }];
-        case 'AlterTable': return alterTable(node);
-        case 'CreateIndex': return [{
+        };
+        case 'AlterTable': return { sql: `alter table ${name(node.table)} ${alterAction(node.action)}` };
+        case 'CreateIndex': return {
             sql: `create ${node.unique ? 'unique ' : ''}index ${node.concurrently ? 'concurrently ' : ''}` +
                 `${name(node.name)} on ${name(node.table)} (${names(node.columns)})`,
             outsideTransaction: node.concurrently,
-        }];
-        case 'DropTable': return [{ sql: `drop table ${name(node.name)}` }];
-        case 'DropIndex': return [{
+        };
+        case 'DropTable': return { sql: `drop table ${name(node.name)}` };
+        case 'DropIndex': return {
             sql: `drop index ${node.concurrently ? 'concurrently ' : ''}${name(node.name)}`,
             outsideTransaction: node.concurrently,
-        }];
-        case 'Update': return [{
+        };
+        case 'Update': return {
             sql: `update ${name(node.table)}${alias(node.alias)} set ` +
                 node.assignments.map(assignment => `${name(assignment.column)} = ${expression(assignment.value)}`).join(', ') +
                 where(node.condition),
-        }];
-        case 'Delete': return [{ sql: `delete from ${name(node.table)}${alias(node.alias)}${where(node.condition)}` }];
-        case 'Insert': return [{
+        };
+        case 'Delete': return { sql: `delete from ${name(node.table)}${alias(node.alias)}${where(node.condition)}` };
+        case 'Insert': return {
             sql: `insert into ${name(node.table)} (${names(node.columns)}) ` +
                 (node.query ? select(node.query) : `values (${node.values.map(expression).join(', ')})`),
-        }];
-        case 'EnsureColumn': return [{ sql: ensureColumn(node) }];
-        // Without phases the column is renamed in one step. The form with a sync trigger comes with the upgrade phases.
-        case 'RenameColumn': return [{ sql: `alter table ${name(node.table)} rename column ${name(node.column)} to ${name(node.newName)}` }];
+        };
+        case 'RemovedEnsureColumn':
+        case 'RemovedRenameColumn':
+            throw new Error('This statement became an action and cannot be generated.');
     }
 }
 
-function alterTable(node: AlterTable): Step[] {
-    const table = `alter table ${name(node.table)}`;
-    const action = node.action;
+function alterAction(action: AlterTable['action']): string {
     switch (action.$type) {
-        case 'AddColumn': return [{ sql: `${table} add column ${column(action.column)}` }];
-        case 'AddConstraint': {
-            const added = `${table} add ${constraint(action.constraint)}`;
-            // A foreign key is checked against all rows. Added as "not valid" and validated afterwards, it blocks writers only briefly.
-            return action.constraint.rule.$type === 'ForeignKey' && action.constraint.name
-                ? [{ sql: `${added} not valid` }, { sql: `${table} validate constraint ${name(action.constraint.name)}` }]
-                : [{ sql: added }];
-        }
-        case 'DropColumn': return [{ sql: `${table} drop column ${name(action.column)}` }];
-        case 'AlterColumn': return action.change.$type === 'SetNotNull'
-            ? setNotNull(node.table, action.column)
-            : [{ sql: `${table} alter column ${name(action.column)} ${columnChange(action.change)}` }];
+        case 'AddColumn': return `add column ${column(action.column)}`;
+        case 'AddConstraint': return `add ${constraint(action.constraint)}`;
+        case 'DropColumn': return `drop column ${name(action.column)}`;
+        case 'AlterColumn': return `alter column ${name(action.column)} ${columnChange(action.change)}`;
+        case 'RenameColumn': return `rename column ${name(action.column)} to ${name(action.newName)}`;
     }
 }
 
-/**
- * `set not null` alone reads the whole table while it holds a lock that blocks everybody.
- * With a validated check constraint in place, PostgreSQL skips that scan.
- */
-function setNotNull(table: string, columnName: string): Step[] {
-    const alter = `alter table ${name(table)}`;
-    const check = name(`${table}_${columnName}_not_null`);
-    return [
-        { sql: `${alter} add constraint ${check} check (${name(columnName)} is not null) not valid` },
-        { sql: `${alter} validate constraint ${check}` },
-        { sql: `${alter} alter column ${name(columnName)} set not null` },
-        { sql: `${alter} drop constraint ${check}` },
-    ];
-}
-
-/** The details of these types are a length. A column of such a type can be made longer. */
-const WITH_LENGTH = new Set(['varchar', 'char']);
-
-/**
- * `ensure column` cannot be decided when the script is built: the column may or may not exist in
- * the database that runs it. The decision is therefore made by code that runs in the database.
- */
-function ensureColumn(node: EnsureColumn): string {
-    const table = name(node.table);
-    const columnName = name(node.column.name);
-    const type = node.column.type;
-    const wanted = `${node.table}.${node.column.name} ${dataType(type)}`;
-    const isType = `existing.atttypid = ${text(typeName(type))}::regtype`;
-    const widen = widerThan(type);
-    const body = [
-        'declare',
-        '    existing record;',
-        'begin',
-        '    select a.atttypid, a.atttypmod, format_type(a.atttypid, a.atttypmod) as type into existing',
-        '    from pg_attribute a',
-        `    where a.attrelid = ${text(table)}::regclass and a.attname = ${text(node.column.name)} and a.attnum > 0 and not a.attisdropped;`,
-        '    if not found then',
-        `        alter table ${table} add column ${column(node.column)};`,
-        `    elsif ${isType} and existing.atttypmod = ${typeModifier(type)} then`,
-        '        null;',
-        ...(widen ? [
-            `    elsif ${isType} and ${widen} then`,
-            `        alter table ${table} alter column ${columnName} type ${dataType(type)};`,
-        ] : []),
-        '    else',
-        // A percent sign in a name would be taken for a place to fill in, so it is doubled.
-        `        raise exception ${text(`ensure column ${wanted.replace(/%/g, '%%')}: the column exists as %. It can neither be kept nor widened.`)}, existing.type;`,
-        '    end if;',
-        'end',
-    ].join('\n');
-    const quote = dollarQuote(body);
-    return `do ${quote}\n${body}\n${quote}`;
-}
-
-/** A delimiter for the code that the code itself does not contain, so that no name inside it can end the code. */
-function dollarQuote(body: string): string {
-    for (let number = 0; ; number++) {
-        const quote = `$ensure${number === 0 ? '' : number}$`;
-        if (!body.includes(quote)) {
-            return quote;
-        }
-    }
-}
-
-/**
- * The number in which PostgreSQL stores the details of a type: the length plus 4, precision and scale
- * packed into one number plus 4, or -1 without details.
- */
-function typeModifier(type: DataType): number {
-    const known = isKnownType(type) ? typeName(type) : undefined;
-    if (type.parameters.length === 0) {
-        return -1;
-    }
-    if (known && WITH_LENGTH.has(known) && type.parameters.length === 1) {
-        return type.parameters[0] + 4;
-    }
-    if (known === 'numeric') {
-        return ((type.parameters[0] << 16) | (type.parameters[1] ?? 0)) + 4;
-    }
-    throw new NotGeneratedYet(`"ensure column" knows the details of varchar, char and numeric only, not of ${dataType(type)}.`);
-}
-
-/** The condition under which an existing column of the same type is narrower than the wanted one, if the type can be widened. */
-function widerThan(type: DataType): string | undefined {
-    const known = isKnownType(type) ? typeName(type) : undefined;
-    if (known && WITH_LENGTH.has(known) && type.parameters.length === 1) {
-        return `existing.atttypmod between 5 and ${type.parameters[0] + 3}`;
-    }
-    if (known === 'numeric' && type.parameters.length > 0) {
-        const [precision, scale = 0] = type.parameters;
-        // A larger precision with the same scale keeps every stored value as it is.
-        return `existing.atttypmod <> -1 and (existing.atttypmod - 4) & 65535 = ${scale} and (existing.atttypmod - 4) >> 16 < ${precision}`;
-    }
-    return undefined;
-}
-
-function names(written: string[]): string {
+export function names(written: string[]): string {
     return written.map(name).join(', ');
 }
 
@@ -182,8 +76,9 @@ function where(condition: Expression | undefined): string {
     return condition ? ` where ${expression(condition)}` : '';
 }
 
-function columnChange(change: Exclude<ColumnChange, { $type: 'SetNotNull' }>): string {
+function columnChange(change: ColumnChange): string {
     switch (change.$type) {
+        case 'SetNotNull': return 'set not null';
         case 'DropNotNull': return 'drop not null';
         case 'SetType': return `type ${dataType(change.type)}`;
         case 'SetDefault': return `set default ${expression(change.value)}`;
@@ -191,7 +86,7 @@ function columnChange(change: Exclude<ColumnChange, { $type: 'SetNotNull' }>): s
     }
 }
 
-function column(definition: ColumnDefinition): string {
+export function column(definition: ColumnDefinition): string {
     return [name(definition.name), dataType(definition.type), ...definition.constraints.map(columnConstraint)].join(' ');
 }
 

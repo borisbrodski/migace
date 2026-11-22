@@ -1,0 +1,6 @@
+# expect: "ensure column" is not a statement any more. Use the action in the place of do: column-ensure: { table: orders, column: note, type: varchar(500) }
+migration: 20260101-0900-example
+
+parts:
+  - p:
+      do: <<{|ensure|}>> column orders.note varchar(500)

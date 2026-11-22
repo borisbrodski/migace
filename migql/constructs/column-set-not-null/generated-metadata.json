@@ -1,0 +1,12 @@
+{
+  "generatedFiles": [
+    {
+      "filename": "postgresql/20260302-0920-loyalty-mandatory.sql",
+      "overwrite": true
+    },
+    {
+      "filename": "postgresql/20260801-1020-email-mandatory-mixed-case.sql",
+      "overwrite": true
+    }
+  ]
+}

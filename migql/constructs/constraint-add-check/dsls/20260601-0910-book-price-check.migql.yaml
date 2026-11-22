@@ -1,0 +1,8 @@
+migration: 20260601-0910-book-price-check
+
+parts:
+  - price-not-negative:
+      constraint-add-check:
+        name: ck_book_price
+        table: book
+        check: price_cents >= 0

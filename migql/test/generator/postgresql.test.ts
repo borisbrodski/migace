@@ -34,7 +34,11 @@ describe('PostgreSQL: schema statements', () => {
         ['create index ix_review_book on review (book_id)', 'create index ix_review_book on review (book_id);'],
         ['create unique index ux on customer (mail, name)', 'create unique index ux on customer (mail, name);'],
         ['alter table review add foreign key (book_id) references book', 'alter table review add foreign key (book_id) references book;'],
-        ['rename column customer.mail to email', 'alter table customer rename column mail to email;'],
+        // M3.2-AC-01, M3.2-AC-02
+        ['alter table customer rename column mail to email', 'alter table customer rename column mail to email;'],
+        ['alter table customer alter column loyalty_level set not null', 'alter table customer alter column loyalty_level set not null;'],
+        ['alter table review add constraint fk_review_book foreign key (book_id) references book (id)',
+            'alter table review add constraint fk_review_book foreign key (book_id) references book (id);'],
         ['drop table order_status_legacy', 'drop table order_status_legacy;'],
     ])('%s', async (source, sql) => {
         expect(await statement(source)).toBe(sql);
@@ -201,8 +205,8 @@ describe('PostgreSQL: types', () => {
 
 // M3.1-AC-11
 describe('PostgreSQL: names in texts and in queries of the catalog', () => {
-    test('set not null names its helper constraint with the exact names', async () => {
-        expect(await statement('alter table "Orders" alter column "Due Date" set not null')).toBe([
+    test('column-set-not-null names its helper constraint with the exact names', async () => {
+        expect(await generated('column-set-not-null: { table: "Orders", column: "Due Date" }')).toBe([
             '-- step 1 of 4',
             'alter table "Orders" add constraint "Orders_Due Date_not_null" check ("Due Date" is not null) not valid;',
             '-- step 2 of 4',
@@ -214,13 +218,13 @@ describe('PostgreSQL: names in texts and in queries of the catalog', () => {
         ].join('\n'));
     });
 
-    test('ensure column looks for the exact names', async () => {
-        const sql = await statement('ensure column Orders.DueDate Mood');
+    test('column-ensure looks for the exact names', async () => {
+        const sql = await generated('column-ensure: { table: Orders, column: DueDate, type: Mood }');
 
         expect(sql).toContain(`    where a.attrelid = '"Orders"'::regclass and a.attname = 'DueDate' and a.attnum > 0 and not a.attisdropped;`);
         expect(sql).toContain('        alter table "Orders" add column "DueDate" "Mood";');
         expect(sql).toContain(`    elsif existing.atttypid = '"Mood"'::regtype and existing.atttypmod = -1 then`);
-        expect(sql).toContain(`raise exception 'ensure column Orders.DueDate "Mood": the column exists as %. It can neither be kept nor widened.', existing.type;`);
+        expect(sql).toContain(`raise exception 'column-ensure Orders.DueDate "Mood": the column exists as %. It can neither be kept nor widened.', existing.type;`);
     });
 });
 
@@ -236,16 +240,16 @@ describe('PostgreSQL: hostile names', () => {
         expect(Object.keys(parsed.stmts![0].stmt!)).toEqual(['UpdateStmt']);
     });
 
-    test.each(HOSTILE)('the name %s cannot leave the code of ensure column', async hostile => {
-        const sql = await statement(`ensure column "${hostile}"."${hostile}" "${hostile}"`);
+    test.each(HOSTILE)('the name %s cannot leave the code of column-ensure', async hostile => {
+        const sql = await generated('column-ensure:', `  table: "${hostile}"`, `  column: "${hostile}"`, `  type: "${hostile}"`);
 
         const parsed = parseSync(sql);
         expect(parsed.stmts).toHaveLength(1);
         expect(Object.keys(parsed.stmts![0].stmt!)).toEqual(['DoStmt']);
     });
 
-    test.each(HOSTILE)('the name %s cannot leave the steps of set not null', async hostile => {
-        const sql = await statement(`alter table "${hostile}" alter column "${hostile}" set not null`);
+    test.each(HOSTILE)('the name %s cannot leave the steps of column-set-not-null', async hostile => {
+        const sql = await generated('column-set-not-null:', `  table: "${hostile}"`, `  column: "${hostile}"`);
 
         expect(parseSync(sql).stmts!.map(each => Object.keys(each.stmt!)[0])).toEqual(['AlterTableStmt', 'AlterTableStmt', 'AlterTableStmt', 'AlterTableStmt']);
     });
@@ -318,10 +322,10 @@ describe('PostgreSQL: upsert', () => {
     });
 });
 
-// M3-AC-13, M3-AC-14, M3-AC-15, M3-AC-16
-describe('PostgreSQL: forms that do not lock a table for long', () => {
-    test('set not null is four steps', async () => {
-        expect(await statement('alter table customer alter column loyalty_level set not null')).toBe([
+// M3.2-AC-14, M3.2-AC-15
+describe('PostgreSQL: actions', () => {
+    test('column-set-not-null is four steps', async () => {
+        expect(await generated('column-set-not-null: { table: customer, column: loyalty_level }')).toBe([
             '-- step 1 of 4',
             'alter table customer add constraint customer_loyalty_level_not_null check (loyalty_level is not null) not valid;',
             '-- step 2 of 4',
@@ -333,8 +337,8 @@ describe('PostgreSQL: forms that do not lock a table for long', () => {
         ].join('\n'));
     });
 
-    test('a new foreign key with a name is two steps', async () => {
-        expect(await statement('alter table review add constraint fk_review_book foreign key (book_id) references book (id)')).toBe([
+    test('constraint-add-foreign-key is two steps', async () => {
+        expect(await generated('constraint-add-foreign-key: { name: fk_review_book, table: review, columns: book_id, references: book, referenced-columns: id }')).toBe([
             '-- step 1 of 2',
             'alter table review add constraint fk_review_book foreign key (book_id) references book (id) not valid;',
             '-- step 2 of 2',
@@ -342,19 +346,39 @@ describe('PostgreSQL: forms that do not lock a table for long', () => {
         ].join('\n'));
     });
 
-    test('an index that is built concurrently runs outside a transaction', async () => {
-        expect(await statement('create index concurrently ix_orders_customer on orders (customer_id)'))
-            .toBe('-- outside transaction\ncreate index concurrently ix_orders_customer on orders (customer_id);');
-        await clear();
-        expect(await statement('drop index concurrently ix_orders_customer'))
-            .toBe('-- outside transaction\ndrop index concurrently ix_orders_customer;');
+    test('constraint-add-foreign-key with several columns and without the columns of the other table', async () => {
+        expect(await generated('constraint-add-foreign-key:', '  name: fk', '  table: book_price', '  columns: [book_id, currency]', '  references: book_edition')).toBe([
+            '-- step 1 of 2',
+            'alter table book_price add constraint fk foreign key (book_id, currency) references book_edition not valid;',
+            '-- step 2 of 2',
+            'alter table book_price validate constraint fk;',
+        ].join('\n'));
     });
-});
 
-// M3-AC-09
-describe('PostgreSQL: ensure column', () => {
-    test('is code that decides on the database', async () => {
-        expect(await statement('ensure column orders.note varchar(500)')).toBe(`do $ensure$
+    test('constraint-add-check is two steps', async () => {
+        expect(await generated('constraint-add-check:', '  name: ck_book_price', '  table: book', '  check: price_cents >= 0')).toBe([
+            '-- step 1 of 2',
+            'alter table book add constraint ck_book_price check (price_cents >= 0) not valid;',
+            '-- step 2 of 2',
+            'alter table book validate constraint ck_book_price;',
+        ].join('\n'));
+    });
+
+    test('column-rename is a plain rename', async () => {
+        expect(await generated('column-rename: { table: customer, from: mail, to: email }')).toBe('alter table customer rename column mail to email;');
+    });
+
+    // M3.2-AC-07
+    test('the form on one line and the block form give the same statements', async () => {
+        const oneLine = await generated('column-ensure: { table: orders, column: note, type: varchar(500) }');
+        await clear();
+        const block = await generated('column-ensure:', '  table: orders', '  column: note', '  type: varchar(500)');
+
+        expect(block).toBe(oneLine);
+    });
+
+    test('column-ensure is code that decides on the database', async () => {
+        expect(await generated('column-ensure: { table: orders, column: note, type: varchar(500) }')).toBe(`do $ensure$
 declare
     existing record;
 begin
@@ -368,15 +392,32 @@ begin
     elsif existing.atttypid = 'varchar'::regtype and existing.atttypmod between 5 and 503 then
         alter table orders alter column note type varchar(500);
     else
-        raise exception 'ensure column orders.note varchar(500): the column exists as %. It can neither be kept nor widened.', existing.type;
+        raise exception 'column-ensure orders.note varchar(500): the column exists as %. It can neither be kept nor widened.', existing.type;
     end if;
 end
 $ensure$;`);
     });
 
+    test('column-ensure adds the column with its default and as mandatory', async () => {
+        const sql = await generated('column-ensure:', '  table: orders', '  column: note', '  type: varchar(500)', "  default: 'none'", '  not-null: true');
+
+        expect(sql).toContain("        alter table orders add column note varchar(500) default 'none' not null;");
+    });
+
     test('a type without details is kept if it is the same', async () => {
-        const sql = await statement('ensure column orders.ship_by date');
+        const sql = await generated('column-ensure: { table: orders, column: ship_by, type: date }');
 
         expect(sql).toContain("    elsif existing.atttypid = 'date'::regtype and existing.atttypmod = -1 then\n        null;\n    else\n");
+    });
+});
+
+// M3-AC-15
+describe('PostgreSQL: statements outside a transaction', () => {
+    test('an index that is built concurrently runs outside a transaction', async () => {
+        expect(await statement('create index concurrently ix_orders_customer on orders (customer_id)'))
+            .toBe('-- outside transaction\ncreate index concurrently ix_orders_customer on orders (customer_id);');
+        await clear();
+        expect(await statement('drop index concurrently ix_orders_customer'))
+            .toBe('-- outside transaction\ndrop index concurrently ix_orders_customer;');
     });
 });

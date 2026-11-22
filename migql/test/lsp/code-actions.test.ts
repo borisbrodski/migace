@@ -57,6 +57,40 @@ describe('Quick fix: mark an open decision', () => {
     });
 });
 
+// M3.2-AC-21
+describe('Quick fix: replace a do by its action', () => {
+    function part(...body: string[]): string {
+        return lines(NAME, 'parts:', '  - p:', ...body.map(line => '      ' + line));
+    }
+
+    test.each([
+        [['do: alter table customer alter column loyalty_level set not null'],
+            ['column-set-not-null: { table: customer, column: loyalty_level }']],
+        [['do: alter table customer rename column mail to "E Mail"'],
+            ['column-rename: { table: customer, from: mail, to: "E Mail" }']],
+        [['do: alter table review add constraint fk_review_book foreign key (book_id) references book'],
+            ['constraint-add-foreign-key: { name: fk_review_book, table: review, columns: book_id, references: book }']],
+        [['do: |', '  alter table review', '  add constraint fk_review_book foreign key (book_id) references book (id)'],
+            ['constraint-add-foreign-key: { name: fk_review_book, table: review, columns: book_id, references: book, referenced-columns: id }']],
+        [['do: alter table book_price add constraint fk foreign key (book_id, currency) references book_edition (book_id, currency)'],
+            ['constraint-add-foreign-key:', '  name: fk', '  table: book_price', '  columns: [book_id, currency]', '  references: book_edition', '  referenced-columns: [book_id, currency]']],
+        [['do: alter table book add constraint ck_book_price check (price_cents >= 0)'],
+            ['constraint-add-check:', '  name: ck_book_price', '  table: book', '  check: price_cents >= 0']],
+    ])('%j', async (before, after) => {
+        const { titles, fixed } = await quickFix(part(...before, 'when: true'));
+
+        expect(titles).toEqual([`Use the action "${after[0].split(':')[0]}"`]);
+        expect(fixed).toBe(part(...after, 'when: true'));
+        expect(await validate(fixed)).toHaveNoIssues();
+    });
+
+    test('a constraint without a name has no quick fix, because the action needs the name', async () => {
+        const { titles } = await quickFix(part('do: alter table review add foreign key (book_id) references book'));
+
+        expect(titles).toEqual([]);
+    });
+});
+
 describe('Quick fix: nothing to offer', () => {
     test('a problem without a fix gets no quick fix', async () => {
         const { titles } = await quickFix(lines(NAME, 'parts:', '  - p:', '      do: delete t'));

@@ -61,7 +61,7 @@ Sometimes a column may or may not exist already. Suppose a hotfix added `orders.
 
 ```yaml
   - note-column:
-      do: ensure column orders.note varchar(500)
+      column-ensure: { table: orders, column: note, type: varchar(500) }
 ```
 
 `ensure column` does what is needed:

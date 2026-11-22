@@ -1,0 +1,10 @@
+migration: 20260701-0910-price-edition-key
+
+parts:
+  - fk-edition:
+      constraint-add-foreign-key:
+        name: "FK Price Edition"
+        table: book_price
+        columns: [book_id, currency]
+        references: book_edition
+        referenced-columns: [book_id, currency]

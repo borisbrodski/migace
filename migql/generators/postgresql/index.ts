@@ -1,7 +1,8 @@
 import type { GeneratorManager } from 'langium-tools/generator';
 import type { ColumnValue, InsertEntry, Part, Snippet, UpsertEntry } from '../../src/generated/ast.js';
-import { isDoEntry, isInsertEntry, isIntoEntry, isKeyEntry, isNativeEntry, isRowsEntry, isUpsertEntry, isValuesEntry } from '../../src/generated/ast.js';
+import { isActionEntry, isDoEntry, isInsertEntry, isIntoEntry, isKeyEntry, isNativeEntry, isRowsEntry, isUpsertEntry, isValuesEntry } from '../../src/generated/ast.js';
 import { nameEntry, partsOf } from '../../src/model/snippet.js';
+import { action } from './actions.js';
 import { expression } from './expressions.js';
 import { name } from './names.js';
 import { NotGeneratedYet, statement, type Step } from './statements.js';
@@ -43,7 +44,10 @@ export function generatePart(part: Part): string {
 export function generateSteps(part: Part): Step[] {
     for (const entry of part.entries) {
         if (isDoEntry(entry)) {
-            return statement(entry.statement);
+            return [statement(entry.statement)];
+        }
+        if (isActionEntry(entry)) {
+            return action(entry);
         }
         if (isInsertEntry(entry)) {
             return [{ sql: insert(part, entry) }];

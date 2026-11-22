@@ -61,12 +61,10 @@ parts:
         - all: orders.status_id is not null
 
   - status-fk:
-      do: |
-        alter table orders
-        add constraint fk_orders_status foreign key (status_id) references order_status
+      constraint-add-foreign-key: { name: fk_orders_status, table: orders, columns: status_id, references: order_status }
 
   - status-mandatory:
-      do: alter table orders alter column status_id set not null
+      column-set-not-null: { table: orders, column: status_id }
 
 testdata-before:
   - table: orders

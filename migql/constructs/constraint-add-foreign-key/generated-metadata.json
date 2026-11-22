@@ -1,0 +1,12 @@
+{
+  "generatedFiles": [
+    {
+      "filename": "postgresql/20260309-1430-review-foreign-keys.sql",
+      "overwrite": true
+    },
+    {
+      "filename": "postgresql/20260701-0910-price-edition-key.sql",
+      "overwrite": true
+    }
+  ]
+}

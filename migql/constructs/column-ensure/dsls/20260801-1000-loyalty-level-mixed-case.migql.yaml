@@ -1,0 +1,8 @@
+migration: 20260801-1000-loyalty-level-mixed-case
+
+parts:
+  - loyalty-level:
+      column-ensure: { table: Customer, column: "Loyalty Level", type: varchar(20) }
+
+  - key-is-longer:
+      column-ensure: { table: Customer, column: key, type: varchar(40) }

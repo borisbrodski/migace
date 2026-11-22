@@ -1,0 +1,16 @@
+migration: 20260610-0910-review-title
+
+parts:
+  - title-column:
+      column-ensure:
+        table: review
+        column: title
+        type: varchar(200)
+        default: 'Untitled'
+        not-null: true
+
+  - weight-column:
+      column-ensure:
+        table: book
+        column: weight
+        type: numeric(10, 3)

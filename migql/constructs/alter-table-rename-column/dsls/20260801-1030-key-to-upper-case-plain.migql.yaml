@@ -1,0 +1,7 @@
+migration: 20260801-1030-key-to-upper-case-plain
+
+parts:
+  - rename:
+      do: |
+        alter table Customer
+          rename column key to "Key"

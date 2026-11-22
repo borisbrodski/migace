@@ -1,0 +1,6 @@
+# expect: This value needs the block form. In a flow map { … } a value is a literal, a name or a type without a comma. Write the action as a block, with one parameter per line.
+migration: 20260101-0900-example
+
+parts:
+  - p:
+      column-ensure: { table: book, column: weight, type: <<{|numeric(10, 3)|}>> }

@@ -119,7 +119,7 @@ A condition should not say what the statement already says.
 ```yaml
   # Better
   - note-column:
-      do: ensure column orders.note varchar(500)
+      column-ensure: { table: orders, column: note, type: varchar(500) }
 ```
 
 ## Every branch is tested

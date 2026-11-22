@@ -3,6 +3,9 @@ import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, test } from 'vitest';
 import { compare, differencesText } from '@migace/core';
+import { generateSteps } from '../../generators/postgresql/index.js';
+import { isDoEntry } from '../../src/generated/ast.js';
+import { partsOf } from '../../src/model/snippet.js';
 import { createMigql } from '../support.js';
 import { createBookshopDatabase } from './database.js';
 
@@ -34,6 +37,11 @@ describe('The generated PostgreSQL of the catalogue on a database', () => {
         const document = await parse(fs.readFileSync(path.join(CATALOGUE, construct, 'dsls', `${name}.migql.yaml`), 'utf8'));
         await bookshop(...setupOf(example));
         const before = await model();
+
+        // M3.2-AC-04: do runs what was written, as one statement.
+        for (const each of partsOf(document.parseResult.value).filter(candidate => candidate.entries.some(isDoEntry))) {
+            expect(generateSteps(each)).toHaveLength(1);
+        }
 
         await run(document.parseResult.value);
 

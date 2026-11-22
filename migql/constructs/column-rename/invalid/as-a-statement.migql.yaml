@@ -1,0 +1,6 @@
+# expect: "rename column" is not a statement any more. Use the action in the place of do: column-rename: { table: customer, from: mail, to: email }
+migration: 20260101-0900-example
+
+parts:
+  - p:
+      do: <<{|rename|}>> column customer.mail to email

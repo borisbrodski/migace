@@ -1,7 +1,0 @@
-migration: 20260610-0910-review-title
-
-parts:
-  - title-column:
-      do: |
-        ensure column review.title
-          varchar(200)

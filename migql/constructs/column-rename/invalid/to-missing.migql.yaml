@@ -1,0 +1,6 @@
+# expect: The action "column-rename" needs the parameter "to". Its parameters: table, from, to.
+migration: 20260101-0900-example
+
+parts:
+  - p:
+      <<{|column-rename|}>>: { table: customer, from: mail }

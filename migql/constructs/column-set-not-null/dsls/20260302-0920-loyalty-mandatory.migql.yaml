@@ -1,0 +1,5 @@
+migration: 20260302-0920-loyalty-mandatory
+
+parts:
+  - make-mandatory:
+      column-set-not-null: { table: customer, column: loyalty_level }

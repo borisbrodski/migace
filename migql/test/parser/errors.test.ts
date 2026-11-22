@@ -28,7 +28,7 @@ describe('Parser: messages say what was expected', () => {
 
     test('a statement is missing', async () => {
         await expectErrors(part('do:<<{||}>>'),
-            'Expected "create", "alter", "drop", "ensure", "rename", "update", "delete" or "insert", but the value ends here.');
+            'Expected "create", "alter", "drop", "update", "delete" or "insert", but the value ends here.');
     });
 
     test('something follows a complete statement', async () => {
