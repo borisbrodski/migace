@@ -69,7 +69,8 @@ describe('The temporary server', () => {
 
         await other.stop();
 
-        expect(isRunning(other.pid)).toBe(false);
+        // A stopped process can be listed for a moment longer, until the system has removed its entry.
+        expect(await eventually(() => !isRunning(other.pid), 5)).toBe(true);
         expect(fs.existsSync(other.dataFolder)).toBe(false);
         await other.stop();
     }, 60_000);
