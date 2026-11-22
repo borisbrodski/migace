@@ -12,6 +12,8 @@ export interface Step {
     sql: string;
     /** Set for a statement that PostgreSQL refuses inside a transaction, such as `create index concurrently`. */
     outsideTransaction?: boolean;
+    /** For a statement outside a transaction: what removes the rest of a failed attempt, such as an invalid index. */
+    cleanup?: string;
 }
 
 /**
@@ -32,6 +34,7 @@ export function statement(node: Statement): Step {
             sql: `create ${node.unique ? 'unique ' : ''}index ${node.concurrently ? 'concurrently ' : ''}` +
                 `${name(node.name)} on ${name(node.table)} (${names(node.columns)})`,
             outsideTransaction: node.concurrently,
+            ...(node.concurrently ? { cleanup: `drop index if exists ${name(node.name)}` } : {}),
         };
         case 'DropTable': return { sql: `drop table ${name(node.name)}` };
         case 'DropIndex': return {

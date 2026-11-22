@@ -14,6 +14,7 @@ import { actionName, actionOf, asBoolean, asName, asNames, asType, parametersOf 
 import { FUNCTIONS } from '../functions.js';
 import type { MigqlServices } from '../migql-module.js';
 import { sameName } from '../model/names.js';
+import { isConditionName } from '../references/names.js';
 import { partsOf, slugOf } from '../model/snippet.js';
 
 export function registerValidationChecks(services: MigqlServices): void {
@@ -282,7 +283,8 @@ export class MigqlValidator {
 
 /** The names used on the way from `current` back to `start`, or nothing if there is no such way. */
 function findCycle(start: LetDefinition, current: LetDefinition, visited: LetDefinition[]): NameRef[] | undefined {
-    for (const reference of AstUtils.streamAllContents(current).filter(isNameRef)) {
+    // Only a name of a condition has a definition. Asking a column for one would report it as unknown.
+    for (const reference of AstUtils.streamAllContents(current).filter(isNameRef).filter(isConditionName)) {
         const target = reference.target.ref;
         if (target === start) {
             return [reference];

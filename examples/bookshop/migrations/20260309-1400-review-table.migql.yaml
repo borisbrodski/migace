@@ -1,0 +1,37 @@
+migration: 20260309-1400-review-table
+uid: 01JF4C9S2M7H5K3P8V6N1Y0E4R
+doc: Customers can review books
+
+parts:
+  - create-table:
+      do: |
+        create table review (
+          id          bigint         not null,
+          book_id     bigint         not null,
+          customer_id bigint         not null,
+          stars       integer        not null check (stars between 1 and 5),
+          review_text varchar(2000),
+          created_at  timestamp      not null,
+          primary key (id)
+        )
+
+  - fk-book:
+      do: |
+        alter table review
+        add constraint fk_review_book foreign key (book_id) references book
+
+  - fk-customer:
+      do: |
+        alter table review
+        add constraint fk_review_customer foreign key (customer_id) references customer
+
+  - index-book:
+      do: create index ix_review_book on review (book_id)
+
+testdata:
+  - table: review
+    fill: all
+    row: { stars: 5, review_text: 'Could not put it down.' }
+  - table: review
+    fill: required
+    row: { stars: 1 }

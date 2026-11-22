@@ -3,6 +3,8 @@ import * as path from 'node:path';
 import { type LangiumDocument, URI } from 'langium';
 import { NodeFileSystem } from 'langium/node';
 import { DiagnosticSeverity } from 'vscode-languageserver-types';
+import { type Checksum, partChecksums } from './checksum/checksum.js';
+import type { Snippet } from './generated/ast.js';
 import { createMigqlServices } from './migql-module.js';
 
 const FILE_ENDING = '.migql.yaml';
@@ -17,9 +19,20 @@ export interface Problem {
     message: string;
 }
 
+/** One snippet file of a project. */
+export interface ProjectSnippet {
+    /** The file, relative to the folder of the project. */
+    file: string;
+    snippet: Snippet;
+    /** The checksum of every part, by the name of the part. */
+    checksums: Map<string, Checksum>;
+}
+
 export interface Project {
     /** The snippet files of the project, relative to its folder, in the order of their names. */
     readonly files: string[];
+    /** The snippets of the project, in the order of their files. */
+    readonly snippets: ProjectSnippet[];
     /** The problems of all files, ordered by file and place. */
     readonly problems: Problem[];
     /** Reads again what changed on disk and runs the checks again. */
@@ -31,7 +44,7 @@ export interface Project {
  * A file with problems does not stop the others: the problems of all files are collected.
  */
 export async function loadProject(folder: string): Promise<Project> {
-    const { shared } = createMigqlServices(NodeFileSystem);
+    const { shared, migql } = createMigqlServices(NodeFileSystem);
     const documents = shared.workspace.LangiumDocuments;
     const builder = shared.workspace.DocumentBuilder;
     const root = path.resolve(folder);
@@ -39,6 +52,7 @@ export async function loadProject(folder: string): Promise<Project> {
 
     const project = {
         files: [] as string[],
+        snippets: [] as ProjectSnippet[],
         problems: [] as Problem[],
         async refresh(): Promise<void> {
             const onDisk = new Map(snippetFiles(root).map(file => [URI.file(file).toString(), file]));
@@ -51,6 +65,11 @@ export async function loadProject(folder: string): Promise<Project> {
             await builder.build(documents.all.toArray(), { validation: true });
             const loaded = documents.all.toArray().sort((a, b) => relative(a).localeCompare(relative(b)));
             project.files = loaded.map(relative);
+            project.snippets = loaded.map(document => ({
+                file: relative(document),
+                snippet: document.parseResult.value as Snippet,
+                checksums: partChecksums(migql.parser.Lexer.tokenize(document.textDocument.getText()).tokens),
+            }));
             project.problems = loaded.flatMap(document => problemsOf(document, relative(document)));
         },
     };

@@ -4,7 +4,11 @@
     "noEmit": false,
     "rootDir": ".",
     "outDir": "out",
-    "paths": {}
+    "paths": {
+      "@migace/core": [
+        "../core/out/index.d.ts"
+      ]
+    }
   },
   "include": [
     "src/**/*",

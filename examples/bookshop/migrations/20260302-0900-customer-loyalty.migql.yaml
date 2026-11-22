@@ -1,0 +1,20 @@
+migration: 20260302-0900-customer-loyalty
+uid: 01JF2A6QW3ZK8M4T7R9B5X0C1D
+doc: Every customer gets a loyalty level
+
+parts:
+  - add-column:
+      do: alter table customer add column loyalty_level varchar(10)
+
+  - fill-existing:
+      do: update customer set loyalty_level = 'BRONZE'
+
+  - make-mandatory:
+      column-set-not-null: { table: customer, column: loyalty_level }
+
+testdata:
+  - table: customer
+    fill: all
+    row: { loyalty_level: 'GOLD' }
+  - table: customer
+    fill: required

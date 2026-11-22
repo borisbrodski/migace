@@ -1,0 +1,15 @@
+migration: 20260525-1100-orders-ship-by
+uid: 01JG2K8T5W1Z4C7F0H3M6P9S2V
+doc: Every order gets a ship-by date, three days after its creation
+
+parts:
+  - add-column:
+      do: alter table orders add column ship_by date
+
+  - fill-ship-by:
+      do: |
+        update orders
+        set ship_by = cast(created_at as date) + days(3)
+        where ship_by is null
+      verify-after:
+        - all: orders.ship_by is not null

@@ -1,0 +1,14 @@
+repair: 20260622-0900-repair-order-status
+uid: 01JG8T3B6X9D2F5H7K1M4Q0W8Z
+doc: Orders wrongly set to UNKNOWN by release 1.2.0 get their real status
+when: ran order-status.link-status
+
+parts:
+  - relink:
+      do: |
+        update orders o
+        set status_id = (select s.id from order_status s
+                         where s.code = upper(trim(o.status)))
+        where o.status_id = (select id from order_status where code = 'UNKNOWN')
+          and exists (select 1 from order_status s
+                      where s.code = upper(trim(o.status)))

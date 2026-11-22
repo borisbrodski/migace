@@ -1,0 +1,64 @@
+migration: 20260518-1000-order-status
+uid: 01JG1D5R8Y3B6F9J2L4N7Q0T3W
+doc: The order status moves from free text into the table order_status
+
+parts:
+  - create-status-table:
+      do: |
+        create table order_status (
+          id    bigint      not null,
+          code  varchar(20) not null,
+          label varchar(50) not null,
+          primary key (id),
+          constraint uq_order_status_code unique (code)
+        )
+
+  - add-statuses:
+      insert:
+        into: order_status
+        rows:
+          - { id: 1, code: 'OPEN',      label: 'Open' }
+          - { id: 2, code: 'PAID',      label: 'Paid' }
+          - { id: 3, code: 'SHIPPED',   label: 'Shipped' }
+          - { id: 4, code: 'CANCELLED', label: 'Cancelled' }
+          - { id: 5, code: 'UNKNOWN',   label: 'Unknown' }
+
+  - add-status-id:
+      do: alter table orders add column status_id bigint
+
+  - link-status:
+      do: |
+        update orders o
+        set status_id = (select s.id from order_status s
+                         where s.code = upper(trim(o.status)))
+        where o.status_id is null
+
+  - default-unknown:
+      do: |
+        update orders
+        set status_id = (select id from order_status where code = 'UNKNOWN')
+        where status_id is null
+      verify-after:
+        - all: orders.status_id is not null
+
+  - status-fk:
+      constraint-add-foreign-key: { name: fk_orders_status, table: orders, columns: status_id, references: order_status }
+
+  - status-mandatory:
+      column-set-not-null: { table: orders, column: status_id }
+
+testdata-before:
+  - table: orders
+    fill: all
+    row: { status: 'shipped ' }
+  - table: orders
+    fill: all
+    row: { status: 'no idea' }
+
+testdata:
+  - table: order_status
+    fill: all
+    row: { code: 'TEST', label: 'Only in tests' }
+  - table: orders
+    fill: required
+    row: { status_id: any }

@@ -61,6 +61,12 @@ describe('Linking: names of columns', () => {
         expect(parsed).toHaveNoIssues();
     });
 
+    test('a name inside a subquery of a definition is a column', async () => {
+        const parsed = await parseMarked(lines(NAME, 'let:', '  has_books: exists (select 1 from book where stock > 0)', 'when: has_books'));
+
+        expect(parsed).toHaveNoIssues();
+    });
+
     test('a column with the name of a definition stays a column', async () => {
         const document = await parse(lines(NAME, 'let:', '  status: true', 'parts:', '  - p:', '      do: update t set c = status'));
 

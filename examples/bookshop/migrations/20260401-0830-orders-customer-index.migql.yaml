@@ -1,0 +1,7 @@
+migration: 20260401-0830-orders-customer-index
+uid: 01JFM8W1Y3A5C7E9G1J3L5N7Q9
+doc: The order list of a customer loads quickly
+
+parts:
+  - index:
+      do: create index concurrently ix_orders_customer on orders (customer_id)

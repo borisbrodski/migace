@@ -1,4 +1,7 @@
-import type { DataType, Expression, Select } from '../../src/generated/ast.js';
+import { AstUtils } from 'langium';
+import type { DataType, Expression, RanCondition, Select } from '../../src/generated/ast.js';
+import { isSnippet, isUidEntry } from '../../src/generated/ast.js';
+import { isConditionName } from '../../src/references/names.js';
 import type { TypeSpec } from '../../src/actions/parameters.js';
 import { knownType } from '../../src/types.js';
 import { name, text } from './names.js';
@@ -34,7 +37,15 @@ export function expression(node: Expression): string {
         case 'NextValueExpression': return `nextval(${text(name(node.sequence))})`;
         case 'FunctionCall': return functionCall(node.name, node.star ? ['*'] : node.arguments.map(expression));
         case 'ColumnRef': return `${name(node.table)}.${name(node.column)}`;
-        case 'NameRef': return name(node.target.$refText);
+        // In a condition a name stands for its definition under `let`. Everywhere else it is a column.
+        case 'NameRef': return isConditionName(node) && node.target.ref
+            ? `(${expression(node.target.ref.condition)})`
+            : name(node.target.$refText);
+        case 'ColumnExists': return 'exists (select 1 from pg_attribute a ' +
+            `where a.attrelid = to_regclass(${text(name(node.table))}) and a.attname = ${text(node.column)} and a.attnum > 0 and not a.attisdropped)`;
+        case 'TableExists': return relationExists(node.table, ['r', 'p']);
+        case 'IndexExists': return relationExists(node.index, ['i', 'I']);
+        case 'RanCondition': return ranCondition(node);
         case 'StringLiteral': return text(node.value);
         case 'NumberLiteral': return node.$cstNode?.text ?? String(node.value);
         case 'DateLiteral': return `date ${text(node.value)}`;
@@ -43,6 +54,26 @@ export function expression(node: Expression): string {
         default: throw new Error(`${node.$type} cannot be generated for PostgreSQL yet.`);
     }
 }
+
+function relationExists(written: string, kinds: string[]): string {
+    return `exists (select 1 from pg_class c where c.oid = to_regclass(${text(name(written))}) and c.relkind in (${kinds.map(text).join(', ')}))`;
+}
+
+/** Asks the ledger whether a part ran on this database. The script brings the function with it. */
+function ranCondition(node: RanCondition): string {
+    const part = node.part.ref;
+    const uid = part ? AstUtils.getContainerOfType(part, isSnippet)?.entries.find(isUidEntry)?.value : undefined;
+    if (!part || !uid) {
+        throw new Error(`The part "${node.part.$refText}" of a "ran" condition is not known, or its snippet has no uid.`);
+    }
+    if (node.release) {
+        throw new NeedsReleaseFiles(`"ran ${node.part.$refText} from ${node.release}" needs the checksums of a release file. Release files are not built yet; write the condition without "from".`);
+    }
+    return `pg_temp.migace_ran(${text(uid)}, ${text(part.name)})`;
+}
+
+/** A condition that asks for the version of a part that a release shipped. */
+export class NeedsReleaseFiles extends Error { }
 
 export function select(query: Select): string {
     return `select ${query.items.map(expression).join(', ')} from ${name(query.table)}` +

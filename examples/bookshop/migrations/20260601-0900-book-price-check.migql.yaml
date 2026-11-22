@@ -1,0 +1,12 @@
+migration: 20260601-0900-book-price-check
+uid: 01JG3A1D4G7K0N3R6U9X2B5E8H
+doc: Book prices can no longer be negative
+
+parts:
+  - price-not-negative:
+      verify-before:
+        - none: book.price_cents < 0
+      constraint-add-check:
+        name: ck_book_price
+        table: book
+        check: price_cents >= 0

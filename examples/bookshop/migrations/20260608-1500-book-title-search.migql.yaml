@@ -1,0 +1,14 @@
+migration: 20260608-1500-book-title-search
+uid: 01JG3N7V4C8Q1S6W9Y2A5E0H3K
+doc: Fast search for a part of a book title
+
+parts:
+  - trigram-extension:
+      native:
+        postgresql: create extension if not exists pg_trgm
+
+  - title-search-index:
+      native:
+        postgresql: |
+          create index ix_book_title_search on book
+          using gin (title gin_trgm_ops)

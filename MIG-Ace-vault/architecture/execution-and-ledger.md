@@ -32,6 +32,28 @@ How the script reaches its behaviour with an adapter that has no logic. **[direc
 - **A connection that is lost** rolls back the current step. The ledger has no record of it, so the next run runs it.
 - **Progress** is reported with notices: one line per part that ran, was skipped or failed.
 
+### The format of the script
+
+The script is a text file with LF line endings. Lines that start with `-- @migace` are marker lines; they separate statements. Every other line belongs to the statement of the marker above it. **[direction]**, fixed by the client contract.
+
+| Line | Meaning |
+|---|---|
+| `-- @migace script format=1` | The first line. It names the version of this format. A runner refuses a version it does not know. |
+| `-- @migace statement` | The lines up to the next marker are one statement. The runner sends it. |
+| `-- @migace guard` | The lines up to the next marker are a query that returns one value. The statement that follows is sent only if the value is true. |
+| `-- @migace statement outside-transaction` | A statement that the database refuses inside a transaction. A runner with autocommit sends it like any other. |
+| `… label="<text>"` | Says what the statement belongs to. A runner puts it in front of the message of an error of that statement. |
+
+- Parameters of a run are session settings `migace.<name>`. The runner sets them before the first statement. `migace.schema` is the schema of the migration.
+- The script contains nothing that only one client understands.
+- No text of a snippet can be taken for a marker line. A statement of a part is a text literal inside a call of a function of the script; a quote in it is doubled. A part with a line that starts with `-- @migace` is rejected when the script is written.
+
+What the first implementation does differently from the list above, and why:
+
+- **A step is a call, not a block.** The logic of a step is in functions that the script creates for the session (`pg_temp.migace_step` and others). A step is then one short `select`, and the statement of the part is an argument. This keeps the script small and makes hostile text harmless.
+- **The search path** is the schema of the migration, followed by what the session had. See question 46.
+- **A statement outside a transaction** is three entries: a guard that decides and records the start, the statement, and a call that records the end.
+
 ### Checksum of a part
 
 The ledger and the release files store a checksum for every part.

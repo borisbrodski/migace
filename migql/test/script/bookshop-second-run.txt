@@ -1,0 +1,23 @@
+20260302-0900-customer-loyalty, part add-column: already done
+20260302-0900-customer-loyalty, part fill-existing: already done
+20260302-0900-customer-loyalty, part make-mandatory: already done
+20260309-1400-review-table, part create-table: already done
+20260309-1400-review-table, part fk-book: already done
+20260309-1400-review-table, part fk-customer: already done
+20260309-1400-review-table, part index-book: already done
+20260401-0830-orders-customer-index, part index: already done
+20260518-1000-order-status, part create-status-table: already done
+20260518-1000-order-status, part add-statuses: already done
+20260518-1000-order-status, part add-status-id: already done
+20260518-1000-order-status, part link-status: already done
+20260518-1000-order-status, part default-unknown: already done
+20260518-1000-order-status, part status-fk: already done
+20260518-1000-order-status, part status-mandatory: already done
+20260525-1100-orders-ship-by, part add-column: already done
+20260525-1100-orders-ship-by, part fill-ship-by: already done
+20260601-0900-book-price-check, part price-not-negative: already done
+20260608-1500-book-title-search, part trigram-extension: already done
+20260608-1500-book-title-search, part title-search-index: already done
+20260622-0900-repair-order-status, part relink: already done
+20260907-1000-customer-email, part rename-mail: already done
+Nothing to do.

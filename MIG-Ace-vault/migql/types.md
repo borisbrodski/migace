@@ -25,7 +25,7 @@ The types that MigQL knows. **[direction]** The list is a working assumption: it
 
 ## Gaps
 
-- A type written with several words is not accepted by the grammar: `double precision`, `timestamp with time zone`, `character varying`. See open question 44.
+- A type written with several words is not accepted by the grammar: `double precision`, `timestamp with time zone`, `character varying`. See open question 45.
 - Details in brackets are numbers only: `varchar(200)`, `numeric(12, 2)`.
 
 ## In the code

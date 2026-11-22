@@ -1,0 +1,11 @@
+unexpected  check constraint book.ck_book_price
+unexpected  index book.ix_book_title_search
+unexpected  column customer.email
+unexpected  column customer.loyalty_level
+missing     column customer.mail
+unexpected  table order_status
+unexpected  column orders.ship_by
+unexpected  column orders.status_id
+unexpected  foreign key orders.fk_orders_status
+unexpected  index orders.ix_orders_customer
+unexpected  table review

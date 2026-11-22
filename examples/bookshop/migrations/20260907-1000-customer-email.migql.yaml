@@ -1,0 +1,7 @@
+migration: 20260907-1000-customer-email
+uid: 01JH5P2R4T6V8X0Z2B4D6F8H0K
+doc: The e-mail column is renamed from mail to email
+
+parts:
+  - rename-mail:
+      column-rename: { table: customer, from: mail, to: email }
