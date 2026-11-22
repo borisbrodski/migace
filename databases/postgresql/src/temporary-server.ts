@@ -58,7 +58,10 @@ export async function startTemporaryServer(options: TemporaryServerOptions = {})
     let watchdog: ChildProcess | undefined;
     try {
         await promisify(execFile)(binaries.initdb, ['-D', dataFolder, '-U', USER, '-A', 'trust', '-E', 'UTF8', '--locale=C', '--no-sync']);
-        watchdog = spawn(process.execPath, [WATCHDOG, binaries.pg_ctl, dataFolder, String(port)], { stdio: ['pipe', 'pipe', 'inherit'] });
+        // Detached: on Windows the system ends the children of a process together with it, and the watchdog
+        // would be gone before it could stop the server. It still ends by itself when this process ends.
+        watchdog = spawn(process.execPath, [WATCHDOG, binaries.pg_ctl, dataFolder, String(port)],
+            { stdio: ['pipe', 'pipe', 'inherit'], detached: true, windowsHide: true });
         const pid = await untilReady(watchdog, port);
         return temporaryServer(watchdog, pid, port, dataFolder);
     } catch (error) {
