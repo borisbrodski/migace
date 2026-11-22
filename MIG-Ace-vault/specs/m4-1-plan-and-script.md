@@ -18,7 +18,7 @@ Everything in this spec runs on PGlite. Real PostgreSQL servers come in [M4.2](m
 - **Views, functions and triggers** as replaceable objects, and views that block a change of a column. Later spec.
 - **`batch` and `expect-rows`.** A part with one of them is a build error that says so.
 - **Phases.** Every part runs, also a part with `phase: finish`. This is the decided behaviour of a run without a phase.
-- **Release files and the order by release.** Snippets run in the order of their names.
+- **Release files and the order by release.** Snippets run in the order of their names. A condition `ran … from <release>` needs the checksums of a release file; until they exist it is a build error that says so.
 - **The guard against changes to released snippets** at build time.
 - **Computing the fingerprint inside the script.**
 - **Lock timeouts and retries, two runners at once, a killed run.** They need a real server: M4.2.
@@ -57,7 +57,10 @@ Everything in this spec runs on PGlite. Real PostgreSQL servers come in [M4.2](m
 - **M4.1-AC-03** The same project gives the same plan, byte for byte as JSON. The plan of the bookshop is a committed expected file.
 - **M4.1-AC-04** The types of the plan are in `core/`. `core/` still imports nothing from `databases/` and nothing from `migql/generators/`.
 - **M4.1-AC-05** Compiling fails with a clear message, and gives no plan, when: `loadProject` reports an error; a part has a `todo`; a snippet has no `uid`; a part has `batch` or `expect-rows`; a `native` part has no `postgresql` entry.
-- **M4.1-AC-06** The checksum of a part follows the rule in "Checksum of a part". A property test shows that formatting and comments never change it, and tests show that a changed statement changes it.
+- **M4.1-AC-06** The checksum of a part follows the rule in "Checksum of a part" and is written with the version of the rule: `v1:…`. A property test shows that white space, comments and the case of keywords never change it. Tests show that every other change of the part changes it, also a changed name and a changed number.
+- **M4.1-AC-40** The code that computes a checksum does not use the syntax tree and not the generated SQL. The rule `v1` is a function of its own, written so that a rule `v2` can stand next to it later.
+- **M4.1-AC-41** A committed list holds the checksum of every valid example of the catalogue and of every part of the bookshop snippets. A test computes them again and fails on any difference. A new example adds a line; no line is ever changed.
+- **M4.1-AC-42** A `native` part is one statement or one block. The compiler checks the `postgresql` text with PostgreSQL's own parser and rejects a text with two statements, with a message that proposes two parts.
 
 ### The script
 
@@ -77,7 +80,7 @@ Everything in this spec runs on PGlite. Real PostgreSQL servers come in [M4.2](m
 - **M4.1-AC-13** A run on a database without a ledger creates the ledger tables. Their prefix is a parameter of the compiler with the default `mig_`. The tables follow the list in "Ledger"; the batch table is left out.
 - **M4.1-AC-14** The ledger has a format number. A script that finds a higher number than it knows stops with a message that names both numbers, and changes nothing.
 - **M4.1-AC-15** The reader of M2 can leave out the ledger tables. The fingerprint of a schema is the same with and without a ledger.
-- **M4.1-AC-16** Every run writes one row: start, end and outcome. Every attempt of a step writes one row: snippet, part, step, the executed SQL, the checksum of the part, start and end, and for a failure the error code, message, detail and context of the database.
+- **M4.1-AC-16** Every run writes one row: start, end and outcome. Every attempt of a step writes one row: snippet, part, step, the executed SQL, the checksum of the part with its version, start and end, and for a failure the error code, message, detail and context of the database.
 - **M4.1-AC-17** At the start the script takes a session-level advisory lock, and it releases it at the end, also after a failure.
 
 ### A run
@@ -103,7 +106,7 @@ Everything in this spec runs on PGlite. Real PostgreSQL servers come in [M4.2](m
 - **M4.1-AC-30** A part whose `when` is false is recorded as skipped. It is decided again on the next run and runs then if the condition has become true.
 - **M4.1-AC-31** `when` on a snippet works in the same way for all its parts. Names defined under `let` can be used in every condition of the snippet.
 - **M4.1-AC-32** Conditions on the state of the database work: `column orders.legacy_due exists` and `exists (select …)`.
-- **M4.1-AC-33** Conditions on the history work against the ledger: `ran <slug>.<part>`, and the form with `sha256:` that is true only for the named version of the part.
+- **M4.1-AC-33** A condition on the history works against the ledger: `ran <slug>.<part>` is true when the part ran with success on this database, in whatever version.
 - **M4.1-AC-34** A false `verify-before` fails the part before its statement runs. A false `verify-after` fails the part, and its statement is undone. Both forms are covered: a boolean expression and the list of checks on rows.
 - **M4.1-AC-35** A part with `stop` ends the run with a failure, and the runner shows its text. Nothing after it runs. When its `when` is false, it is skipped and the run goes on.
 
@@ -115,6 +118,10 @@ Everything in this spec runs on PGlite. Real PostgreSQL servers come in [M4.2](m
 ### Time
 
 - **M4.1-AC-38** Compiling the bookshop and running its script on PGlite is measured. The numbers are written into the journal.
+
+## Words
+
+A **part** is what the author writes: one statement. A **step** is one SQL statement that the generator produces for a part; `set not null` has four in PostgreSQL. See the [glossary](../glossary.md). This spec does not allow several statements in one part (question 43).
 
 ## Open points
 

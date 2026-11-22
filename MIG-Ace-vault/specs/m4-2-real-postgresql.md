@@ -86,5 +86,5 @@ The temporary server built here is the one the proof loop uses later.
 
 ## Open points
 
-- Question 41: which PostgreSQL versions MIG-Ace supports.
+- Supported are the PostgreSQL versions that the PostgreSQL project still supports. The lowest one may be raised when a feature needs it.
 - macOS has no run in the workflow yet. It is added when a contributor needs it or before the first release.

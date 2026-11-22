@@ -38,7 +38,7 @@ Recommended process: write a hotfix on the newest line first and port it back. T
 
 - At run time, a part that already ran is always skipped, whatever its current text says. There is no switch for this. **[decided]**
 - The ledger keeps the checksum of the version that really ran, so a repair snippet can target it. **[direction]**
-- Checksums are computed from the parsed operation, not from the file text. Formatting never changes a checksum. **[direction]**
+- Formatting never changes a checksum, and an upgrade of MIG-Ace never changes one. The rule and its version are in [Execution and ledger](execution-and-ledger.md). **[decided]**
 - **Build guard against accidental edits:** every part of a released snippet must match its hash in at least one release file. Otherwise the build fails and names the part. **[decided]**
 - **Intentional change:** the author adds `changed: <reason>` to the snippet. The next release records the new hashes, stores the reason and removes the marker, so the guard is active again. **[decided]**
 - **Repair snippets** run only where a condition holds, for example where a specific faulty version ran. **[decided]**

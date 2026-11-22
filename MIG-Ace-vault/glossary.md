@@ -9,7 +9,8 @@ status: mixed
 |---|---|
 | Desired state | The schema produced by running `schema/` on an empty database |
 | Snippet | One migration file with ordered parts |
-| Part | One operation inside a snippet; the unit of the ledger |
+| Part | One operation inside a snippet, written by the author: one statement, or one block of native SQL. The unit that conditions and checks belong to |
+| Step | One SQL statement that the generator produces for a part on one database. Most parts have one step. An author never writes steps |
 | Baseline | An older database state with data and ledger, used as the start of the proof loop |
 | Proof loop | The test that migrates a baseline and compares it with the desired state |
 | Ledger | The tables that record every run, snippet and part attempt |

@@ -14,7 +14,7 @@ Today the generator turns a name without quotes into lower case. That stops.
 
 ## Non-goals
 
-- The setting for an application that sends names without quotes on a database with another default form (question 39).
+- The second way to read names, in which MIG-Ace follows SQL (question 39). Nothing in this spec may make it harder to add: the written name and the fact that it was in quotes stay available to the generator.
 - A double quote inside a name (question 40). It stays an error.
 - Completion and quick fixes that need the schema of the project. They come with the editor milestone.
 - `mig make`.
@@ -45,6 +45,7 @@ Today the generator turns a name without quotes into lower case. That stops.
 - **M3.1-AC-03** Every other name follows the same rule: an alias, a name defined under `let`, the name of a part. `when: Buggy` does not find the definition `buggy`. `update customer C set name = 'x' where C.id = 1` is generated with `"C"` in both places.
 - **M3.1-AC-04** Keywords and names of functions are not case-sensitive. `ALTER TABLE customer ADD COLUMN x INTEGER` and `Upper(Trim(name))` give the same SQL as their lower-case forms, apart from the names of tables and columns.
 - **M3.1-AC-05** A name that is a keyword of MigQL and is written without quotes is an error that proposes the quotes, as today.
+- **M3.1-AC-26** `migql/keywords.md` in the vault lists every keyword of the statement language and says whether it can be a name without quotes. A keyword is accepted as a name without quotes wherever this leaves the grammar unambiguous; the others keep the error of M3.1-AC-05. Every keyword that is accepted has a test as the name of a table and of a column, in a statement and in a condition. See "Which words need quotes" in [Names and case](../migql/names-and-case.md).
 - **M3.1-AC-06** An empty name `""` and a name with a double quote inside are errors with a message that says what is not supported.
 
 ### Types

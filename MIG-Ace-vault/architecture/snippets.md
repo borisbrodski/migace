@@ -149,8 +149,8 @@ uid: 01JD4M…
 when: buggy
 
 let:
-  buggy_410: ran orders-status.backfill sha256:ab12…
-  buggy_411: ran orders-status.backfill sha256:9f3e…
+  buggy_410: ran orders-status.backfill from 4.1.0
+  buggy_411: ran orders-status.backfill from 4.1.1
   buggy:     buggy_410 or buggy_411
   audited:   exists (select 1 from order_audit where field = 'status')
 

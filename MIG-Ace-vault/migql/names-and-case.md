@@ -39,7 +39,17 @@ In SQL a name without quotes is not case-sensitive, and each database stores it 
 An application that sends names **without** quotes, which is what Hibernate does unless it is configured otherwise, on a database that stores such names in upper case. The application then looks for `DUE_DATE` in Oracle and for `due_date` in PostgreSQL, and no single exact name is right in both.
 
 - With PostgreSQL only, this case does not exist: the author writes names in lower case, as they are in the catalog.
-- When a database with another default form is added, a project needs a setting that says how its application sends names. **[open]** (question 39) Liquibase has such a setting (`objectQuotingStrategy`) and so has jOOQ (`RenderQuotedNames`), for the same reason. A possible form: `names: exact` as the default, and a second value with which names are written without quotes and are not case-sensitive.
+- For such a project MIG-Ace gets a second way to read names, chosen by a project setting. **[direction]** In it MIG-Ace follows SQL: a name without quotes is not case-sensitive and takes the default form of the database, a name in quotes is exact. Two columns `"key"` and `"Key"` are possible in it as well. Exact names stay the default. The setting is built when the first database with another default form is added; its name is open (question 39). Liquibase (`objectQuotingStrategy`) and jOOQ (`RenderQuotedNames`) have such a setting for the same reason.
+
+## Which words need quotes
+
+Quotes stay part of the language in both ways of reading names: for a name with other characters, and for a word that the grammar cannot tell from a keyword. **[decided]**
+
+The second group is kept small. **[direction]**
+
+- A keyword that can only stand at a place where no name can stand is accepted as a name without quotes. Today these are `value`, `key`, `date`, `type`, `data`, `next`, `required` and `finish`. Words of the YAML part, such as `do` and `rows`, are no keywords inside a statement at all.
+- A keyword that can start or continue an expression or a clause needs quotes: `select`, `from`, `where`, `and`, `or`, `not`, `null`, `like`, `into` and similar words. The grammar would be ambiguous without them. These are words that need quotes in SQL as well.
+- [M3.1](../specs/m3-1-exact-names.md) goes through all keywords and writes the result into a list.
 
 ## Why most of it is already there
 

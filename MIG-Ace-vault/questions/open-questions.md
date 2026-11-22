@@ -43,7 +43,8 @@ status: open
 36. *Closed 2026-11-21:* see [MigQL answers after the PostgreSQL generation](../decisions/migql-answers-after-m3.md).
 37. *Closed 2026-11-21:* see [MigQL answers after the PostgreSQL generation](../decisions/migql-answers-after-m3.md).
 38. *Closed 2026-11-21:* a name is exact, with or without quotes. See [the decision](../decisions/names-are-exact.md).
-39. **Names without quotes on a database with another default form:** an application that sends names without quotes looks for `DUE_DATE` in Oracle and for `due_date` in PostgreSQL. Exact names cannot serve both from one snippet. The form of the project setting is decided when the first such database is added. See [Names and case](../migql/names-and-case.md).
+39. **Names without quotes on a database with another default form:** the direction is a project setting with which MIG-Ace reads names as SQL does, see [Names and case](../migql/names-and-case.md). Open: the name of the setting, and when it is built.
 40. **A double quote inside a name:** not supported. Is it ever needed?
-41. **Supported PostgreSQL versions:** which major versions MIG-Ace supports. The working assumption is every version that the PostgreSQL project still supports. See [M4.2](../specs/m4-2-real-postgresql.md).
-42. **Java level of the runner:** the lowest Java version the runner library must work with. Proposal: 11. See [M4.3](../specs/m4-3-client-contract-and-java-runner.md).
+41. *Closed 2026-11-22:* every PostgreSQL version that the PostgreSQL project still supports. The lowest version may be raised when a feature needs it.
+42. *Closed 2026-11-22:* Java 11. It may be raised when a feature needs it.
+43. **Several statements in one part:** every statement except native SQL is now parsed, so a part could hold a list of statements. The review advises against it for now: a condition, a check, a retry and a ledger row would then belong to a group, and only PostgreSQL could undo a half-done group. Steps are not this idea: a step is generated, see the [glossary](../glossary.md).

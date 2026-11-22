@@ -52,7 +52,7 @@ The adapter contract exists as test cases in data files, so that a runner in any
 
 ### The Java library
 
-- **M4.3-AC-06** `clients/java/` builds with the Gradle wrapper that is committed with it. The library has no dependency besides the JDK. The Java level it is compiled for is written into the build file and into the note; question 42 asks which level it must be.
+- **M4.3-AC-06** `clients/java/` builds with the Gradle wrapper that is committed with it. The library has no dependency besides the JDK. It is compiled for Java 11.
 - **M4.3-AC-07** The library passes every contract case. The test reads the same data files and uses a scripted connection, no database. Tests are written with JUnit 5.
 - **M4.3-AC-08** One call reads the script from a resource of the JAR and runs it, on a `DataSource` or on a `Connection`. The name of the call is provisional: `MigAce.execFromJar(SomeClass.class, "/migace/migration-script-pg.sql", dataSource)`.
 - **M4.3-AC-09** The library uses one connection and switches autocommit on. A connection it got from the caller is given back with its earlier setting and is not closed. A connection it took from a `DataSource` is closed.
@@ -73,5 +73,5 @@ The adapter contract exists as test cases in data files, so that a runner in any
 
 ## Open points
 
-- Question 42: the lowest Java level of the runner.
+- Java 11 may be raised when a feature needs it.
 - Whether the program should also print the notices as lines of JSON for build servers.

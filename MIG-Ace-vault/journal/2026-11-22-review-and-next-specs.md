@@ -23,6 +23,17 @@ The decision on names changes existing code: the generator turns a name without 
 
 The answer for `numeric` in `ensure column` is new behaviour too. It is M3.1-AC-25.
 
+## Added on the same day, after questions of the project owner
+
+| Topic | Result | Where |
+|---|---|---|
+| Part and step | A part is written by the author and is one statement. A step is one generated SQL statement of a part. Several statements in one part are not allowed (question 43). | [Glossary](../glossary.md), [Generation](../migql/generation.md) |
+| Checksums | Written with the version of their rule, `v1:…`. Computed from tokens, not from the syntax tree, so that a newer parser cannot change them. A committed list of checksums guards the rule. | "Checksum of a part" in [Execution and ledger](../architecture/execution-and-ledger.md), M4.1-AC-06 and AC-40 to 42 |
+| `ran … sha256:` | This form was never built and is dropped. `ran <slug>.<part>` and `ran … from <release>` stay. | M4.1-AC-33 |
+| Keywords as names | Fewer words should need quotes. | M3.1-AC-26 |
+| Second way to read names | Direction: a project setting with which MIG-Ace follows SQL. Not built now. | [Names and case](../migql/names-and-case.md) |
+| PostgreSQL versions, Java level | Every supported PostgreSQL version; Java 11. | Questions 41 and 42 are closed |
+
 ## Order of work
 
 1. [M3.1 Exact names](../specs/m3-1-exact-names.md)

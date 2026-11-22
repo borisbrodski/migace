@@ -34,11 +34,18 @@ How the script reaches its behaviour with an adapter that has no logic. **[direc
 
 ### Checksum of a part
 
-The ledger stores a checksum for every part that ran. Conditions refer to it (`ran orders-status.backfill sha256:…`). **[direction]**
+The ledger and the release files store a checksum for every part.
 
-- The checksum is computed from the operation of the part in a canonical form: the syntax tree of the statement, not its text. Formatting and comments do not change it.
-- It is not computed from the generated SQL. A newer MIG-Ace may generate better SQL for the same part, and the checksum of a part that already ran must stay the same.
+- **A checksum names the version of its rule:** `v1:9f3e…`. The number is the version of the rule below, the rest is the value. **[decided]**
+- **Rule `v1`:** the checksum is computed from the tokens of the part as the author wrote it. White space and comments do not count, and the case of keywords does not count. Everything else counts, also the choice between two spellings of the same thing. **[direction]**
+- It is not computed from the syntax tree: a change of the grammar or the parser in a newer MIG-Ace must not change a checksum. It is not computed from the generated SQL: a newer MIG-Ace may generate better SQL for the same part.
 - The text of a `native` part is taken as it is, without the white space at the ends of lines.
+- **A rule never changes.** A different rule gets a new version number, and every earlier version stays in the code, so that a checksum written years ago can still be computed and compared. **[decided]**
+
+Two tests guard this. **[decided]**
+
+1. **In MIG-Ace:** a committed list holds the checksum of every example of the catalogue and of the bookshop snippets. A test fails when one of them changes. The list only grows.
+2. **In every project:** the build compares the parts of released snippets with the checksums in the release files. After an upgrade of MIG-Ace this is the proof that the checksums of the project are still the same. When parts differ that nobody edited, the message says that this is a defect of MIG-Ace and names the versions.
 
 ## Adapters
 
