@@ -7,7 +7,7 @@ lead: Not every database is in the same state. A condition lets a part run only 
 
 ## When you need a condition
 
-Most snippets need none. A part that already ran is skipped anyway, and `ensure column` handles a column that may already exist.
+Most snippets need none. A part that already ran is skipped anyway, and the action [`column-ensure`](/docs/actions/#column-ensure) handles a column that may already exist.
 
 You need a condition when the right action depends on the state of that one database. The bookshop has three stores on three different releases, so this happens.
 

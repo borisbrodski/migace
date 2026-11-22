@@ -19,7 +19,7 @@ describe('Examples of the website', () => {
         const count = (kind: string) => examples.filter(example => example.kind === kind).length;
 
         expect({ snippet: count('snippet'), parts: count('parts'), keys: count('keys'), settings: count('settings') })
-            .toEqual({ snippet: 17, parts: 34, keys: 14, settings: 11 });
+            .toEqual({ snippet: 17, parts: 41, keys: 14, settings: 11 });
     });
 
     for (const example of snippets) {

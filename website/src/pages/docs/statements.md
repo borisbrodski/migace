@@ -55,23 +55,16 @@ Remove a column:
       do: alter table orders drop column status
 ```
 
-## `ensure column`
+## When one statement is not enough
 
-Sometimes a column may or may not exist already. Suppose a hotfix added `orders.note` as `varchar(100)` at one store, and the next release wants `varchar(500)` everywhere.
+A statement under `do` runs exactly as you wrote it. For some changes that is not what you want on a table that is in use: making a column mandatory, adding a foreign key, renaming a column while an older version of the application still runs.
+
+For these, MIG-Ace has [actions](/docs/actions/). An action says what you want, and MIG-Ace chooses the statements.
 
 ```yaml
-  - note-column:
-      column-ensure: { table: orders, column: note, type: varchar(500) }
+  - make-mandatory:
+      column-set-not-null: { table: customer, column: loyalty_level }
 ```
-
-`ensure column` does what is needed:
-
-- The column is missing: it is added.
-- The column is shorter: it is widened.
-- The column already matches: nothing happens.
-- Anything else, such as a shorter target: the part fails.
-
-You do not write a condition for this. The statement already says what you want.
 
 ## Update
 
@@ -154,7 +147,7 @@ A name is taken exactly as you write it. The database gets the same characters i
 | `"Customer"` | `Customer`, the same name as without quotes |
 
 - `email` and `Email` are two names. A table can have both.
-- A change of case is an ordinary rename: `rename column customer.key to Key`.
+- A change of case is an ordinary rename: `column-rename: { table: customer, from: key, to: Key }`.
 - Double quotes are needed only for a name that is a word of the language, such as `"index"`, or that contains other characters, such as `"Line Item"`. They never change the case.
 - Keywords, functions and types are not case-sensitive. `ALTER TABLE` and `VARCHAR(20)` work as in SQL.
 

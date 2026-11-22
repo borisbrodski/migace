@@ -17,8 +17,9 @@ In the picture above, `ship_by` is offered although no database has that column 
 | Where you type | What is offered |
 |---|---|
 | A new line in a snippet | The keys that are allowed there, such as `parts`, `testdata`, `when` |
-| Inside a part | `do`, `insert`, `native`, `verify-before`, `verify-after`, `batch`, each with a short explanation |
-| At the start of a statement | `alter table`, `create index`, `update`, `ensure column` and the other statements |
+| Inside a part | `do`, `insert`, `native`, `verify-before`, `verify-after`, `batch`, and every [action](/docs/actions/), each with a short explanation |
+| Inside an action | The parameters that are still missing, the mandatory ones first |
+| At the start of a statement | `alter table`, `create index`, `update` and the other statements |
 | After `update`, `from`, `alter table`, `references` | The tables of your schema |
 | After `set`, in `where`, in a column list | The columns of that table, with type and whether they are mandatory |
 | After `drop constraint`, `drop index` | The constraints and indexes that exist |
