@@ -27,10 +27,11 @@ const serverLog = () => fs.existsSync(logFile) ? fs.readFileSync(logFile, 'utf8'
 // When the process that reads the output has ended, writing fails. That is one more sign to stop, not a crash.
 process.stdout.on('error', () => stop());
 
-const started = spawnSync(pgCtl, ['start', '-w', '-t', '60', '-D', dataFolder, '-l', logFile, '-o', options], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+// No pipe to pg_ctl: on Windows the server inherits it, and this call would wait for the server to end.
+const started = spawnSync(pgCtl, ['start', '-w', '-t', '40', '-D', dataFolder, '-l', logFile, '-o', options], { stdio: 'ignore' });
 if (started.status !== 0) {
     // The first line is for the process number. Without a server it stays empty.
-    process.stdout.write(`\n${serverLog()}\n${started.stdout ?? ''}${started.stderr ?? ''}${started.error?.message ?? ''}`, () => {
+    process.stdout.write(`\n${serverLog()}\npg_ctl start ended with the code ${started.status}. ${started.error?.message ?? ''}`, () => {
         remove();
         process.exit(1);
     });

@@ -139,7 +139,12 @@ async function untilReady(watchdog: ChildProcess, port: number): Promise<number>
     let exited = false;
     watchdog.stdout?.on('data', data => { log += String(data); });
     watchdog.once('exit', () => { exited = true; });
+    const deadline = Date.now() + 50_000;
     for (;;) {
+        if (Date.now() > deadline) {
+            watchdog.stdin?.end();
+            throw new Error(`PostgreSQL did not accept connections on port ${port} within 50 seconds:\n${log.trim()}`);
+        }
         if (exited) {
             throw new Error(/could not bind|Address already in use|could not create any TCP\/IP sockets/.test(log)
                 ? `PostgreSQL could not start on port ${port}: the port is taken.`
