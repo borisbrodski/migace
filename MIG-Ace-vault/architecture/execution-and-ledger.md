@@ -12,6 +12,10 @@ status: mixed
 - Supporting another database means writing another compiler target. **[direction]**
 - The compiler first produces an intermediate plan (statements plus control data). The script is one rendering of that plan. **[direction]**
 
+## One schema
+
+A run works in the schema of the migration and in no other. **[decided]** Its ledger, its lock and every object it changes belong to that schema. Nothing of another schema is read or written, also when that schema has a ledger of its own. Schemas that a run has to see, for the types of an extension, are named by a parameter. After a run the session is as it was before: its search path, its settings, no lock and no function of MIG-Ace. The code follows this with [M4.4](../specs/m4-4-corrections.md).
+
 ## Inside the script
 
 How the script reaches its behaviour with an adapter that has no logic. **[direction]** The first implementation may change details where a test shows a problem; the reason is then written here.
@@ -80,6 +84,7 @@ The ledger and the release files store a checksum for every part.
 
 - **A checksum names the version of its rule:** `v1:9f3e…`. The number is the version of the rule below, the rest is the value. **[decided]**
 - **Rule `v1`:** the checksum is computed from the tokens of the part as the author wrote it. White space and comments do not count, and the case of keywords does not count. Everything else counts, also the choice between two spellings of the same thing. **[direction]**
+- **A name counts with its characters**, also when the word is a keyword elsewhere, and quotes around a name do not count: `value` and `Value` differ, `Price` and `"Price"` are the same. **[decided]** For a word that can be both, the case therefore counts wherever it stands. The code follows this with [M4.4](../specs/m4-4-corrections.md).
 - It is not computed from the syntax tree: a change of the grammar or the parser in a newer MIG-Ace must not change a checksum. It is not computed from the generated SQL: a newer MIG-Ace may generate better SQL for the same part.
 - The text of a `native` part is taken as it is, without the white space at the ends of lines.
 - **A rule never changes.** A different rule gets a new version number, and every earlier version stays in the code, so that a checksum written years ago can still be computed and compared. **[decided]**

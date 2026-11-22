@@ -11,6 +11,7 @@ A schema migration framework for PostgreSQL and Hibernate. It writes migrations 
 - `MIG-Ace-vault/architecture/repository-layout.md`: what each top-level folder is for.
 - `MIG-Ace-vault/roadmap.md` and `MIG-Ace-vault/specs/`: what to build next. `specs/README.md` says how far each milestone is.
 - `MIG-Ace-vault/journal/`: what was found while building. Read the newest note before you continue a milestone.
+- `MIG-Ace-vault/engineering/stable-state-and-release.md`: what to run and what to update before you call a state stable, and before a release.
 
 Read only the notes a task needs. Do not load the whole vault.
 

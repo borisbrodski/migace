@@ -20,6 +20,7 @@ A spec contains: goal, non-goals, the notes it builds on, numbered acceptance cr
 | [M4.1 Plan and script](m4-1-plan-and-script.md) | done; see questions 46 to 49 |
 | [M4.2 Real PostgreSQL](m4-2-real-postgresql.md) | done; green on Linux, Windows and macOS |
 | [M4.3 Client contract and Java runner](m4-3-client-contract-and-java-runner.md) | done; green on Linux, Windows and macOS |
+| [M4.4 Corrections](m4-4-corrections.md) | ready |
 
 M3.1 comes first: it changes how every name is generated, and the expected files of the later specs depend on it. M3.2 comes second: it changes what `do` generates. M4.2 and M4.3 do not depend on each other.
 

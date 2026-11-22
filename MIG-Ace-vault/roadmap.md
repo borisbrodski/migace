@@ -19,7 +19,7 @@ A milestone starts when its spec note exists in `specs/`. Order and content are 
 | M4.1 Plan and script | Snippets are compiled to a plan and a script with the ledger. Failures, conditions and checks, on PGlite. | done |
 | M4.2 Real PostgreSQL | Temporary servers from binaries. Two runners, killed runs, locks. | done; Linux, Windows and macOS |
 | M4.3 Client contract and Java runner | The adapter contract as data. Java library and command line. | done; Linux, Windows and macOS |
-| M4.4 Corrections | The ledger is bound to its schema. Checksums of names that are keywords. The answers to questions 45 to 56. | proposed, see the [review](journal/2026-11-22-review-of-m3-1-to-m4-3.md) |
+| M4.4 Corrections | A run touches its own schema only and leaves its session as it was. Every try is recorded. Limits are parameters. PostgreSQL from official sources. | spec ready |
 | M4.5 Install and replaceable objects | A new database gets the schema directly. Adopt. Views, functions and triggers. | proposed |
 | M4.6 Data parts | `batch` and `expect-rows`. | |
 | M5 Proof loop | Baseline, migration, comparison, second run, install on an empty database. The bookshop passes. | |

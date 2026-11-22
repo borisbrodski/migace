@@ -49,6 +49,7 @@ Read [How to use this vault](how-to-use-this-vault.md) before you change anythin
 ## Engineering
 
 - [Coding rules](engineering/coding-rules.md): strict test-driven development and the other rules for code
+- [Stable state and release](engineering/stable-state-and-release.md): what is run and updated before a state is called stable, and before a release
 
 ## Testing
 
