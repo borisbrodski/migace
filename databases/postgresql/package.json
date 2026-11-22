@@ -23,6 +23,7 @@
     "ajv": "^8.20.0"
   },
   "optionalDependencies": {
+    "@embedded-postgres/darwin-arm64": "^18.7.0-beta.19",
     "@embedded-postgres/linux-x64": "^18.7.0-beta.19",
     "@embedded-postgres/windows-x64": "^18.7.0-beta.19",
     "embedded-postgres-15-linux-x64": "npm:@embedded-postgres/linux-x64@^15.20.0-beta.19"

@@ -10,5 +10,7 @@ export default defineConfig({
         include: ['test/**/*.test.ts'],
         // The tests in test/server start a real PostgreSQL. They run with "npm run test:server".
         exclude: ['test/server/**'],
+        // The first start of a database in memory takes several seconds on a slow build computer.
+        testTimeout: 30_000,
     },
 });

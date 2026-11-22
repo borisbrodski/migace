@@ -58,7 +58,7 @@ export async function startTemporaryServer(options: TemporaryServerOptions = {})
     let watchdog: ChildProcess | undefined;
     try {
         await promisify(execFile)(binaries.initdb, ['-D', dataFolder, '-U', USER, '-A', 'trust', '-E', 'UTF8', '--locale=C', '--no-sync']);
-        watchdog = spawn(process.execPath, [WATCHDOG, binaries.postgres, dataFolder, String(port)], { stdio: ['pipe', 'pipe', 'inherit'] });
+        watchdog = spawn(process.execPath, [WATCHDOG, binaries.pg_ctl, dataFolder, String(port)], { stdio: ['pipe', 'pipe', 'inherit'] });
         const pid = await untilReady(watchdog, port);
         return temporaryServer(watchdog, pid, port, dataFolder);
     } catch (error) {
@@ -97,7 +97,7 @@ function quoted(name: string): string {
 
 interface Binaries {
     initdb: string;
-    postgres: string;
+    pg_ctl: string;
 }
 
 /** A folder that the caller names, or the package of binaries for this platform. */
@@ -110,7 +110,7 @@ async function findBinaries(folder: string | undefined): Promise<Binaries> {
         if (!initdb || !pgCtl || !postgres) {
             throw new Error(`No PostgreSQL binaries in "${folder}". The folder must hold initdb, pg_ctl and postgres, directly or in "bin".`);
         }
-        return { initdb, postgres };
+        return { initdb, pg_ctl: pgCtl };
     }
     const platform = { win32: 'windows', darwin: 'darwin', linux: 'linux' }[process.platform as string] ?? process.platform;
     const packageName = `@embedded-postgres/${platform}-${process.arch}`;

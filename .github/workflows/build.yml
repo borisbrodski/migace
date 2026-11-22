@@ -1,7 +1,7 @@
 name: Build
 
 # Build, lint and tests on every push to candidate and to feature branches,
-# on Linux and on Windows. No step needs Docker.
+# on Linux, Windows and macOS. No step needs Docker.
 
 on:
   push:
@@ -19,7 +19,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-latest, windows-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     defaults:
       run:
@@ -38,12 +38,16 @@ jobs:
       - run: npm ci
       - run: npm run build
       - run: npm run lint
+      # The test steps run although an earlier one failed, so that one run shows every problem of a platform.
       - run: npm test
+        if: ${{ !cancelled() }}
       # Fails when the coverage of the TypeScript sources falls below the limits in vitest.coverage.config.ts.
       # The limits of the Java runner are part of "npm test": Gradle checks them in clients/java.
       - run: npm run test:coverage
+        if: ${{ !cancelled() }}
       # The tests that start a real PostgreSQL server from the package of binaries.
       - run: npm run test:server
+        if: ${{ !cancelled() }}
       # The expected files in the repository must be what the generators produce now.
       - run: npm run test:generate
       - name: The generate run changed no file
