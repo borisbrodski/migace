@@ -32,6 +32,7 @@ The answer for `numeric` in `ensure column` is new behaviour too. It is M3.1-AC-
 | `ran … sha256:` | This form was never built and is dropped. `ran <slug>.<part>` and `ran … from <release>` stay. | M4.1-AC-33 |
 | Keywords as names | Fewer words should need quotes. | M3.1-AC-26 |
 | Second way to read names | Direction: a project setting with which MIG-Ace follows SQL. Not built now. | [Names and case](../migql/names-and-case.md) |
+| `do` and actions | Decided: `do` runs what was written. Operations with several steps get keys of their own. The names are still open (question 44), so nothing changes in the code yet; the generator of M3 stays as it is until a spec for actions exists. | [Decision](../decisions/do-is-literal-actions-have-names.md), [Actions](../migql/actions.md) |
 | PostgreSQL versions, Java level | Every supported PostgreSQL version; Java 11. | Questions 41 and 42 are closed |
 
 ## Order of work

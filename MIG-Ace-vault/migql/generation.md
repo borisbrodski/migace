@@ -41,7 +41,7 @@ The layout is the one of the generator snapshot tests in [langium-tools](langium
 
 ## Constructs with several steps
 
-A **step** is one SQL statement that the generator produces for a part. The author writes one statement per part; the number of steps is decided by the generator and can differ between databases. Example: `alter column … set not null` is one part and, in PostgreSQL, four steps, so that no step holds a strong lock for long. The ledger records every step, and a run that failed continues at the step that failed. **[direction]**
+A **step** is one SQL statement that the generator produces for a part. A `do` part is one statement and one step. An [action](actions.md) can have several steps, and their number can differ between databases. Example: the action that makes a column mandatory has four steps in PostgreSQL, so that no step holds a strong lock for long. The ledger records every step, and a run that failed continues at the step that failed. **[decided]**
 
 Some constructs become several statements, and some statements have to run in a special way. The expected file shows this with comment lines. **[direction]**
 

@@ -99,7 +99,7 @@ Everything in this spec runs on PGlite. Real PostgreSQL servers come in [M4.2](m
 - **M4.1-AC-26** A step that fails leaves nothing of its statement in the database, and one ledger row with the full error.
 - **M4.1-AC-27** After a failure nothing else runs: no later step, no later part, no later snippet. The run ends with an error.
 - **M4.1-AC-28** The next run repeats the failed step. When the cause is removed, it succeeds and the run continues with everything that follows.
-- **M4.1-AC-29** A part with several steps continues at the step that failed. Test: `alter column … set not null` on a table with one row without a value fails at the validation; after the row is corrected, the next run ends with the column mandatory and without the helper constraint. This closes the finding of M3.
+- **M4.1-AC-29** A part with several steps continues at the step that failed. Test: the four steps that make a column mandatory, on a table with one row without a value, fail at the validation; after the row is corrected, the next run ends with the column mandatory and without the helper constraint. This closes the finding of M3.
 
 ### Conditions and checks
 
@@ -121,7 +121,7 @@ Everything in this spec runs on PGlite. Real PostgreSQL servers come in [M4.2](m
 
 ## Words
 
-A **part** is what the author writes: one statement. A **step** is one SQL statement that the generator produces for a part; `set not null` has four in PostgreSQL. See the [glossary](../glossary.md). This spec does not allow several statements in one part (question 43).
+A **part** is what the author writes: one statement or one action. A **step** is one SQL statement that the generator produces for a part. Several steps come from [actions](../migql/actions.md); until they have their keys, the generator of M3 still produces the four steps for `set not null` under `do`, and the tests of this spec use that. See the [glossary](../glossary.md). This spec does not allow several statements in one part (question 43).
 
 ## Open points
 

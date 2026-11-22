@@ -10,7 +10,8 @@ status: mixed
 | Desired state | The schema produced by running `schema/` on an empty database |
 | Snippet | One migration file with ordered parts |
 | Part | One operation inside a snippet, written by the author: one statement, or one block of native SQL. The unit that conditions and checks belong to |
-| Step | One SQL statement that the generator produces for a part on one database. Most parts have one step. An author never writes steps |
+| Step | One SQL statement that the generator produces for a part on one database. A `do` part has one step; an action can have several. An author never writes steps |
+| Action | An operation for which MIG-Ace chooses the statements, such as making a column mandatory without a long lock. It has a key of its own in the place of `do` |
 | Baseline | An older database state with data and ledger, used as the start of the proof loop |
 | Proof loop | The test that migrates a baseline and compares it with the desired state |
 | Ledger | The tables that record every run, snippet and part attempt |
