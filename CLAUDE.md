@@ -2,7 +2,7 @@
 
 A schema migration framework for PostgreSQL and Hibernate. It writes migrations from the difference between the schema the application expects and an older database, and proves them on a database with data.
 
-**Status: first code.** The workspace, the MigQL parser with its checks and actions, the schema model with its PostgreSQL reader, the PostgreSQL generation, and the plan with the migration script and its ledger exist (M0 to M4.1). The script is proven on PGlite and on real PostgreSQL servers (M4.2). Everything else is design. The website in `website/` describes MIG-Ace as if it were finished.
+**Status: first code.** The workspace, the MigQL parser with its checks and actions, the schema model with its PostgreSQL reader, the PostgreSQL generation, and the plan with the migration script and its ledger exist (M0 to M4.1). The script is proven on PGlite and on real PostgreSQL servers (M4.2). The client contract and the Java runner exist (M4.3). Everything else is design. The website in `website/` describes MIG-Ace as if it were finished.
 
 ## Where things are
 
@@ -46,12 +46,12 @@ Tool, from the repository root (Node 22.22.2 or newer, no Docker):
 npm install
 npm run build          # Langium generation and tsc for every package
 npm run lint
-npm test               # all packages, then the tests in tools/; no database server
+npm test               # all packages, the tests in tools/, and the Java tests if a JDK is there; no database server
 npm run test:server    # builds, then the tests on a real PostgreSQL that the tests start themselves
 npm run test:generate  # rewrite the expected SQL in migql/constructs/*/generated, then review the diff
 ```
 
-In `migql/`: `npm run langium:generate` after a grammar change, `npx vitest run test/<folder>` for one group of tests.
+In `clients/java/`: `./gradlew build`. In `migql/`: `npm run langium:generate` after a grammar change, `npx vitest run test/<folder>` for one group of tests.
 
 Website:
 

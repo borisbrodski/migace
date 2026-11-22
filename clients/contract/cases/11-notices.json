@@ -1,0 +1,66 @@
+{
+  "description": "The notices of the database are passed to the caller in the order in which they arrive: of a parameter, of a guard, of statements, and of the statement that fails.",
+  "script": "-- @migace script format=1\n-- @migace statement\nselect 1\n-- @migace guard\nselect wanted()\n-- @migace statement\nselect 2\n-- @migace statement\nselect 3\n",
+  "parameters": {
+    "schema": "shop"
+  },
+  "answers": [
+    {
+      "notices": [
+        "parameter set"
+      ]
+    },
+    {
+      "notices": [
+        "first",
+        "second"
+      ]
+    },
+    {
+      "rows": [
+        [
+          true
+        ]
+      ],
+      "notices": [
+        "guard says yes"
+      ]
+    },
+    {
+      "notices": [
+        "skipped nothing"
+      ]
+    },
+    {
+      "notices": [
+        "last words"
+      ],
+      "error": {
+        "code": "P0001",
+        "message": "boom"
+      }
+    }
+  ],
+  "expected": {
+    "outcome": "failure",
+    "sent": [
+      "select set_config('migace.schema', 'shop', false)",
+      "select 1",
+      "select wanted()",
+      "select 2",
+      "select 3"
+    ],
+    "error": {
+      "message": "boom",
+      "code": "P0001"
+    },
+    "notices": [
+      "parameter set",
+      "first",
+      "second",
+      "guard says yes",
+      "skipped nothing",
+      "last words"
+    ]
+  }
+}

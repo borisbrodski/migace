@@ -1,0 +1,10 @@
+{
+  "description": "A statement is sent with the characters it has, also outside ASCII.",
+  "script": "-- @migace script format=1\n-- @migace statement\nupdate customer set name = 'Zoë Müller-Łukasz 北京 😀' where id = 1\n",
+  "expected": {
+    "outcome": "success",
+    "sent": [
+      "update customer set name = 'Zoë Müller-Łukasz 北京 😀' where id = 1"
+    ]
+  }
+}

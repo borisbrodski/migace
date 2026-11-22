@@ -18,7 +18,7 @@ A milestone starts when its spec note exists in `specs/`. Order and content are 
 | M3.2 Actions | `do` runs what was written. Five actions with keys of their own, descriptions for the editor, a YAML schema. | done |
 | M4.1 Plan and script | Snippets are compiled to a plan and a script with the ledger. Failures, conditions and checks, on PGlite. | done |
 | M4.2 Real PostgreSQL | Temporary servers from binaries. Two runners, killed runs, locks. | done on Linux |
-| M4.3 Client contract and Java runner | The adapter contract as data. Java library and command line. | spec ready |
+| M4.3 Client contract and Java runner | The adapter contract as data. Java library and command line. | done on Linux |
 | M4.4 Install and replaceable objects | A new database gets the schema directly. Adopt. Views, functions and triggers. | spec follows the findings of M4.1 |
 | M4.5 Data parts | `batch` and `expect-rows`. | |
 | M5 Proof loop | Baseline, migration, comparison, second run, install on an empty database. The bookshop passes. | |

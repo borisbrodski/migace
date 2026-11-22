@@ -1,0 +1,31 @@
+{
+  "description": "The last statement of a script raises the error that the script collected. The runner reports it as it is.",
+  "script": "-- @migace script format=1\n-- @migace statement\nselect step()\n-- @migace statement\ndo $migace$ begin raise exception 'x'; end $migace$\n",
+  "answers": [
+    {
+      "notices": [
+        "20260302-0900-a, part p: FAILED: division by zero"
+      ]
+    },
+    {
+      "error": {
+        "code": "P0001",
+        "message": "20260302-0900-a, part p: division by zero"
+      }
+    }
+  ],
+  "expected": {
+    "outcome": "failure",
+    "sent": [
+      "select step()",
+      "do $migace$ begin raise exception 'x'; end $migace$"
+    ],
+    "error": {
+      "message": "20260302-0900-a, part p: division by zero",
+      "code": "P0001"
+    },
+    "notices": [
+      "20260302-0900-a, part p: FAILED: division by zero"
+    ]
+  }
+}

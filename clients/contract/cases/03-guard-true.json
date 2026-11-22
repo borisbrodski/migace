@@ -1,0 +1,21 @@
+{
+  "description": "A guard query that returns true: the statement that follows is sent.",
+  "script": "-- @migace script format=1\n-- @migace guard\nselect wanted()\n-- @migace statement outside-transaction\ncreate index concurrently a on t (c)\n-- @migace statement\nselect 3\n",
+  "answers": [
+    {
+      "rows": [
+        [
+          true
+        ]
+      ]
+    }
+  ],
+  "expected": {
+    "outcome": "success",
+    "sent": [
+      "select wanted()",
+      "create index concurrently a on t (c)",
+      "select 3"
+    ]
+  }
+}

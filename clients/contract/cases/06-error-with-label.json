@@ -1,0 +1,22 @@
+{
+  "description": "A statement can carry a label. The runner puts it in front of the message of an error of that statement.",
+  "script": "-- @migace script format=1\n-- @migace statement outside-transaction label=\"20260302-0900-a, part index\"\ncreate unique index concurrently a on t (c)\n",
+  "answers": [
+    {
+      "error": {
+        "code": "23505",
+        "message": "could not create unique index \"a\""
+      }
+    }
+  ],
+  "expected": {
+    "outcome": "failure",
+    "sent": [
+      "create unique index concurrently a on t (c)"
+    ],
+    "error": {
+      "message": "20260302-0900-a, part index: could not create unique index \"a\"",
+      "code": "23505"
+    }
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "description": "A guard that is not followed by a statement is an error. Nothing is sent.",
+  "script": "-- @migace script format=1\n-- @migace guard\nselect wanted()\n-- @migace guard\nselect wanted_too()\n-- @migace statement\nselect 1\n",
+  "expected": {
+    "outcome": "refused",
+    "sent": [],
+    "error": {
+      "mentions": [
+        "4"
+      ]
+    }
+  }
+}

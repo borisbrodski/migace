@@ -1,0 +1,122 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "A case of the client contract of MIG-Ace",
+  "type": "object",
+  "required": [
+    "description",
+    "script",
+    "expected"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "description": {
+      "type": "string",
+      "description": "What the case shows, in one or two sentences."
+    },
+    "script": {
+      "type": "string",
+      "description": "The text of the script file, with its line endings."
+    },
+    "parameters": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      },
+      "description": "The parameters of the run, in the order in which they are sent."
+    },
+    "answers": {
+      "type": "array",
+      "description": "What the database answers. The first entry answers the first statement that is sent, and so on. A statement without an entry succeeds without rows and without notices.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "rows": {
+            "type": "array",
+            "items": {
+              "type": "array"
+            },
+            "description": "The rows of the result. Only a guard query has some."
+          },
+          "notices": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Notices that the database sends while the statement runs."
+          },
+          "error": {
+            "type": "object",
+            "required": [
+              "code",
+              "message"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              }
+            },
+            "description": "The statement fails with this error, after its notices."
+          }
+        }
+      }
+    },
+    "expected": {
+      "type": "object",
+      "required": [
+        "outcome",
+        "sent"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "outcome": {
+          "enum": [
+            "success",
+            "failure",
+            "refused"
+          ],
+          "description": "success: every statement was sent or skipped by a guard. failure: a statement or a guard failed. refused: the runner did not accept the script and sent nothing."
+        },
+        "sent": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "The statements that reach the database, in order, parameters included."
+        },
+        "notices": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "The notices that reach the caller, in order."
+        },
+        "error": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "message": {
+              "type": "string",
+              "description": "The exact message of the reported error."
+            },
+            "code": {
+              "type": "string",
+              "description": "The code of the database that the reported error carries."
+            },
+            "mentions": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Texts that the message of the error must contain, where its wording is left to the runner."
+            }
+          }
+        }
+      }
+    }
+  }
+}

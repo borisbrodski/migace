@@ -1,0 +1,11 @@
+{
+  "description": "A script file with Windows line endings is read like one with LF. Line breaks inside a statement are sent as LF.",
+  "script": "-- @migace script format=1\r\n-- @migace statement\r\nselect\r\n  1\r\n-- @migace statement\r\nselect 2\r\n",
+  "expected": {
+    "outcome": "success",
+    "sent": [
+      "select\n  1",
+      "select 2"
+    ]
+  }
+}

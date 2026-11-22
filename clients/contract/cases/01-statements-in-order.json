@@ -1,0 +1,12 @@
+{
+  "description": "Every statement is sent on its own, in the order of the script.",
+  "script": "-- @migace script format=1\n-- @migace statement\nselect 1\n-- @migace statement\nselect 2\n-- @migace statement\nselect 3\n",
+  "expected": {
+    "outcome": "success",
+    "sent": [
+      "select 1",
+      "select 2",
+      "select 3"
+    ]
+  }
+}

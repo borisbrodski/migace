@@ -1,3 +1,64 @@
 # clients/java
 
-The Java runner library and its command line.
+The Java runner of MIG-Ace: a small library that sends a migration script to the database, and the same JAR as a program.
+
+It follows the [client contract](../contract/README.md). All logic of a migration is in the script; the runner has none.
+
+- Java 11 or newer.
+- No dependency besides the JDK. The JDBC driver comes from the application.
+- The names of the calls and of the options are provisional.
+
+## In an application
+
+Put the migration script into the JAR of the application as a resource. Run it at the start, before anything else uses the database:
+
+```java
+MigAce.execFromJar(BookshopApp.class, "/migace/migration-script-pg.sql", dataSource);
+```
+
+With parameters and with a listener for the notices:
+
+```java
+MigAce.fromJar(BookshopApp.class, "/migace/migration-script-pg.sql")
+    .parameter("schema", "shop")
+    .onNotice(line -> log.info(line))
+    .exec(dataSource);
+```
+
+- `exec(DataSource)` takes one connection and closes it.
+- `exec(Connection)` uses the given connection. It switches autocommit on, gives the earlier setting back and does not close the connection.
+- Without a listener the notices go to the logging of the JDK (`java.util.logging`, logger `org.openbrod.migace.MigAce`, level INFO).
+- A failure is a `MigrationFailedException`. Its message names the snippet and the part. `getSqlState()` is the code of the database. The cause is the exception of the driver.
+
+## As a program
+
+```sh
+export MIGACE_PASSWORD=…
+java -cp migace-runner.jar:postgresql-42.7.5.jar org.openbrod.migace.Main \
+    --url jdbc:postgresql://localhost:5432/bookshop --user bookshop_owner --schema shop \
+    migration-script-pg.sql
+```
+
+On Windows the separator of the class path is `;`. The JDBC driver is not part of the JAR.
+
+| Option | Meaning |
+|---|---|
+| `--url <jdbc url>` | The address of the database. |
+| `--user <user>` | The user that runs the migration: the owner of the schema. |
+| `--schema <schema>` | The schema of the migration. Default: the schema of the session. |
+| `--param <name>=<value>` | Another parameter of the run, for example `lock_timeout=10s`. May be given several times. |
+
+- **Password.** It is read from the environment variable `MIGACE_PASSWORD`. Without the variable the program asks for it. There is no option for it.
+- **Output.** The notices go to the standard output, one per line. An error goes to the standard error. A password is never printed, also not one that stands inside the address.
+- **Exit code.** 0 after success, 1 after a failure of the migration, 2 if the call is wrong.
+
+## Build and test
+
+```sh
+./gradlew build          # compiles, runs the tests, writes build/libs/migace-runner.jar
+./gradlew copyDriver     # puts the PostgreSQL driver into build/driver, for the test on a real server
+```
+
+- The tests are JUnit 5. `ContractTest` plays every case of `../contract/cases` against a scripted connection. No test needs a database.
+- From the repository root, `npm test` runs these tests too. Without a JDK they are left out with a message.
+- The run on a real PostgreSQL is `migql/test/server/java-runner.test.ts`, part of `npm run test:server`.

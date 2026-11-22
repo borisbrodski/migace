@@ -1,0 +1,13 @@
+{
+  "description": "A line before the first marker that is no marker is an error that names the line. Nothing is sent.",
+  "script": "-- @migace script format=1\nselect 0\n-- @migace statement\nselect 1\n",
+  "expected": {
+    "outcome": "refused",
+    "sent": [],
+    "error": {
+      "mentions": [
+        "2"
+      ]
+    }
+  }
+}

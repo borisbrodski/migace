@@ -1,0 +1,11 @@
+{
+  "description": "A statement is everything between two marker lines: semicolons, a block in dollar quotes and empty lines inside it are part of it. Empty lines before and after it are not sent.",
+  "script": "-- @migace script format=1\n-- @migace statement\n\ndo $migace$\nbegin\n    perform 1; perform 2;\n\n    raise notice 'a; b';\nend\n$migace$\n\n\n-- @migace statement\nselect 'a;b', $$;$$\n",
+  "expected": {
+    "outcome": "success",
+    "sent": [
+      "do $migace$\nbegin\n    perform 1; perform 2;\n\n    raise notice 'a; b';\nend\n$migace$",
+      "select 'a;b', $$;$$"
+    ]
+  }
+}

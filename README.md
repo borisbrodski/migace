@@ -31,7 +31,7 @@ The tool is a workspace of npm packages. It needs Node 22.22.2 or newer (see `en
 npm install            # installs every package; fails on an unsupported Node version
 npm run build          # generates the Langium parser and compiles every package
 npm run lint           # ESLint, including the rule that keeps core/ free of database code
-npm test               # all tests of all packages; needs no database server
+npm test               # all tests of all packages, and the Java tests if a JDK is there; needs no database server
 npm run test:server    # the tests on a real PostgreSQL, started from a package of binaries; no Docker
 npm run test:generate  # rewrites the expected SQL in migql/constructs/*/generated; review the diff
 ```

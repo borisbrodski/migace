@@ -1,0 +1,50 @@
+// The Java runner of MIG-Ace: a library that sends a migration script to a database, and the same as a program.
+// It has no dependency besides the JDK. The JDBC driver is brought by the application.
+plugins {
+    id 'java-library'
+}
+
+group = 'org.openbrod.migace'
+version = '0.1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+configurations {
+    // The PostgreSQL driver for the test on a real server. It is no part of the JAR.
+    driver
+}
+
+dependencies {
+    testImplementation platform('org.junit:junit-bom:5.11.4')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    testImplementation 'com.fasterxml.jackson.core:jackson-databind:2.18.2'
+    driver 'org.postgresql:postgresql:42.7.5'
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.release = 11
+    options.encoding = 'UTF-8'
+}
+
+test {
+    useJUnitPlatform()
+    // The cases of the client contract are data files that every runner plays.
+    systemProperty 'migace.contract.cases', file('../contract/cases').absolutePath
+}
+
+jar {
+    archiveBaseName = 'migace-runner'
+    archiveVersion = ''
+    manifest {
+        attributes 'Main-Class': 'org.openbrod.migace.Main'
+    }
+}
+
+tasks.register('copyDriver', Copy) {
+    description = 'Copies the PostgreSQL driver next to the JAR, for the test on a real server.'
+    from configurations.driver
+    into layout.buildDirectory.dir('driver')
+}

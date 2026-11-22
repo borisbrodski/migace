@@ -1,0 +1,10 @@
+{
+  "description": "A line that starts with two dashes is part of its statement, unless it is a marker line.",
+  "script": "-- @migace script format=1\n-- @migace statement\n-- a comment of the script\nselect 1 -- with a comment\n--@migace is no marker without the space\n",
+  "expected": {
+    "outcome": "success",
+    "sent": [
+      "-- a comment of the script\nselect 1 -- with a comment\n--@migace is no marker without the space"
+    ]
+  }
+}

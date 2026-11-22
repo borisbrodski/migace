@@ -30,6 +30,11 @@ jobs:
         with:
           node-version: 22.22.2
           cache: npm
+      # For the Java runner in clients/java. It is compiled for Java 11; the build runs on a newer JDK.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
       - run: npm ci
       - run: npm run build
       - run: npm run lint
@@ -58,6 +63,10 @@ jobs:
         with:
           node-version: 22.22.2
           cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
       - run: npm ci
       - run: npm run test:server
         env:

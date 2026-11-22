@@ -1,0 +1,17 @@
+{
+  "description": "A script names the version of its format in its first line. A runner refuses a version it does not know, before it sends anything.",
+  "script": "-- @migace script format=2\n-- @migace statement\nselect 1\n",
+  "parameters": {
+    "schema": "shop"
+  },
+  "expected": {
+    "outcome": "refused",
+    "sent": [],
+    "error": {
+      "mentions": [
+        "1",
+        "2"
+      ]
+    }
+  }
+}

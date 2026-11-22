@@ -1,0 +1,13 @@
+{
+  "description": "A text whose first line does not name the format is no script. Nothing is sent.",
+  "script": "select 1\n",
+  "expected": {
+    "outcome": "refused",
+    "sent": [],
+    "error": {
+      "mentions": [
+        "-- @migace script format="
+      ]
+    }
+  }
+}

@@ -19,9 +19,10 @@
   "scripts": {
     "build": "npm run build --workspaces --if-present",
     "lint": "eslint .",
-    "test": "npm run test --workspaces --if-present && vitest run --dir tools",
+    "test": "npm run test --workspaces --if-present && vitest run --dir tools && npm run test:java",
+    "test:java": "node tools/java.mjs test",
     "test:generate": "npm run test:generate --workspaces --if-present",
-    "test:server": "npm run build && npm run test:server --workspaces --if-present"
+    "test:server": "npm run build && node tools/java.mjs jar copyDriver && npm run test:server --workspaces --if-present"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.0",

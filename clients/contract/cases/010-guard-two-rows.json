@@ -1,0 +1,27 @@
+{
+  "description": "A guard query that returns more than one row is an error. The statement that follows is not sent, and nothing after it.",
+  "script": "-- @migace script format=1\n-- @migace guard\nselect wanted()\n-- @migace statement\nselect 2\n-- @migace statement\nselect 3\n",
+  "answers": [
+    {
+      "rows": [
+        [
+          true
+        ],
+        [
+          true
+        ]
+      ]
+    }
+  ],
+  "expected": {
+    "outcome": "failure",
+    "sent": [
+      "select wanted()"
+    ],
+    "error": {
+      "mentions": [
+        "guard"
+      ]
+    }
+  }
+}

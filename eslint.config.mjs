@@ -3,7 +3,7 @@ import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
     {
-        ignores: ['**/node_modules/**', '**/out/**', '**/dist/**', '**/generated/**', 'website/**', '**/.astro/**'],
+        ignores: ['**/node_modules/**', '**/out/**', '**/dist/**', '**/generated/**', 'website/**', '**/.astro/**', 'clients/java/build/**', 'clients/java/.gradle/**'],
     },
     js.configs.recommended,
     ...tseslint.configs.recommended,
@@ -14,7 +14,7 @@ export default tseslint.config(
     },
     {
         files: ['**/*.mjs'],
-        languageOptions: { globals: { process: 'readonly', console: 'readonly', setInterval: 'readonly' } },
+        languageOptions: { globals: { process: 'readonly', console: 'readonly', setInterval: 'readonly', URL: 'readonly' } },
     },
     {
         // Database-specific code is reached through interfaces that core/ defines.

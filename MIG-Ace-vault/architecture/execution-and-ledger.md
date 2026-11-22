@@ -59,6 +59,8 @@ Parameters of a run. Their names are provisional. **[direction]**
 
 A step that got no lock writes a ledger row with the state `no lock` for every attempt. When the last attempt fails, the run ends with a failure that names the snippet, the part and the tables that other sessions hold locks on.
 
+The contract in full, with its cases as data, is in `clients/contract/README.md`. Fixed there in M4.3: the first line of a script names the version of the format, and a runner refuses a version it does not know; a guard query answers with exactly one row that holds true or false, and any other answer is an error; a runner reads the whole script before it sends anything.
+
 Rights. **[direction]**
 
 - The script runs as the owner of the schema. It needs no superuser. It creates its ledger tables in the schema and its functions for the session only.

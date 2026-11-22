@@ -1,0 +1,11 @@
+{
+  "description": "The attribute outside-transaction changes nothing for a runner that sends every statement with autocommit on.",
+  "script": "-- @migace script format=1\n-- @migace statement outside-transaction\nvacuum t\n-- @migace statement\nselect 2\n",
+  "expected": {
+    "outcome": "success",
+    "sent": [
+      "vacuum t",
+      "select 2"
+    ]
+  }
+}

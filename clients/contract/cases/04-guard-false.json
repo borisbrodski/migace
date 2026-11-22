@@ -1,0 +1,30 @@
+{
+  "description": "A guard query that returns false: the statement that follows is not sent. The statements after it are.",
+  "script": "-- @migace script format=1\n-- @migace guard\nselect wanted()\n-- @migace statement outside-transaction\ncreate index concurrently a on t (c)\n-- @migace statement\nselect 3\n-- @migace guard\nselect wanted_too()\n-- @migace statement\nselect 4\n",
+  "answers": [
+    {
+      "rows": [
+        [
+          false
+        ]
+      ]
+    },
+    {},
+    {
+      "rows": [
+        [
+          true
+        ]
+      ]
+    }
+  ],
+  "expected": {
+    "outcome": "success",
+    "sent": [
+      "select wanted()",
+      "select 3",
+      "select wanted_too()",
+      "select 4"
+    ]
+  }
+}
