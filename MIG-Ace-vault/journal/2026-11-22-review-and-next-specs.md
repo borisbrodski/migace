@@ -32,20 +32,21 @@ The answer for `numeric` in `ensure column` is new behaviour too. It is M3.1-AC-
 | `ran … sha256:` | This form was never built and is dropped. `ran <slug>.<part>` and `ran … from <release>` stay. | M4.1-AC-33 |
 | Keywords as names | Fewer words should need quotes. | M3.1-AC-26 |
 | Second way to read names | Direction: a project setting with which MIG-Ace follows SQL. Not built now. | [Names and case](../migql/names-and-case.md) |
-| `do` and actions | Decided: `do` runs what was written. Operations with several steps get keys of their own. The names are still open (question 44), so nothing changes in the code yet; the generator of M3 stays as it is until a spec for actions exists. | [Decision](../decisions/do-is-literal-actions-have-names.md), [Actions](../migql/actions.md) |
+| `do` and actions | Decided: `do` runs what was written. Operations for which MIG-Ace chooses the statements are actions with keys of their own, names that start with the object, and parameters in YAML. `ensure column` and `rename column` leave `do`. | [Decision](../decisions/do-is-literal-actions-have-names.md), [Actions](../migql/actions.md), spec [M3.2](../specs/m3-2-actions.md) |
 | PostgreSQL versions, Java level | Every supported PostgreSQL version; Java 11. | Questions 41 and 42 are closed |
 
 ## Order of work
 
 1. [M3.1 Exact names](../specs/m3-1-exact-names.md)
-2. [M4.1 Plan and script](../specs/m4-1-plan-and-script.md)
-3. [M4.2 Real PostgreSQL](../specs/m4-2-real-postgresql.md) and [M4.3 Client contract and Java runner](../specs/m4-3-client-contract-and-java-runner.md), in any order
+2. [M3.2 Actions](../specs/m3-2-actions.md)
+3. [M4.1 Plan and script](../specs/m4-1-plan-and-script.md)
+4. [M4.2 Real PostgreSQL](../specs/m4-2-real-postgresql.md) and [M4.3 Client contract and Java runner](../specs/m4-3-client-contract-and-java-runner.md), in any order
 
 ## What the findings of M3 became
 
 | Finding | Where it goes |
 |---|---|
-| A failing `set not null` in four steps leaves the helper constraint, and the next run fails at step 1 | M4.1-AC-29: the ledger knows the step, and the next run continues there |
+| A failing `set not null` in four steps leaves the helper constraint, and the next run fails at step 1 | The four steps are now the action `column-set-not-null` (M3.2). M4.1-AC-29: the ledger knows the step, and the next run continues there |
 | `alter column … type` fails when a view uses the column | Not in these specs. It is solved with views as replaceable objects (M4.4) |
 | How a statement outside a transaction reaches the script | "Inside the script" in [Execution and ledger](../architecture/execution-and-ledger.md), M4.1-AC-36 and 37 |
 | Rows of `insert` and `upsert` must give the same columns | Stays an error of the generator for now |

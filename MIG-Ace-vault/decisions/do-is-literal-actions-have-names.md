@@ -17,7 +17,10 @@ The first generator turned some statements into several steps. `do: alter table 
 3. **A `do` with a statement for which an action exists gets a warning** that names the action.
 4. **The actions are a catalogue.** Their names are chosen so that completion in the editor lists them in a useful order, and every action has a full description that the editor shows on hover and that the YAML schema carries.
 
-The actions, their names and the open points are in [Actions](../migql/actions.md).
+5. **The name of an action starts with the object:** `column-set-not-null`, `constraint-add-foreign-key`. The first actions are `column-set-not-null`, `column-rename`, `column-ensure`, `constraint-add-foreign-key` and `constraint-add-check`. `insert` and `upsert` keep their names.
+6. **The parameters of an action are YAML keys.** The YAML schema describes them, so an editor offers them without the MigQL language server. An action can still be one line: `column-rename: { table: customer, from: mail, to: email }`.
+
+The catalogue is in [Actions](../migql/actions.md).
 
 ## Consequences
 
@@ -29,4 +32,6 @@ The actions, their names and the open points are in [Actions](../migql/actions.m
 ## Rejected alternatives
 
 - **Keep the smart forms inside `do`:** the author does not see what will run, and cannot ask for the plain statement.
+- **Names that start with the verb**, as in SQL (`rename-column`, `add-foreign-key`): they read naturally, but a sorted list no longer groups the actions by object.
+- **The value of an action as a line of the statement language** (`column-rename: customer.mail to email`): shorter, but only the MigQL language server can describe and complete it.
 - **One key for all smart forms, with the same statement as under `do`** (for example `safely: alter table …`): a change of one word, but no catalogue. It cannot hold actions that are no single SQL statement, such as a rename over two phases.

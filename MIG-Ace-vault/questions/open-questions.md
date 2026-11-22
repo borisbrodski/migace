@@ -48,4 +48,4 @@ status: open
 41. *Closed 2026-11-22:* every PostgreSQL version that the PostgreSQL project still supports. The lowest version may be raised when a feature needs it.
 42. *Closed 2026-11-22:* Java 11. It may be raised when a feature needs it.
 43. **Several statements in one part:** every statement except native SQL is now parsed, so a part could hold a list of statements. The review advises against it for now: a condition, a check, a retry and a ledger row would then belong to a group, and only PostgreSQL could undo a half-done group. Steps are not this idea: a step is generated, see the [glossary](../glossary.md).
-44. **Names of the actions:** the scheme of the names, the name of every action of the first catalogue, and the form of their values. See [Actions](../migql/actions.md). Nothing is built before this is answered.
+44. *Closed 2026-11-22:* names start with the object, the first five actions are fixed, and parameters are YAML keys. See [Actions](../migql/actions.md).

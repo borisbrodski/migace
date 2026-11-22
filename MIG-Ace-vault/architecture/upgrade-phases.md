@@ -40,7 +40,7 @@ migace-runner --phase finish ...   # rolling upgrade: when no old instance is le
 ## Who assigns the phase
 
 - The zero-downtime check finds parts that break an older version. Such a part must be in phase `finish`. The build says so, and `mig make` writes the marker itself. **[direction]**
-- Typed operations carry their phases. `rename column customer.mail to email` is one statement in one snippet. The compiler generates start steps (add `email`, create the sync trigger, copy values) and finish steps (drop the trigger, drop `mail`). This replaces an expand snippet in one release and a contract snippet in the next. **[direction]**
+- Actions carry their phases. `column-rename: { table: customer, from: mail, to: email }` is one part in one snippet. The compiler generates start steps (add `email`, create the sync trigger, copy values) and finish steps (drop the trigger, drop `mail`). This replaces an expand snippet in one release and a contract snippet in the next. **[direction]**
 
 ## State of a database
 

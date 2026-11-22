@@ -19,6 +19,10 @@ The work on the schema model and the PostgreSQL generation raised four questions
 | A type with details in `ensure column` | The length of `varchar` and `char` can grow. A `numeric` is widened when the precision grows and the scale stays the same. Every other difference in the details of a type is an error for now. |
 | A list of key columns in `upsert` | `key: [book_id, currency]`, a YAML flow list of names. One column is written without brackets: `key: code`. |
 
+## Changed on 2026-11-22
+
+`rename column` and `ensure column` are no longer statements under `do`. They are the actions `column-rename` and `column-ensure`, see [`do` runs what was written](do-is-literal-actions-have-names.md). The two answers above hold for the actions.
+
 ## Rejected alternatives
 
 - Adding `concurrently` to every `create index`: the statement then cannot run in a transaction, and an author who wrote the plain form on a new or small table gets a slower and less safe script than the one written. The choice stays visible in the snippet.

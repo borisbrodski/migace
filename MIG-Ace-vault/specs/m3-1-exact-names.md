@@ -87,5 +87,7 @@ Today the generator turns a name without quotes into lower case. That stops.
 
 ## Open points
 
+- This spec names the statements `ensure column` and `rename column` as they are today. [M3.2](m3-2-actions.md) turns them into the actions `column-ensure` and `column-rename`; the tests of this spec move with them.
+
 - Types written with several words, such as `double precision` and `timestamp with time zone`: whether the grammar accepts them is checked while the list of types is written. A gap is recorded as a question, not solved here.
 - Whether the check of M3.1-AC-24 is an error, a warning or a setting is decided with the command that uses it.

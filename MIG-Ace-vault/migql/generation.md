@@ -12,7 +12,7 @@ One statement in a snippet becomes SQL for each supported database. PostgreSQL i
 - A generator translates. It never adds syntax. What the language accepts is defined by the grammar and the catalogue only. **[direction]**
 - A construct that a database cannot express is a build error for that database, with a message that names the construct. Silent approximation is not allowed. **[direction]**
 - The generated SQL is deterministic: the same statement always gives the same text. **[direction]**
-- Some constructs become several steps, for example a lock-safe `set not null` or a `rename column` with phases. The steps are part of the expected output. **[direction]**
+- Some constructs become several steps: the [actions](actions.md), for example `column-set-not-null` or `column-rename` with phases. The steps are part of the expected output. **[direction]**
 
 ## The catalogue of constructs
 

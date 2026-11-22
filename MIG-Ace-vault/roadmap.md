@@ -15,6 +15,7 @@ A milestone starts when its spec note exists in `specs/`. Order and content are 
 | M2 Schema model | The model is read from PGlite and compared. Fingerprint. | done |
 | M3 PostgreSQL generation | Every construct becomes correct PostgreSQL, proven by PostgreSQL's parser and on a database. | done |
 | M3.1 Exact names | A name is exact, with or without quotes. Proven on a bookshop in mixed case. | spec ready |
+| M3.2 Actions | `do` runs what was written. Five actions with keys of their own, descriptions for the editor, a YAML schema. | spec ready |
 | M4.1 Plan and script | Snippets are compiled to a plan and a script with the ledger. Failures, conditions and checks, on PGlite. | spec ready |
 | M4.2 Real PostgreSQL | Temporary servers from binaries. Two runners, killed runs, locks. | spec ready |
 | M4.3 Client contract and Java runner | The adapter contract as data. Java library and command line. | spec ready |
