@@ -3,3 +3,6 @@ node_modules/
 dist/
 out/
 migql/src/generated/
+coverage/
+.stryker-tmp/
+reports/

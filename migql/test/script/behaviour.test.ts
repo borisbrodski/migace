@@ -299,6 +299,22 @@ describe('Conditions', () => {
             '20260302-0900-first, part link: done', '20260303-0900-repair, part fix: done', 'Done: 2 steps ran.',
         ]);
     });
+
+    test('a part of several steps that stopped at a later step has not run', async () => {
+        await bookshop(CUSTOMERS);
+        const repair = { '20260301-0900-repair': ['when: ran a.mandatory', 'parts:', '  - fix:', '      do: alter table customer add column fixed integer'] };
+        const script = await scriptWith({ ...repair, '20260302-0900-a': ['parts:', '  - mandatory:', '      column-set-not-null: { table: customer, column: mail }'] });
+        await runFailing(script);
+        expect(await states()).toEqual(['fix 1/1 skipped', 'mandatory 1/4 done', 'mandatory 2/4 failed']);
+
+        const { notices } = await runFailing(script);
+
+        expect(notices[0]).toBe('20260301-0900-repair, part fix: skipped, because this is not true: ran a.mandatory');
+
+        await exec("update customer set mail = 'jo@example.org' where mail is null");
+        await run(script);
+        expect(await run(script)).toEqual(['20260301-0900-repair, part fix: done', '20260302-0900-a, part mandatory: already done', 'Done: 1 steps ran.']);
+    });
 });
 
 // M4.1-AC-34, M4.1-AC-35

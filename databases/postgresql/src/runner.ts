@@ -74,6 +74,8 @@ function guardSays(rows: Array<Record<string, unknown>>, statement: Statement): 
     throw new ScriptFailed(`The guard before the statement at line ${statement.line} returned ${answer}.`);
 }
 
+const guardWithoutStatement = (line: number) => new ScriptRefused(`Line ${line}: this guard is not followed by a statement.`);
+
 /** Reads the statements of a script. Nothing is sent before the whole script was read without a problem. */
 function readScript(script: string): Statement[] {
     const lines = script.replace(/\r\n/g, '\n').split('\n');
@@ -112,13 +114,13 @@ function readScript(script: string): Statement[] {
             throw new ScriptRefused(`Line ${lineNumber}: unknown marker "${kind}".`);
         }
         if (current?.kind === 'guard' && kind === 'guard') {
-            throw new ScriptRefused(`Line ${lineNumber}: a guard is followed by a statement.`);
+            throw guardWithoutStatement(current.line);
         }
         close();
         current = { kind, label: /label="([^"]*)"/.exec(marker[2])?.[1], line: lineNumber, lines: [] };
     });
     if (current?.kind === 'guard') {
-        throw new ScriptRefused(`Line ${lines.length}: a guard is followed by a statement.`);
+        throw guardWithoutStatement(current.line);
     }
     close();
     return statements;

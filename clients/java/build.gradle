@@ -2,6 +2,8 @@
 // It has no dependency besides the JDK. The JDBC driver is brought by the application.
 plugins {
     id 'java-library'
+    id 'jacoco'
+    id 'info.solidsoft.pitest' version '1.15.0'
 }
 
 group = 'org.openbrod.migace'
@@ -33,6 +35,39 @@ test {
     useJUnitPlatform()
     // The cases of the client contract are data files that every runner plays.
     systemProperty 'migace.contract.cases', file('../contract/cases').absolutePath
+}
+
+jacocoTestReport {
+    dependsOn test
+    reports {
+        xml.required = true
+        csv.required = true
+    }
+}
+
+// The limits are the levels that are reached now. Raise them when the coverage rises.
+jacocoTestCoverageVerification {
+    dependsOn jacocoTestReport
+    violationRules {
+        rule {
+            limit { counter = 'LINE'; minimum = 0.94 }
+            limit { counter = 'BRANCH'; minimum = 0.93 }
+        }
+    }
+}
+check.dependsOn jacocoTestCoverageVerification
+
+// Mutation testing: PIT changes the compiled library in small ways and runs the tests against every change.
+// A change that no test notices "survives". Run it with "./gradlew pitest"; it is no part of "check".
+pitest {
+    junit5PluginVersion = '1.2.1'
+    pitestVersion = '1.17.3'
+    targetClasses = ['org.openbrod.migace.*']
+    mutators = ['DEFAULTS']
+    outputFormats = ['HTML', 'XML']
+    timestampedReports = false
+    mutationThreshold = 0
+    jvmArgs = ["-Dmigace.contract.cases=${file('../contract/cases').absolutePath}"]
 }
 
 jar {

@@ -36,6 +36,8 @@ For every coding task that is not user-interface work, work in small cycles:
 3. Add the implementation: only what the test requires, nothing more.
 4. Refactor: clean code and tests, no comments about the history of the change, everything well structured.
 
+This holds for every language, Java included. Coverage limits are enforced (`npm run test:coverage`, `./gradlew check`); when a number on the website page `docs/quality.md` or in the README changes, update both.
+
 Details: `MIG-Ace-vault/engineering/coding-rules.md`.
 
 ## Commands
@@ -47,6 +49,7 @@ npm install
 npm run build          # Langium generation and tsc for every package
 npm run lint
 npm test               # all packages, the tests in tools/, and the Java tests if a JDK is there; no database server
+npm run test:coverage  # all TypeScript tests in one run; fails below the limits in vitest.coverage.config.ts
 npm run test:server    # builds, then the tests on a real PostgreSQL that the tests start themselves
 npm run test:generate  # rewrite the expected SQL in migql/constructs/*/generated, then review the diff
 ```

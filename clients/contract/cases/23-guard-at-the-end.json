@@ -1,0 +1,13 @@
+{
+  "description": "A guard at the end of the script, without a statement, is an error that names the line of the guard. Nothing is sent.",
+  "script": "-- @migace script format=1\n-- @migace statement\nselect 1\n-- @migace guard\nselect wanted()\n\n",
+  "expected": {
+    "outcome": "refused",
+    "sent": [],
+    "error": {
+      "mentions": [
+        "Line 4"
+      ]
+    }
+  }
+}

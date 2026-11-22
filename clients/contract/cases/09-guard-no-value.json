@@ -1,5 +1,5 @@
 {
-  "description": "A guard query that returns a row without a value is an error. The statement that follows is not sent, and nothing after it.",
+  "description": "A guard query that returns a row without a value is an error. The statement that follows is not sent, and nothing after it. The error names the line of the statement and says what the guard returned.",
   "script": "-- @migace script format=1\n-- @migace guard\nselect wanted()\n-- @migace statement\nselect 2\n-- @migace statement\nselect 3\n",
   "answers": [
     {
@@ -17,7 +17,9 @@
     ],
     "error": {
       "mentions": [
-        "guard"
+        "guard",
+        "line 4",
+        "without true or false"
       ]
     }
   }

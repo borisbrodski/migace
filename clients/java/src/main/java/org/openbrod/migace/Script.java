@@ -65,7 +65,7 @@ final class Script {
                 throw refused("Line " + (index + 1) + ": unknown marker \"" + nextKind + "\".");
             }
             if ("guard".equals(kind) && !"statement".equals(nextKind)) {
-                throw refused("Line " + (line == null ? lines.length : index + 1) + ": a guard is followed by a statement.");
+                throw refused("Line " + markerLine + ": this guard is not followed by a statement.");
             }
             if ("guard".equals(kind)) {
                 guard = body.toString().trim();

@@ -163,4 +163,14 @@ class MigAceTest {
 
         assertTrue(failure.getMessage().startsWith("The name of a parameter is made of letters, digits and underscores"));
     }
+
+    @Test
+    void parametersAndAListenerCanBeChained() {
+        ScriptedDatabase database = new ScriptedDatabase();
+        List<String> notices = new ArrayList<>();
+
+        MigAce.script(SCRIPT).parameter("schema", "shop").parameter("lock_wait", "2s").onNotice(notices::add).exec(database.connection());
+
+        assertEquals(Arrays.asList("select set_config('migace.schema', 'shop', false)", "select set_config('migace.lock_wait', '2s', false)", "select 1", "select 2"), database.sent);
+    }
 }

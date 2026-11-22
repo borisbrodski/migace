@@ -36,6 +36,28 @@ npm run test:server    # the tests on a real PostgreSQL, started from a package 
 npm run test:generate  # rewrites the expected SQL in migql/constructs/*/generated; review the diff
 ```
 
+### Tests, coverage and proof
+
+| | Measured on 2026-11-22 | Enforced |
+|---|---|---|
+| Tests, TypeScript | 1,341 | all pass |
+| Tests, Java runner | 48 | all pass |
+| Tests on a real PostgreSQL (15 and 18) | 22 | all pass |
+| TypeScript: lines / branches / functions | 99.4 % / 95.4 % / 99.6 % | 99 % / 95 % / 99 % |
+| Java runner: lines / branches | 94 % / 93 % | 94 % / 93 % |
+| Mutation score, Java runner | 96 % | reported |
+| Mutation score, `core/` | 94 % | reported |
+
+```sh
+npm run test:coverage  # coverage of the TypeScript sources; fails below the limits in vitest.coverage.config.ts
+npm run test:mutation  # Stryker: changes the sources and checks that a test notices; takes long
+cd clients/java
+./gradlew check        # tests and the JaCoCo limits in build.gradle
+./gradlew pitest       # PIT: the same idea for the Java runner
+```
+
+The limits are the levels that are reached now. Raise them when the coverage rises. Reports are written to `coverage/`, `reports/mutation/`, `clients/java/build/reports/`. The website has the same numbers on the page [How MIG-Ace is tested](website/src/pages/docs/quality.md).
+
 Other expected files are updated with Vitest, in the folder of the package: `npx vitest run -u`. Review the diff as well.
 
 Inside `migql/`, `npx vitest` runs the tests in watch mode. Run `npm run langium:generate` there after a change to the grammar.

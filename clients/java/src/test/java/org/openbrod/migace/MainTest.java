@@ -119,11 +119,51 @@ class MainTest {
     }
 
     @Test
-    void aWrongCallEndsWithTheCodeTwoAndSaysHowToCallIt() {
-        assertEquals(2, run(Collections.emptyMap(), "--url", "jdbc:scripted:shop"));
-        assertTrue(output().contains("Usage: java -cp migace-runner.jar"));
-        assertEquals(2, run(Collections.emptyMap(), "--url", "jdbc:scripted:shop", "--user", "owner", "--password", "secret", script.toString()));
-        assertEquals(2, run(Collections.emptyMap(), "--url", "jdbc:scripted:shop", "--user", "owner", folder.resolve("missing.sql").toString()));
+    void aCallWithoutTheAddressTheUserOrTheScriptEndsWithTheCodeTwoAndSaysHowToCallIt() {
+        String[][] calls = {
+            {"--user", "owner", script.toString()},
+            {"--url", "jdbc:scripted:shop", script.toString()},
+            {"--url", "jdbc:scripted:shop", "--user", "owner"},
+        };
+        for (String[] call : calls) {
+            err.reset();
+
+            assertEquals(2, run(Collections.emptyMap(), call));
+
+            assertTrue(output().startsWith("Usage: java -cp migace-runner.jar"), output());
+            assertTrue(driver.database.sent.isEmpty());
+        }
+    }
+
+    @Test
+    void anUnknownOptionIsNamed() {
+        assertEquals(2, run(Collections.emptyMap(), "--url", "jdbc:scripted:shop", "--user", "owner", "--fast", script.toString()));
+
+        assertTrue(output().startsWith("Unknown or incomplete option: --fast" + System.lineSeparator() + "Usage: java"), output());
+    }
+
+    @Test
+    void anOptionWithoutItsValueIsNamed() {
+        assertEquals(2, run(Collections.emptyMap(), script.toString(), "--user", "owner", "--url"));
+
+        assertTrue(output().startsWith("Unknown or incomplete option: --url"), output());
+    }
+
+    @Test
+    void aSecondScriptFileIsRefused() {
+        assertEquals(2, run(Collections.emptyMap(), "--url", "jdbc:scripted:shop", "--user", "owner", script.toString(), "other.sql"));
+
+        assertTrue(output().startsWith("Unknown or incomplete option: a second script file"), output());
+        assertTrue(driver.database.sent.isEmpty());
+    }
+
+    @Test
+    void aScriptFileThatCannotBeReadIsNamed() {
+        Path missing = folder.resolve("missing.sql");
+
+        assertEquals(2, run(Collections.emptyMap(), "--url", "jdbc:scripted:shop", "--user", "owner", missing.toString()));
+
+        assertTrue(output().startsWith("The script file \"" + missing + "\" cannot be read: "), output());
     }
 
     // M4.3-AC-13

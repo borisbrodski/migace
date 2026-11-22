@@ -98,11 +98,11 @@ public final class MigAce {
             connection.setAutoCommit(true);
             try {
                 for (Map.Entry<String, String> parameter : parameters.entrySet()) {
-                    send(connection, "select set_config('migace." + parameter.getKey() + "', '" + parameter.getValue().replace("'", "''") + "', false)", null, 0);
+                    send(connection, "select set_config('migace." + parameter.getKey() + "', '" + parameter.getValue().replace("'", "''") + "', false)", null);
                 }
                 for (Script.Statement statement : statements) {
-                    if (statement.guard == null || guardSays(send(connection, statement.guard, statement.label, 1), statement)) {
-                        send(connection, statement.sql, statement.label, 0);
+                    if (statement.guard == null || guardSays(send(connection, statement.guard, statement.label), statement)) {
+                        send(connection, statement.sql, statement.label);
                     }
                 }
             } finally {
@@ -114,15 +114,15 @@ public final class MigAce {
     }
 
     /**
-     * Sends one statement. Returns the first values of its rows, up to two of them, if rows are asked for.
+     * Sends one statement. Returns the first values of its rows, up to two of them: enough to judge the answer of a guard.
      * The notices of the statement reach the listener, also when the statement fails.
      */
-    private Object[] send(Connection connection, String sql, String label, int rowsWanted) {
+    private Object[] send(Connection connection, String sql, String label) {
         try (Statement statement = connection.createStatement()) {
             try {
                 boolean hasRows = statement.execute(sql);
                 java.util.List<Object> values = new java.util.ArrayList<>();
-                if (hasRows && rowsWanted > 0) {
+                if (hasRows) {
                     try (ResultSet rows = statement.getResultSet()) {
                         while (values.size() < 2 && rows.next()) {
                             values.add(rows.getObject(1));

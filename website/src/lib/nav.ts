@@ -48,6 +48,7 @@ export const docsNav: NavGroup[] = [
       { title: 'Commands', href: '/docs/commands/' },
       { title: 'Configuration', href: '/docs/configuration/' },
       { title: 'Editor support', href: '/docs/editor-support/' },
+      { title: 'How MIG-Ace is tested', href: '/docs/quality/' },
       { title: 'Glossary', href: '/docs/glossary/' },
     ],
   },

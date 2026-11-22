@@ -39,6 +39,9 @@ jobs:
       - run: npm run build
       - run: npm run lint
       - run: npm test
+      # Fails when the coverage of the TypeScript sources falls below the limits in vitest.coverage.config.ts.
+      # The limits of the Java runner are part of "npm test": Gradle checks them in clients/java.
+      - run: npm run test:coverage
       # The tests that start a real PostgreSQL server from the package of binaries.
       - run: npm run test:server
       # The expected files in the repository must be what the generators produce now.

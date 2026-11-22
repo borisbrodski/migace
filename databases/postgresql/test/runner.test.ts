@@ -104,7 +104,7 @@ describe('The reference runner', () => {
 
         await expect(runScript(script('select 0', '-- @migace statement', 'select 1'), execute)).rejects.toThrow('Line 2: text outside a statement.');
         await expect(runScript(script('-- @migace surprise', 'select 1'), execute)).rejects.toThrow('Line 2: unknown marker "surprise".');
-        await expect(runScript(script('-- @migace guard', 'select true', '-- @migace guard', 'select true'), execute)).rejects.toThrow('Line 4: a guard is followed by a statement.');
+        await expect(runScript(script('-- @migace guard', 'select true', '-- @migace guard', 'select true'), execute)).rejects.toThrow('Line 2: this guard is not followed by a statement.');
         expect(sent).toEqual([]);
     });
 

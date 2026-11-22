@@ -60,5 +60,15 @@ On Windows the separator of the class path is `;`. The JDBC driver is not part o
 ```
 
 - The tests are JUnit 5. `ContractTest` plays every case of `../contract/cases` against a scripted connection. No test needs a database.
+- `./gradlew check` also checks the coverage with JaCoCo: at least 94 % of the lines and 93 % of the branches. These are the levels of today; raise them when the coverage rises.
+- `./gradlew pitest` runs mutation testing with PIT. It is no part of `check`. Of 105 changes, 101 are noticed by a test. The four that are not:
+
+  | Where | Change | Why no test notices it |
+  |---|---|---|
+  | `Main.main` | `System.exit` removed | The three lines of `main` only run in a real process. The test on a real server checks the exit codes. |
+  | `Main.main` | the check for a console replaced | As above. |
+  | `Main.main` | the password prompt returns an empty text | As above. |
+  | `MigAce.send` | `values.size() < 2` becomes `<= 2` | The behaviour is the same: two or three values both mean "more than one row". |
+
 - From the repository root, `npm test` runs these tests too. Without a JDK they are left out with a message.
 - The run on a real PostgreSQL is `migql/test/server/java-runner.test.ts`, part of `npm run test:server`.
