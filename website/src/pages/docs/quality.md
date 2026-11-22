@@ -59,6 +59,8 @@ The last one was a real gap. A test for it was added, and the series was repeate
 
 No test needs Docker. The tests on a real server start a PostgreSQL from a package of binaries and remove it afterwards.
 
+Every push is built and tested on **Linux, Windows and macOS**: all tests, the coverage limits, and the tests on a real PostgreSQL 18. PostgreSQL 15, the oldest supported version, runs every night on Linux.
+
 ## Run it yourself
 
 ```sh
@@ -77,6 +79,5 @@ For the Java runner, in `clients/java`:
 
 ## What is not covered yet
 
-- The build on Windows is set up, and its first run has not been checked.
 - Mutation testing of the language and the generators has not completed a full run. It is not part of every build.
 - The parts of MIG-Ace that are not built yet have no tests.

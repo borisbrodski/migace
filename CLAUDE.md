@@ -22,7 +22,7 @@ Read only the notes a task needs. Do not load the whole vault.
 - **Write down what you find.** New questions go to `MIG-Ace-vault/questions/open-questions.md`, findings to `MIG-Ace-vault/journal/`. Nothing that matters stays only in a chat.
 - **Examples use the bookshop only.** Never add names, code, data or examples from any real or private project.
 - **Dependencies.** `core/` imports nothing from `databases/` or `migql/generators/`.
-- **Tests.** No test may need Docker. See `MIG-Ace-vault/testing/test-concept.md`.
+- **Tests.** No test may need Docker. The workflow runs everything on Linux, Windows and macOS; check it after a push with `gh run list`. See `MIG-Ace-vault/testing/test-concept.md`.
 - **MigQL.** The language of snippets is called MigQL. Its code is in `migql/`, its notes in `MIG-Ace-vault/migql/`, its files end in `.migql.yaml`.
 - **Langium.** MigQL is built and tested with `langium-tools`. Read `MIG-Ace-vault/migql/langium-tools.md` first.
 - **Invented names.** Command names, option names and setting names on the website are provisional unless the vault marks them `[decided]`.

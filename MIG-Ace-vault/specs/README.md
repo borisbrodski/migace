@@ -10,16 +10,16 @@ A spec contains: goal, non-goals, the notes it builds on, numbered acceptance cr
 
 | Spec | Status |
 |---|---|
-| [M0 Workspace](m0-workspace.md) | done on Linux; Windows (M0-AC-04, M0-AC-06) moves to M1.1 |
+| [M0 Workspace](m0-workspace.md) | done; Windows (M0-AC-04, M0-AC-06) was shown with M1.1 |
 | [M1 MigQL parser and checks](m1-migql-parser.md) | done except `upsert` (M1-AC-08), which moves to M1.1 |
-| [M1.1 MigQL follow-up](m1-1-migql-follow-up.md) | done; the Windows job (M1.1-AC-01 to 03) has not run yet |
+| [M1.1 MigQL follow-up](m1-1-migql-follow-up.md) | done; the Windows job is green since 2026-11-22 |
 | [M2 Schema model, comparison and fingerprint](m2-schema-model.md) | done |
 | [M3 PostgreSQL generation of statements](m3-postgresql-generation.md) | done |
 | [M3.1 Exact names](m3-1-exact-names.md) | done |
 | [M3.2 Actions](m3-2-actions.md) | done |
 | [M4.1 Plan and script](m4-1-plan-and-script.md) | done; see questions 46 to 49 |
-| [M4.2 Real PostgreSQL](m4-2-real-postgresql.md) | done on Linux; the Windows job has not run yet |
-| [M4.3 Client contract and Java runner](m4-3-client-contract-and-java-runner.md) | done on Linux; the Windows job has not run yet |
+| [M4.2 Real PostgreSQL](m4-2-real-postgresql.md) | done; green on Linux, Windows and macOS |
+| [M4.3 Client contract and Java runner](m4-3-client-contract-and-java-runner.md) | done; green on Linux, Windows and macOS |
 
 M3.1 comes first: it changes how every name is generated, and the expected files of the later specs depend on it. M3.2 comes second: it changes what `do` generates. M4.2 and M4.3 do not depend on each other.
 

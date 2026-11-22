@@ -56,6 +56,8 @@ cd clients/java
 ./gradlew pitest       # PIT: the same idea for the Java runner
 ```
 
+Every push is built and tested on Linux, Windows and macOS (`.github/workflows/build.yml`), including the tests on a real PostgreSQL.
+
 The limits are the levels that are reached now. Raise them when the coverage rises. Reports are written to `coverage/`, `reports/mutation/`, `clients/java/build/reports/`. The website has the same numbers on the page [How MIG-Ace is tested](website/src/pages/docs/quality.md).
 
 Other expected files are updated with Vitest, in the folder of the package: `npx vitest run -u`. Review the diff as well.
