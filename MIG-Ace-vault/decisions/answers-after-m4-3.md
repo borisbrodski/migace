@@ -31,6 +31,11 @@ The work on M3.1 to M4.3 left questions 45 to 56, and the [review](../journal/20
 
 The reference runner reports `column "x" does not exist`. The Java runner reports `ERROR: column "x" does not exist`, because the PostgreSQL driver for Java puts that word in front of every message. The word is written in the language of the server (`FEHLER:` on a German server), and another driver may add something else. Removing it would be knowledge about one driver inside a runner that is meant to have none. The contract asks that the report contains the message of the database, and it does. The messages of the script itself, with snippet and part, are the same in both runners.
 
+### Added on 2026-11-23
+
+- **Defaults of the limits** (question 60): one wait for a lock stays at seconds, the attempts together give about fifteen minutes, a statement has no time limit.
+- **The statement of a blocking session** (question 61) is not stored. It can hold data of persons.
+
 ## Rejected alternatives
 
 - **The script computes the real fingerprint** (59): the catalog differs between versions of PostgreSQL, for example the text of a view. A fingerprint computed inside the database would differ for reasons that are no mistake, and applications would refuse to start. The gain is small and the price is high. A database can still be compared with the desired schema from outside, with the reader that the proof loop uses.
