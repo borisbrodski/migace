@@ -5,33 +5,91 @@ status: mixed
 
 # Replaceable objects: views, functions, procedures, triggers
 
-Views, functions, procedures and triggers hold no data. They are replaced as a whole and are never migrated by snippets. **[decided]** In dialects that have them, packages belong to the same group. PostgreSQL has no packages. **[direction]**
+Views, functions, procedures and triggers hold no data. Their source in `schema/` is the truth, and MIG-Ace brings a database to it. They are never migrated by snippets. **[decided]** In dialects that have them, packages belong to the same group. PostgreSQL has no packages. **[direction]**
 
-The simple approach is to drop all views and triggers on every run and create them again. MIG-Ace does not do that, because the script can run at every application start and during a rolling update.
+## The rule
 
-**Source**
+- **Only what changed is replaced.** **[decided]** Dropping everything before a run and creating it again after is not done: the application keeps running during a run, and for that time it would have no views and no triggers; PostgreSQL does not let a function go that an index, a default or a constraint uses; a dropped view loses its permissions; and a second run would change the catalog again.
+- **The ledger remembers what MIG-Ace installed.** **[decided]** For every such object it holds a checksum. An object is replaced when its checksum in the script is another one, or when the object is missing. The definitions on the server are not compared: PostgreSQL writes the text of a view differently from version to version, and such a comparison reports differences that are none.
+- **A parameter of a run replaces every object.** **[decided]** A change that somebody made by hand on the server is not noticed by the checksum. This parameter covers that case, and it gives a run the behaviour of "drop all and create again" where a project wants it.
+- **Materialized views are not replaceable for now.** **[decided]** Replacing one means computing its data again. They are changed by snippets.
 
-- The author writes these objects in any file of `schema/`. No special file layout is required. **[direction]**
-- The migration script does not copy the text of these files. The build reads the definitions from the catalog of the desired database A, in dependency order. Function bodies are stored verbatim by PostgreSQL, so comments in them survive. View text is the form PostgreSQL stores. **[direction]**
-- `mig make` writes no snippet for a difference in a replaceable object. It lists the difference as "replaced by the next run". **[direction]**
+## Where the definitions come from
 
-**What is replaced**
+**[direction]**
 
-- Only objects whose definition on the server differs from the expected one are replaced. An equal object is not touched, so a second run does nothing and takes no locks. **[direction]**
-- The test for "differs" runs on the target server, so both definitions are rendered by the same PostgreSQL version. **[direction]**
-- A replaceable object that is not in the desired schema is dropped, unless it matches a run-time ignore pattern. **[direction]**
+- The author writes these objects in any file of `schema/`, several in one file or one per file. No layout is required.
+- The build splits the files into statements with the parser of the database itself. A statement that creates a view, a function, a procedure or a trigger is taken as the author wrote it. The author's text, with its comments, is what runs on every database.
+- The checksum of an object is computed from the tokens of its statement. White space and comments do not count, so formatting a file replaces nothing.
+- The migration script carries all of them, always: for every object its kind, its name, its checksum and its statement.
 
-**Order within a run** **[direction]**
+## How a change is noticed
 
-1. *Before the snippets:* functions and procedures that do not exist yet are created, with body checking switched off. Snippets can then use them in index expressions, defaults, constraints and data statements.
-2. *During the snippets:* PostgreSQL refuses to drop a column, or to change its type, while a view uses it. Before such a part, the script drops the views that depend on the column, including views built on those views. Nothing else is dropped early.
-3. *After the snippets:* changed functions and procedures are replaced, missing and changed views are created in dependency order, missing and changed triggers are created, and objects that are no longer expected are dropped.
+No two schemas are compared for this. **[direction]**
 
-**Details** **[direction]**
+- At build time nothing is decided. The script only knows the definitions of now.
+- At run time every database decides for itself: the checksum that its ledger holds for an object against the checksum in the script.
+- A database that jumps over several releases needs no history. Its ledger holds the checksum of the release it comes from, the script holds the one of now; they differ, the object is replaced by the definition of now. The definitions in between are never needed.
+- An object that is in the ledger and no longer in the script is dropped. An object of these kinds that is in neither is left alone and reported, unless a project says that MIG-Ace owns every such object of the schema.
+- Objects that belong to an extension are never touched.
 
-- The replacement of one object is one transaction, so the application never sees it missing. The exception is a view dropped in step 2. The build reports that case as a finding for zero-downtime upgrades.
+The proof loop still compares the migrated database with the desired one at its end. That comparison proves the result; it does not steer the run.
+
+## Order within a run
+
+**[direction]**
+
+1. *Before the snippets:* functions and procedures that do not exist yet are created, with body checking switched off. Snippets can then use them in index expressions, defaults and constraints.
+2. *During the snippets:* PostgreSQL refuses to drop a column, or to change its type, while a view uses it. Before such a part, the script drops the views that depend on the column, including views built on those views. Nothing else is dropped early. Because the script carries every view, each of them can be created again at the end.
+3. *After the snippets:* changed functions and procedures are replaced, missing and changed views are created in the order of the files, missing and changed triggers are created, and objects that are no longer expected are dropped.
+
+## What other sessions see
+
+Measured on PostgreSQL 18 with three sessions, 2026-11-23.
+
+| Replacement | A statement of another session that arrives meanwhile |
+|---|---|
+| A view, dropped and created again in one transaction | Waits, then reads the new view. It never fails with "does not exist". |
+| A view, with `create or replace view` | The replacement first waits for every open transaction that has read the view. A reader that arrives while it waits queues behind it. |
+| A trigger, dropped and created again in one transaction | An insert waits, then runs with the new trigger. No row is written without a trigger. |
+| A function, with `create or replace function` | Nothing waits. A call that is running ends with the old body; the next call uses the new one. |
+
+- Nothing fails; statements wait. The wait is as long as the replacement, plus the time the replacement itself waits for open transactions that use the object. The time limits and attempts of a run bound it.
+- One real failure was seen: a prepared statement with `select *` on a view fails once when the columns of the view changed. This is a matter of what the new definition means to the old application, not of the replacement.
+
+## With upgrade phases
+
+**[direction]**
+
+- Created and replaced objects belong to `start`. The new version of the application needs them.
+- Dropped objects belong to `finish`. The old version may use them until then.
+- A view or function that is replaced in `start` therefore serves both versions for a while. A change that the old version cannot live with gets a new name; the old object goes with `finish`.
+
+## Snippets and these objects
+
+A snippet of an old release runs with the functions and views of now when a database jumps. **[open]** (question 65)
+
+- The proof loop and the [upgrade-path simulation](../testing/upgrade-path-simulation.md) run exactly these jumps, so a snippet that breaks is found.
+- A data statement that calls a function of the project can compute something else on a database that jumps than it did on one that was upgraded release by release. No test compares these two.
+- Proposal: a finding when a data statement of a snippet uses a view or a function of `schema/`. Use in an index, a default or a constraint is no finding; there it is needed.
+
+## Several databases
+
+Views, functions and triggers are written in the language of one database. **[direction]** (question 64)
+
+- The desired schema is per database already: the table definitions that an ORM generates differ from database to database.
+- A project with one database keeps `schema/` as it is. A project with several has one folder per database below `schema/`, and may have one folder with files that every database understands.
+- Everything in this note works per database: the split into statements, the checksums, the ledger, the replacement. Only how one object is replaced differs.
+- The build can report an object that exists for one database and is missing for another.
+
+## Details
+
+**[direction]**
+
+- The replacement of one object is one transaction. The exception is a view dropped in step 2 of the order. The build reports that case as a finding for zero-downtime upgrades.
 - Permissions granted on a view are saved before the view is dropped and restored after it is created. A local administrator's grants therefore survive.
 - A function with a changed parameter list is a new function plus a drop of the old one. If an index, default or constraint depends on the old one, a snippet has to change that object first. The proof loop reports it.
-- Triggers that MIG-Ace creates itself for expand and contract belong to those operations and are not part of the desired schema.
+- A changed function that an index uses is replaced like any other. The values in the index were computed by the old body; the build reports this case.
+- Triggers that MIG-Ace creates itself for an action with phases belong to that action and are not part of the desired schema.
 - Types, domains, extensions and sequences are not replaceable. They are changed by snippets.
-- Whether materialized views are replaceable is open, because replacing one means recomputing its data.
+- `mig make` writes no snippet for a difference in a replaceable object. It lists the difference as "replaced by the next run".

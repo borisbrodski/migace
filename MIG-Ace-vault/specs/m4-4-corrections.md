@@ -12,7 +12,7 @@ The findings of the [review of M3.1 to M4.3](../journal/2026-11-22-review-of-m3-
 
 ## Non-goals
 
-- Types of several words (question 45, not answered).
+- The renaming of a part or a snippet (question 63, not answered).
 - Install, adopt and replaceable objects: M4.5.
 - A command that compares a database with the desired schema from outside.
 
@@ -87,6 +87,9 @@ Finding 4: after a good run the session keeps the changed search path and eleven
 
 ### Conditions
 
+- **M4.4-AC-39** `when` is no key of a snippet any more. The error proposes to put the condition on the parts, with a name under `let` when several parts share it. The examples of the catalogue, of the bookshop and of the website are changed in the same commit.
+- **M4.4-AC-40** A single part can be `retired`, with a reason. It never runs and is recorded as retired. A condition `ran <slug>.<part>` can name it; it is true on a database where the part ran before it was retired.
+- **M4.4-AC-41** `ran` names a part. A condition that names a whole snippet is an error that lists the parts of that snippet.
 - **M4.4-AC-24** A condition `ran <slug>.<part>` that names a part of a later snippet, or a later part of the same snippet, is an error at build time. The message names both places.
 - **M4.4-AC-25** A run in which every part is done or skipped has nothing pending and stores the expected fingerprint.
 - **M4.4-AC-26** The `when` of a part that is half done is not decided again. A test changes the state so that the condition would now be false, and the part still ends.
@@ -104,6 +107,11 @@ Finding 4: after a good run the session keeps the changed search path and eleven
 - **M4.4-AC-32** Mutation testing runs on a developer's computer with limited memory: the number of test processes comes from a setting with a default of 2, earlier results are used again so that only changed code is tested, and every package can be run alone. The peak of memory with the defaults is measured and written into the journal.
 - **M4.4-AC-33** The workflow has a job for mutation testing that starts once a week and by hand, on Linux, one package per job, with a time limit. It stores the reports and fails no build.
 - **M4.4-AC-34** The list "Stable state" in [Stable state and release](../engineering/stable-state-and-release.md) is run once from the first step to the last. A step that does not work as written is corrected in the note.
+
+### Types
+
+- **M4.4-AC-42** MigQL accepts the types of standard SQL whose names are several words: `double precision`, `timestamp with time zone`, `timestamp without time zone`, `time with time zone`, `time without time zone`, `character varying`, also with a number in its place, as in `timestamp(6) with time zone` and `character varying(40)`. The short names stay as aliases. [Types](../migql/types.md) lists each name with its aliases and its PostgreSQL form.
+- **M4.4-AC-43** A type and its alias are one type: `column-ensure` with `timestamptz` on a column that was created as `timestamp with time zone` does nothing. Together with the actions: every type of the list is accepted as the parameter `type`, in the form with `{ … }` where it has no comma.
 
 ### Smaller points
 

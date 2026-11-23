@@ -35,6 +35,9 @@ The reference runner reports `column "x" does not exist`. The Java runner report
 
 - **Defaults of the limits** (question 60): one wait for a lock stays at seconds, the attempts together give about fifteen minutes, a statement has no time limit.
 - **The statement of a blocking session** (question 61) is not stored. It can hold data of persons.
+- **Types of several words** (question 45): MigQL accepts what most people know, the forms of standard SQL such as `timestamp with time zone` and `double precision`, and the short names as aliases.
+- **Conditions** (question 47): a condition belongs to one part. `when` on a whole snippet is removed, because it was decided again for every part and an early part could switch off the later ones. A single part can be `retired` and can still be named by a condition. `ran` names a part and never a whole snippet: a snippet can have parts that failed or did not run yet.
+- **Views, functions, procedures, triggers** (question 62): only what changed is replaced; the ledger remembers a checksum for each; a parameter of a run replaces all; materialized views are left out for now. See [Replaceable objects](../architecture/replaceable-objects.md).
 
 ## Rejected alternatives
 
@@ -44,5 +47,5 @@ The reference runner reports `column "x" does not exist`. The Java runner report
 
 ## Not answered yet
 
-- Question 45, types of several words.
-- Question 47, the `when` of a part that is half done. What is built stays: it is not asked again.
+- Question 63, a part or a snippet that gets another name.
+- Questions 64 and 65, on replaceable objects.

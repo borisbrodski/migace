@@ -9,7 +9,7 @@ status: mixed
 
 - The desired state is the set of SQL files in `schema/`, applied in lexical order to an empty scratch database. **[decided]**
 - Generated files (for example `101-generated.sql` from Hibernate) and hand-written files (`102-…`, `103-…`) are peers. Several generated files are allowed. Whether a file was generated or written by hand makes no difference to the comparison. **[decided]**
-- Views, functions, procedures and triggers live in `schema/` and are recreated at the end of every migration run. **[decided]** Details are in [Replaceable objects](replaceable-objects.md).
+- Views, functions, procedures and triggers live in `schema/`. A run replaces those that changed. **[decided]** Details are in [Replaceable objects](replaceable-objects.md).
 - **Staleness check:** the build fails when the committed schema snapshot no longer matches what `schema/` produces. This holds for regenerated files and for manual edits to hand-written files alike. **[decided]**
 
 ## Meta-model
