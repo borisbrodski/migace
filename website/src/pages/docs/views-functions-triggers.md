@@ -79,9 +79,8 @@ You can keep all views in one file or one view per file. MIG-Ace splits the file
 
 ## What happens in a run
 
-1. **Before the snippets**, functions and procedures that are new are created. A snippet can then use them in an index, a default or a constraint.
-2. **The snippets run.**
-3. **After the snippets**, changed functions are replaced, views and triggers are created or replaced, and objects you removed from the schema folder are dropped.
+1. **The snippets run.** The views, functions and triggers of the database are still the old ones.
+2. **After the snippets**, changed functions are replaced, views and triggers are created or replaced, and objects you removed from the schema folder are dropped.
 
 Only objects that changed are touched. If nothing changed, nothing happens: an application that runs the script at every start loses no time and blocks nobody.
 
@@ -155,11 +154,11 @@ An administrator at Harbour Books gave the reporting user access to `v_order_tot
 
 Triggers stay active while snippets run. A data part that changes a million rows in `order_item` fires `trg_order_item_total` a million times. Keep that in mind when you plan a large [data migration](/docs/data-migrations/).
 
-## Do not call them from a data part
+## Snippets do not use them
 
-When a database jumps over several releases, an old snippet runs with the functions and views of today. A data part that calls a function of yours can then compute something else than it did when the snippet was new.
+While the snippets run, the views and functions of a database are those of the release it comes from. A snippet that reads a view or calls a function of yours would work with whatever that database happens to have.
 
-MIG-Ace reports a data statement that uses a view or a function from the schema folder. Write the logic into the statement itself. Using a function in an index, a default or a constraint is fine.
+So a snippet may not name a view, a function or a procedure from the schema folder. The build refuses it. Write the logic into the statement itself.
 
 ## Objects your administrators add
 

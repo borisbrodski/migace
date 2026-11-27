@@ -118,7 +118,7 @@ When the four kinds are not enough, write a full condition:
 
 ## Keep the logic in the statement
 
-Do not call a function or read a view of your own project in a data part. A database that jumps over several releases runs this part with the functions and views of today, which may no longer do what they did when you wrote it. MIG-Ace reports such a statement. Functions in an index, a default or a constraint are fine. See [Views, functions and triggers](/docs/views-functions-triggers/#do-not-call-them-from-a-data-part).
+A data part may not call a function or read a view of your own project. These are brought up to date after all snippets, so while a data part runs, the database still has the old ones. The build refuses such a statement. See [Views, functions and triggers](/docs/views-functions-triggers/#snippets-do-not-use-them).
 
 ## Data parts are tested on data
 

@@ -27,7 +27,7 @@ The language, the generation of SQL for PostgreSQL, the migration script with it
 | A YAML schema for snippet files, for editors without the MIG-Ace extension | Built |
 | Conditions on parts only, `retired` on a single part | Specified |
 | [Types](/docs/statements/#types) with names of several words, and their short names | Specified |
-| `former-names` for a renamed part or snippet | Designed |
+| `former-names` for a renamed part or snippet | Specified |
 | Conditions that name a release: `ran … from 1.2.0` | Designed |
 | `batch` and `expect-rows` for large [data migrations](/docs/data-migrations/) | Designed |
 
@@ -49,8 +49,9 @@ The language, the generation of SQL for PostgreSQL, the migration script with it
 | Tested on PostgreSQL 15 and 18: two runs at once, a connection lost after any statement, waiting for locks | Built |
 | [One schema](/docs/running-migrations/#one-schema-and-nothing-else) per run, and a session that is left as it was | Specified |
 | Every attempt in the ledger, also one that never ended; [limits](/docs/running-migrations/#limits) as parameters | Specified |
-| [Views, functions and triggers](/docs/views-functions-triggers/) replaced by a run | Designed |
-| [Installing](/docs/first-run/) on an empty database, adopting an existing one | Designed |
+| [Views, functions and triggers](/docs/views-functions-triggers/) replaced by a run | Specified |
+| [Installing](/docs/first-run/) on an empty database | Specified |
+| Adopting a database that existed before | Designed, after the first version |
 | [Releases](/docs/releases-and-branches/), hotfix branches, protection of released snippets | Designed |
 | The phases `start` and `finish` for [upgrades without downtime](/docs/zero-downtime/) | Designed |
 
