@@ -90,12 +90,16 @@ Prints every setting MIG-Ace will use, and the file or variable it comes from. S
 The runner is the small Java library `migace-runner`. It is the only piece that reaches the production database. Use it from your application with `MigAce.execFromJar(...)`, or as a program:
 
 ```text
-java -jar migace-runner.jar --url <jdbc-url> --user <user> [options] <script>
+java -cp migace-runner.jar:<jdbc-driver>.jar org.openbrod.migace.Main \
+    --url <jdbc-url> --user <user> [options] <script>
 ```
+
+The JDBC driver of your database is not part of the runner. The password is read from the variable `MIGACE_PASSWORD`, or asked for.
 
 | Option | Meaning |
 |---|---|
-| `--ignore "index:dba_*"` | Ignore additional objects that match the pattern in the final check. |
+| `--schema <schema>` | The schema to migrate. A run never touches another one. |
+| `--param <name>=<value>` | A parameter of the run, such as `lock_timeout=2min` or `extra_schemas=public`. See [Running migrations](/docs/running-migrations/#limits). |
 | `--phase start` or `--phase finish` | Run one phase of an upgrade without downtime. Without the option the script does everything. See [Zero-downtime changes](/docs/zero-downtime/). |
 | `--adopt <release>` | Put a database that existed before MIG-Ace under its control. See [New and existing databases](/docs/first-run/). |
 | `--maintenance` | Allow snippets marked `requires-downtime`. |

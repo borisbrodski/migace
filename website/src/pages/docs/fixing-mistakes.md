@@ -80,10 +80,10 @@ A repair snippet runs only where it is needed.
 repair: 20260622-0900-repair-order-status
 uid: 01JG8T3B6X9D2F5H7K1M4Q0W8Z
 doc: Orders wrongly set to UNKNOWN by release 1.2.0 get their real status
-when: ran order-status.link-status from 1.2.0
 
 parts:
   - relink:
+      when: ran order-status.link-status from 1.2.0
       do: |
         update orders o
         set status_id = (select s.id from order_status s
@@ -93,7 +93,9 @@ parts:
                       where s.code = upper(trim(o.status)))
 ```
 
-The condition is true only for databases that ran `link-status` in the version shipped with 1.2.0. That is Riverside Books. At the other two stores the snippet is skipped.
+The condition is true only for databases that ran `link-status` in the version shipped with 1.2.0. That is Riverside Books. At the other two stores the part is skipped.
+
+A condition always stands on a part and names a part. See [Conditions](/docs/conditions/).
 
 The repair is possible because release 1.2.0 kept the old `status` column. Removing an old column one release later is a good habit for exactly this reason.
 
@@ -128,6 +130,51 @@ parts:
 
 Databases that have not run it never will. Databases that have run it keep their record. The file stays, because those records refer to it.
 
+## A part that should never run again
+
+Often only one part of a snippet was the bad idea. Retire that part and leave the rest.
+
+```yaml
+parts:
+  - status-table:
+      do: create table order_status (id bigint primary key, code varchar(20) not null)
+
+  - guess-status:
+      retired: Guessed the status from free text and was wrong too often. See the repair of 20260622.
+      do: |
+        update orders set status_id = (select id from order_status where code = 'UNKNOWN')
+        where status_id is null
+```
+
+The part never runs again on any database. A condition in another snippet can still name it: `ran order-status.guess-status` stays true where it ran, and that is how a repair finds those databases.
+
+## Renaming a part or a snippet
+
+The ledger knows a part by its snippet and its name. If you simply change the name, the part looks new and would run a second time.
+
+Say what the old name was:
+
+```yaml
+  - link-status:
+      former-names: [link-staus]
+      do: |
+        update orders o
+        set status_id = (select s.id from order_status s where s.code = upper(trim(o.status)))
+```
+
+- Databases that ran the part under its old name know it as done.
+- Conditions in other snippets that still say `ran order-status.link-staus` keep working. This matters for released snippets, which you do not edit.
+
+A snippet has the same key for its own name, without the date and time:
+
+```yaml
+migration: 20260518-1000-order-status
+uid: 01JG0V7C9E1G3J5L7N9Q1S3U5W
+former-names: [order-state]
+```
+
+If you forget, MIG-Ace notices. A database that has a record of a part the script does not know, in a snippet with a part that has not run, stops before that snippet and tells you to add `former-names`. The build makes the same check against your releases.
+
 ## Moving a snippet
 
 Snippets run in name order. To move one, rename the file and the `migration` line.
@@ -158,6 +205,7 @@ The script refuses to run such a snippet unless you start it with `--maintenance
 | A released part is wrong | Fix it and add `changed: <reason>` |
 | Databases already ran the wrong part | A `repair` snippet with `when: ran …` |
 | A repair is impossible without a human | `stop` with instructions |
-| A snippet should never run again | `retired` |
+| A snippet or one part should never run again | `retired` |
+| A part or a snippet gets a new name | `former-names` |
 | A snippet must run earlier or later | Rename it |
 | A repair needs the application stopped | `requires-downtime` |

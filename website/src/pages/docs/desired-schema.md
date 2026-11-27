@@ -20,6 +20,8 @@ MIG-Ace runs these files in name order on an empty database. The result is the d
 
 It makes no difference whether a file was generated or written by hand. What counts is the database that results.
 
+A project for one database has this one folder. A project that supports several databases has one folder per database below `schema/`, because Hibernate writes different table definitions for each, and a function for one database does not run on another.
+
 ## Getting the DDL from your entities
 
 The file `101-generated.sql` comes from Hibernate. Schema generation is a standard feature of Jakarta Persistence, switched on with two properties:
@@ -107,19 +109,16 @@ This applies to the generated file and to hand-written files alike. In a code re
 The fingerprint is a hash of the schema model. Two databases with the same fingerprint have the same schema.
 
 - The build computes the fingerprint of the desired schema.
-- At the end of every migration run, the script computes the fingerprint of the real database and compares the two.
+- The [proof loop](/docs/proof-loop/) shows, in the same build, that the migration script produces exactly this schema.
+- A migration run that ends with nothing left to do records that fingerprint in the database.
 - The application checks it at start-up. See [Running migrations](/docs/running-migrations/).
 
-The fingerprint is computed from the real database, not copied from a file. If someone changed a table by hand, the check notices.
+The fingerprint is computed in your build, not on the production server. PostgreSQL describes some objects differently from version to version, so a fingerprint computed on the server could differ without anything being wrong. Build on the major version that production runs.
 
 ## Objects your administrators add
 
-A database administrator at one store may add an index to speed up a local report. That should not stop the application.
+A database administrator at one store may add an index to speed up a local report. That does not stop the application, and you do not have to declare it.
 
-Tell MIG-Ace which extra objects to ignore when you run the script:
+MIG-Ace changes what your snippets name, and it replaces or removes only the views, functions and triggers that it installed itself. An extra index or view of an administrator is left alone.
 
-```text
---ignore "index:dba_*"
-```
-
-Ignored objects may be *added*. An object the application expects can never be ignored.
+One case needs care: if a snippet changes or drops a column that an administrator's own view uses, PostgreSQL forces that view to go. The run reports it by name, so that the administrator can create it again.

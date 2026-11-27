@@ -116,6 +116,10 @@ When the four kinds are not enough, write a full condition:
                     where not exists (select 1 from order_status s where s.id = o.status_id))
 ```
 
+## Keep the logic in the statement
+
+Do not call a function or read a view of your own project in a data part. A database that jumps over several releases runs this part with the functions and views of today, which may no longer do what they did when you wrote it. MIG-Ace reports such a statement. Functions in an index, a default or a constraint are fine. See [Views, functions and triggers](/docs/views-functions-triggers/#do-not-call-them-from-a-data-part).
+
 ## Data parts are tested on data
 
 The proof loop runs every data part on an older release with rows in it, and on the [test data](/docs/test-data/) of earlier snippets. A data part that only works on an empty table does not pass the build.

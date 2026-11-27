@@ -65,7 +65,7 @@ The script that MIG-Ace builds from your snippets can be run again and again. Pa
 
 1. The build produces `migration-script-pg.sql` and puts it into your JAR.
 2. Your application runs it at start-up with one line of Java, or you run it as a separate step before deployment.
-3. At the end, the script reads the real schema, computes its fingerprint and compares it with the expected one.
+3. At the end, the script replaces the views, functions and triggers that changed, and records the fingerprint of the schema it produces. Your build has proven that it does produce it.
 4. An application that finds the wrong schema refuses to start.
 
 All migration logic is in the script. The Java library only sends it to the database.

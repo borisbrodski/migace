@@ -221,6 +221,7 @@ pre::-webkit-scrollbar-thumb:hover { background: var(--text-3); }
 }
 :root[data-theme='light'] .uc-banner { background: #f6c177; }
 .uc-banner b { letter-spacing: .08em; }
+.uc-banner a { color: inherit; text-decoration: underline; text-underline-offset: 2px; white-space: nowrap; }
 
 /* ---------- inline code ---------- */
 :not(pre) > code {

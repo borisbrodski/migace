@@ -9,6 +9,7 @@ export const docsNav: NavGroup[] = [
       { title: 'How MIG-Ace works', href: '/docs/' },
       { title: 'Getting started', href: '/docs/getting-started/' },
       { title: 'The bookshop example', href: '/docs/bookshop/' },
+      { title: 'What exists today', href: '/docs/status/' },
     ],
   },
   {

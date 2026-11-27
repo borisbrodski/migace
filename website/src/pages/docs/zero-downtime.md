@@ -95,9 +95,9 @@ Version 1.3.0 of the application uses `email`. Version 1.2.0 keeps using `mail`.
 ## Running the two phases
 
 ```text
-$ java -jar migace-runner.jar --phase start  --url ... migration-script-pg.sql
+$ java -cp migace-runner.jar:postgresql.jar org.openbrod.migace.Main --phase start  --url ... migration-script-pg.sql
   ... roll out the new application version ...
-$ java -jar migace-runner.jar --phase finish --url ... migration-script-pg.sql
+$ java -cp migace-runner.jar:postgresql.jar org.openbrod.migace.Main --phase finish --url ... migration-script-pg.sql
 ```
 
 - Until you run `finish`, you can go back to the old application version. The database still works with it.
@@ -105,6 +105,8 @@ $ java -jar migace-runner.jar --phase finish --url ... migration-script-pg.sql
 - An application that runs the script itself when it starts must pass the phase too, because several versions start during a rolling upgrade.
 
 The build proves both states: after `start` the schema works for the old and the new version, and after `finish` it is exactly the schema your application expects.
+
+Views, functions and triggers follow the same idea. New and changed ones are installed in `start`, because the new version needs them. Ones you removed are dropped in `finish`, because the old version may still use them. A view that you change therefore has to work for both versions for a while; if it cannot, give the new one a new name. See [Views, functions and triggers](/docs/views-functions-triggers/).
 
 ## The application check
 

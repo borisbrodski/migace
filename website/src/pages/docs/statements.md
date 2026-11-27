@@ -55,6 +55,25 @@ Remove a column:
       do: alter table orders drop column status
 ```
 
+## Types
+
+Write a type the way you know it from SQL. The names of standard SQL work, and so do the short names that PostgreSQL users are used to. Both mean the same type.
+
+| Standard name | Also accepted |
+|---|---|
+| `integer` | `int`, `int4` |
+| `bigint` | `int8` |
+| `numeric(10,2)` | `decimal(10,2)` |
+| `double precision` | `float8` |
+| `character varying(40)` | `varchar(40)` |
+| `boolean` | `bool` |
+| `timestamp without time zone` | `timestamp` |
+| `timestamp with time zone` | `timestamptz` |
+
+A number can stand where SQL puts it: `timestamp(6) with time zone`.
+
+A name that MIG-Ace does not know is taken as a type of your own schema, such as an enumeration, exactly as written.
+
 ## When one statement is not enough
 
 A statement under `do` runs exactly as you wrote it. For some changes that is not what you want on a table that is in use: making a column mandatory, adding a foreign key, renaming a column while an older version of the application still runs.
@@ -175,6 +194,8 @@ Text needs single quotes. A word without quotes is a column name, so `code: OPEN
 ## Your snippets keep their meaning
 
 A snippet you write today is run by databases for years. An update of MIG-Ace therefore never changes what a released statement does: the same statement keeps producing SQL with the same effect.
+
+MIG-Ace also keeps a checksum of every part, to notice when a released part was edited. The checksum looks only at what you wrote, not at how it is formatted: white space, comments and the case of keywords do not count. It carries the version of its rule, as in `v1:9f3e…`, and a rule is never changed afterwards. An update of MIG-Ace therefore never makes an untouched part look changed.
 
 ## What the statement language leaves out
 

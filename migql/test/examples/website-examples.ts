@@ -19,6 +19,20 @@ export interface WebsiteExample {
 
 const MINIMAL_NAME = 'migration: 20260101-0900-example\n';
 
+/**
+ * Examples that show syntax which is decided and not built yet. The text is a piece of the example,
+ * the reason names the spec or the decision. An entry is removed when the syntax is built.
+ */
+export const NOT_BUILT_YET: Array<{ contains: string, reason: string }> = [
+    { contains: 'retired: Guessed the status', reason: 'retired on a part, M4.4-AC-40' },
+    { contains: 'former-names:', reason: 'former-names, decided on 2026-11-27, no spec yet' },
+];
+
+/** The reason why an example cannot be parsed yet, if there is one. */
+export function notBuiltYet(example: WebsiteExample): string | undefined {
+    return NOT_BUILT_YET.find(entry => example.text.includes(entry.contains))?.reason;
+}
+
 /** Reads every YAML example of the website. */
 export function websiteExamples(): WebsiteExample[] {
     return pages(PAGES).flatMap(file => {

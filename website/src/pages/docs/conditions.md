@@ -1,7 +1,7 @@
 ---
 layout: ../../layouts/Doc.astro
 title: Conditions
-description: Running a part or a snippet only when it is needed.
+description: Running a part only when it is needed.
 lead: Not every database is in the same state. A condition lets a part run only where it is needed.
 ---
 
@@ -56,6 +56,12 @@ If the condition is false, the part is skipped and recorded as skipped. That is 
 
 This is true if this database ran the part `link-status` in the version that release 1.2.0 shipped. The snippet is named without the date and time at the start of its file name. The reference therefore still works after the snippet was [moved](/docs/fixing-mistakes/). It is how a [repair](/docs/fixing-mistakes/) finds the databases that need it.
 
+Three rules keep such a reference clear:
+
+- **It names one part, never a whole snippet.** A snippet can have a part that failed and parts that did not run yet, so "the snippet ran" has no clear meaning.
+- **It can name a part that was [retired](/docs/fixing-mistakes/#a-part-that-should-never-run-again) or [renamed](/docs/fixing-mistakes/#renaming-a-part-or-a-snippet).** The reference stays true on the databases where that part ran.
+- **It cannot name a part that comes later.** The build reports it. A part that waits for a later one would run out of order.
+
 You can combine conditions with `and`, `or` and `not`.
 
 ## Prefer the state over the history
@@ -89,21 +95,44 @@ parts:
       do: alter table orders drop column status
 ```
 
-## A condition on the whole snippet
+## A condition belongs to one part
 
-A `when` at the top applies to every part.
+There is no `when` for a whole snippet. Every part decides for itself, once, just before it starts.
+
+The reason: an early part often changes the very thing the condition tests. A snippet that copies values out of `orders.status` and then drops the column would switch off its own later parts if one condition were asked again for each of them.
+
+When several parts need the same condition, name it under `let` and use the name on each part. A [repair](/docs/fixing-mistakes/) looks like this:
 
 ```yaml
 repair: 20260622-0900-repair-order-status
 uid: 01JG8T3B6X9D2F5H7K1M4Q0W8Z
-when: ran order-status.link-status from 1.2.0
+
+let:
+  ran_wrong_link: ran order-status.link-status from 1.2.0
+
+parts:
+  - relink:
+      when: ran_wrong_link
+      do: |
+        update orders o
+        set status_id = (select s.id from order_status s
+                         where s.code = upper(trim(o.status)))
+        where o.status_id = (select id from order_status where code = 'UNKNOWN')
 ```
+
+## Decided once
+
+The condition of a part is decided before the part starts, and not again.
+
+This matters for an [action](/docs/actions/) that runs several statements. If `column-set-not-null` stops at its second statement, the next run continues there. It does not ask the condition again, because a part that has started must be finished.
 
 ## Skipped is checked again
 
 A part that ran is done for good. A part that was skipped is different: MIG-Ace evaluates its condition again on the next run.
 
 So a repair that was not needed yesterday still runs tomorrow if the database then needs it.
+
+A skipped part is not unfinished work. It is a part that had nothing to do on this database, and the run counts as complete.
 
 ## Do not repeat the statement
 

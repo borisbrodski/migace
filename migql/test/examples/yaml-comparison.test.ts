@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, test } from 'vitest';
 import { createMigql } from '../support.js';
 import { migqlStructure, yamlStructure } from './structure.js';
-import { websiteExamples } from './website-examples.js';
+import { notBuiltYet, websiteExamples } from './website-examples.js';
 
 const { services } = createMigql();
 
@@ -20,7 +20,7 @@ function catalogueExamples(): Array<{ title: string, text: string }> {
 
 const examples = [
     ...catalogueExamples(),
-    ...websiteExamples().filter(example => example.kind !== 'settings'),
+    ...websiteExamples().filter(example => example.kind !== 'settings' && !notBuiltYet(example)),
 ];
 
 // M1-AC-30

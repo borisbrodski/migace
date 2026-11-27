@@ -8,9 +8,10 @@ lead: This page follows one small change through the whole process. You change a
 ## What you need
 
 - A Jakarta EE or other Java project that uses Hibernate, built with Gradle.
-- PostgreSQL 16 or newer in production.
+- PostgreSQL in production, in a version that the PostgreSQL project still supports.
+- The same major version of PostgreSQL installed on your computer. See [where PostgreSQL comes from](/docs/configuration/#where-postgresql-comes-from).
 
-You do not need Docker or a test database server. MIG-Ace brings its own PostgreSQL for the proof.
+You do not need Docker, and you do not set up a test database server. MIG-Ace starts a temporary server from your installation for the proof and removes it afterwards.
 
 ## Add MIG-Ace to the build
 

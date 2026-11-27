@@ -23,10 +23,12 @@ Because the expected schema comes from a real PostgreSQL database, `mig make` se
 | A new optional field | `alter table … add column` |
 | A new mandatory field | Add the column, fill existing rows, then make it mandatory |
 | A longer `length` | A statement that widens the column |
-| `nullable = false` on an existing field | Fill empty rows, then `set not null` |
-| A new `@ManyToOne` | The column, the foreign key and an index |
+| `nullable = false` on an existing field | Fill empty rows, then the action `column-set-not-null` |
+| A new `@ManyToOne` | The column, the action `constraint-add-foreign-key` and an index |
 | A new index or constraint in the schema folder | `create index` or `add constraint`, with its name |
 | A removed field | `alter table … drop column` |
+
+`mig make` cannot see whether a table has rows, so it always assumes that it has. Where an [action](/docs/actions/) exists for a change, it writes the action and not the plain statement.
 
 Every generated constraint and index gets a name, so later snippets can refer to it.
 

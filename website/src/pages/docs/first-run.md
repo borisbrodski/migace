@@ -20,7 +20,7 @@ In all three situations you run the same script in the same way.
 A fourth store, Lakeside Books, starts with release 1.4.0 of the bookshop. Its database is empty.
 
 ```text
-$ java -jar migace-runner.jar \
+$ java -cp migace-runner.jar:postgresql.jar org.openbrod.migace.Main \
     --url jdbc:postgresql://db.lakeside.example/bookshop --user bookshop_owner \
     migration-script-pg.sql
 
@@ -29,7 +29,7 @@ Empty database. Installing release 1.4.0.
   tables, indexes, sequences      created
   views, functions and triggers   created
   14 snippets                     recorded as included
-Schema fingerprint 4be1…07c2 matches.
+Schema fingerprint 4be1…07c2 recorded.
 ```
 
 Three things happened:
@@ -81,7 +81,7 @@ Known releases: 1.0.0
 You tell it once which release the database is on:
 
 ```text
-$ java -jar migace-runner.jar \
+$ java -cp migace-runner.jar:postgresql.jar org.openbrod.migace.Main \
     --url jdbc:postgresql://db.riverside.example/bookshop --user bookshop_owner \
     --adopt 1.0.0 migration-script-pg.sql
 
@@ -121,6 +121,8 @@ You adopt a database once. After that it has a ledger, and `--adopt` is ignored.
 ## Two runs at the same time
 
 Three application instances start together, and each one calls `MigAce.execFromJar(...)`. The script takes a lock in the database before it does anything. One instance migrates. The other two wait, find nothing left to do, and start.
+
+The lock belongs to one schema of one database. Runs on two different schemas do not wait for each other.
 
 ## What the database user needs
 

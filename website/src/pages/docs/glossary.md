@@ -7,15 +7,18 @@ lead: The terms used on this site, in alphabetical order.
 
 | Term | Meaning |
 |---|---|
+| **Action** | A change for which MIG-Ace chooses the statements, such as making a column mandatory without a long lock. It stands in a part in the place of `do`. See [Actions](/docs/actions/). |
 | **Adopt** | Put a database that existed before MIG-Ace under its control, at a release you name. See [New and existing databases](/docs/first-run/). |
 | **Baseline** | The database of one earlier release, with data. The [proof loop](/docs/proof-loop/) starts its migration from a baseline. |
 | **Batch** | A portion of rows. A data part with `batch` changes one portion at a time and saves after each. See [Data migrations](/docs/data-migrations/). |
+| **Checksum** | A short value computed from what you wrote in a part. MIG-Ace uses it to notice that a released part was edited. Formatting does not change it. |
 | **Data migration** | A change to rows, not to the structure of a table. It consists of one or more data parts (DML). See [Data migrations](/docs/data-migrations/). |
 | **Data part** | A part that changes rows with `insert`, `update` or `delete` (DML). |
 | **DDL** | Data definition language: the SQL statements that change structure, such as `create table` and `alter table`. Most parts of a snippet contain DDL. |
 | **Desired schema** | The schema your application expects, created by the files in the [schema folder](/docs/desired-schema/). |
 | **DML** | Data manipulation language: the SQL statements that change rows, such as `insert`, `update` and `delete`. A data part contains DML. |
-| **Fingerprint** | A hash of the schema. Equal fingerprints mean equal schemas. |
+| **Fingerprint** | A hash of the schema. Equal fingerprints mean equal schemas. It is computed in your build, for the major version of PostgreSQL you use. |
+| **Former name** | A name that a part or a snippet had before it was renamed. Listed under `former-names`, so that the ledger and conditions still find it. |
 | **Hotfix** | A small release for an older version, usually for one customer. See [Releases and branches](/docs/releases-and-branches/). |
 | **Included** | The ledger state of a snippet that never ran because the database was installed or adopted with its changes already in place. |
 | **Ledger** | The tables in your database, named `mig_…`, that record every part that ran. See [Running migrations](/docs/running-migrations/). |
@@ -24,7 +27,7 @@ lead: The terms used on this site, in alphabetical order.
 | **Migration script** | The single SQL file that MIG-Ace builds from all snippets. This is what you run in production. |
 | **MigQL** | The language of snippets: the file format and the SQL-like statements in `do` keys. Snippet files end in `.migql.yaml`. See [Statements](/docs/statements/). |
 | **Native SQL** | SQL in PostgreSQL's own dialect, as opposed to the MIG-Ace statement language. See [Native SQL](/docs/native-sql/). |
-| **Part** | One named step in a snippet. A part holds exactly one operation. |
+| **Part** | One named step in a snippet. A part holds exactly one operation: one statement, or one action. |
 | **Phase** | `start` or `finish`. Parts of the start phase are safe while an older application version still runs. Parts marked `phase: finish` are not. See [Zero-downtime changes](/docs/zero-downtime/). |
 | **Project file** | `migace.yaml`, the settings your whole team shares. See [Configuration](/docs/configuration/). |
 | **Proof loop** | The build step that migrates a baseline and compares the result with the desired schema. |

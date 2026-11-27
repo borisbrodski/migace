@@ -108,11 +108,11 @@ You do not have to store a database dump for every release. MIG-Ace can rebuild 
 
 ## The temporary database
 
-The proof loop needs a PostgreSQL to work in. MIG-Ace starts its own for the duration of the build and removes it afterwards.
+The proof loop needs a PostgreSQL to work in. MIG-Ace starts a temporary server from the PostgreSQL that is installed on the computer, for the duration of the build, and removes it afterwards.
 
 - No Docker is required.
-- It works on locked-down company laptops and inside CI containers.
-- It uses the same major PostgreSQL version as your production database, which you set in `migace.yaml`.
+- MIG-Ace downloads no database. You install PostgreSQL from an [official source](/docs/configuration/#where-postgresql-comes-from).
+- Use the major version of your production database. PostgreSQL describes some objects differently from version to version, so a proof on another major version proves less.
 
 If your build machine may not start programs, you can point MIG-Ace at a PostgreSQL server instead. It then creates two temporary schemas there. Both choices are settings of your own computer, see [Configuration](/docs/configuration/).
 

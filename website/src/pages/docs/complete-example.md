@@ -101,7 +101,7 @@ testdata:
 
 - **No part removes `orders.status`.** The old column stays for one more release. If the mapping turns out to be wrong, the information is still there. [Fixing mistakes](/docs/fixing-mistakes/) tells that story.
 - **No conditions.** Every part is needed everywhere, and parts that already ran are skipped anyway.
-- **No view is touched.** Views that use `orders` are recreated at the end of the run from the [schema folder](/docs/desired-schema/).
+- **No snippet for views.** A view that changed is replaced at the end of the run from the [schema folder](/docs/desired-schema/); the others are not touched.
 
 ## Proving it
 

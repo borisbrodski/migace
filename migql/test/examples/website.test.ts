@@ -1,14 +1,8 @@
 import { describe, expect, test } from 'vitest';
 import { createMigql } from '../support.js';
-import { websiteExamples } from './website-examples.js';
+import { notBuiltYet, websiteExamples } from './website-examples.js';
 
 const { parse } = createMigql();
-
-/**
- * Examples that show syntax the vault does not define. They are skipped until the open
- * question is answered. The text is a piece of the example, the reason names the question.
- */
-const UNDEFINED_SYNTAX: Array<{ contains: string, reason: string }> = [];
 
 const examples = websiteExamples();
 const snippets = examples.filter(example => example.kind !== 'settings');
@@ -19,13 +13,13 @@ describe('Examples of the website', () => {
         const count = (kind: string) => examples.filter(example => example.kind === kind).length;
 
         expect({ snippet: count('snippet'), parts: count('parts'), keys: count('keys'), settings: count('settings') })
-            .toEqual({ snippet: 17, parts: 41, keys: 14, settings: 11 });
+            .toEqual({ snippet: 18, parts: 43, keys: 14, settings: 11 });
     });
 
     for (const example of snippets) {
-        const skipped = UNDEFINED_SYNTAX.find(entry => example.text.includes(entry.contains));
-        if (skipped) {
-            test.skip(`${example.title} (${skipped.reason})`, () => undefined);
+        const reason = notBuiltYet(example);
+        if (reason) {
+            test.skip(`${example.title} (${reason})`, () => undefined);
             continue;
         }
         test(`${example.title} parses`, async () => {

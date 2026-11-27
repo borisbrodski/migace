@@ -53,7 +53,7 @@ reference-tables:
 ```yaml
 # ~/.config/migace/config.yaml
 postgresql:
-  binaries: /opt/postgresql/17    # use this PostgreSQL, download nothing
+  binaries: /opt/postgresql/17    # use this PostgreSQL installation
 
 llm:
   api-key: your-key
@@ -70,12 +70,11 @@ The file is optional. Without it, MIG-Ace uses the defaults.
 
 | Setting | Meaning | Default |
 |---|---|---|
-| `postgresql.binaries` | The folder of a PostgreSQL that is already installed. | MIG-Ace downloads the right version once |
-| `postgresql.download-from` | A mirror inside your company for that download. | the public download |
+| `postgresql.binaries` | The folder of the PostgreSQL installation to use. | found on the computer, see below |
 | `postgresql.server` | The address of a PostgreSQL server to use when the machine may not start programs. | none |
 | `llm.endpoint`, `llm.model` | The LLM that names and groups [generated snippets](/docs/generated-snippets/). | no LLM |
 | `llm.api-key` | The key for that endpoint. | none |
-| `proxy` | The proxy for downloads and for the LLM. | none |
+| `proxy` | The proxy for the LLM. | none |
 | `batch` | `true` means: never ask a question. | `false` |
 | `color` | `auto`, `always` or `never`. | `auto` |
 
@@ -101,6 +100,23 @@ Put them into `migace.local.yaml`, next to `migace.yaml`, and add that file to `
 postgresql:
   binaries: D:\tools\postgresql-16
 ```
+
+## Where PostgreSQL comes from
+
+MIG-Ace does not bring or download a PostgreSQL. For the [proof loop](/docs/proof-loop/) it starts a temporary server from the PostgreSQL that is installed on your computer, and removes it afterwards.
+
+It looks for the installation in this order: the setting `postgresql.binaries`, then `pg_config`, then the usual places of your system. Install the major version that your production runs.
+
+Take PostgreSQL from the PostgreSQL project or from a source that the project names on its [download page](https://www.postgresql.org/download/):
+
+| System | Source |
+|---|---|
+| Debian, Ubuntu | The APT repository of the PostgreSQL project |
+| Red Hat, Fedora and relatives | The Yum repository of the PostgreSQL project |
+| Windows | The installer by EDB, or its zip archive of the binaries |
+| macOS | The installer by EDB, Postgres.app or Homebrew |
+
+This way your migrations are proven on the same PostgreSQL build that your developers and your servers use.
 
 ## Environment variables
 
@@ -158,7 +174,7 @@ Two rules protect you from surprises:
 
 ## The cache folder
 
-MIG-Ace keeps downloads and prepared baselines in a cache folder. You can delete it at any time. It is filled again when needed.
+MIG-Ace keeps prepared baselines in a cache folder. You can delete it at any time. It is filled again when needed.
 
 | System | Location |
 |---|---|
