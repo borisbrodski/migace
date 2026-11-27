@@ -144,20 +144,20 @@ Every run starts the same way: **[direction]**
 |---|---|
 | A ledger | **Migrate.** Bring the ledger tables to the current format if needed, then apply what is missing. |
 | No ledger and no objects | **Install.** Create the ledger, run the content of `schema/` directly, record every snippet as `included`, store the fingerprint. |
-| No ledger, but objects | **Stop.** The database is not managed by MIG-Ace yet. It has to be adopted. |
+| No ledger, but objects | **Stop.** The database is not managed by MIG-Ace. Nothing is changed. |
 
 **Install** **[direction]**
 
 - A new database gets the desired schema directly. No snippet runs. Every snippet is recorded with the state `included`, so it never runs later.
 - This is safe because the proof loop shows that migrating and installing produce the same schema (step 6 of the [proof loop](proof-loop.md)).
 - The script therefore contains the statements of `schema/` in addition to the snippets. They are guarded by the "database was empty" result of step 2.
+- A part of an `included` snippet did not run on this database. A condition `ran` is false for it. **[decided]**
 - Rows that the application needs from the start (reference data) come from `insert` statements in `schema/` on this path, and from snippets on the migrate path. How the two are kept equal is an [open question](../questions/open-questions.md).
 
-**Adopt** **[direction]**
+**Adopt** **[open]**, deferred
 
-- A database that existed before MIG-Ace has objects and no ledger. The runner option `adopt <release>` creates the ledger for it.
-- The script computes the fingerprint of the real schema. It must equal the fingerprint of the named release. If it does, the snippets of that release are recorded as `included` and the run continues as a migration.
-- Adoption is never automatic. The fingerprint proves the structure, but nothing proves which data migrations a database has seen. The person who runs it states the release.
+- A database that existed before MIG-Ace has objects and no ledger. Taking such a database under the ledger is not part of the first version. A project starts with an install and imports its data afterwards. **[decided]**
+- For later, see question 66 in [Open questions](../questions/open-questions.md): the tool will have no connection to such databases, so the comparison with a release would have to be code in the script that goes through the objects of the database.
 
 **Ledger tables** **[direction]**
 

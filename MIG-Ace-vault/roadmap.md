@@ -20,8 +20,9 @@ A milestone starts when its spec note exists in `specs/`. Order and content are 
 | M4.2 Real PostgreSQL | Temporary servers from binaries. Two runners, killed runs, locks. | done; Linux, Windows and macOS |
 | M4.3 Client contract and Java runner | The adapter contract as data. Java library and command line. | done; Linux, Windows and macOS |
 | M4.4 Corrections | A run touches its own schema only and leaves its session as it was. Every try is recorded. Limits are parameters. PostgreSQL from official sources. | spec ready |
-| M4.5 Install and replaceable objects | A new database gets the schema directly. Adopt. Views, functions and triggers. | proposed |
-| M4.6 Data parts | `batch` and `expect-rows`. | |
+| M4.5 Former names | A part and a snippet can be renamed. A run stops at a part it cannot place. | spec ready |
+| M4.6 Install and replaceable objects | A new database is created by the script. Views, functions, procedures and triggers are replaced after the snippets, only where they changed. Snippets do not use them. | spec ready |
+| M4.7 Data parts | `batch` and `expect-rows`. Triggers during a run, after question 67. | |
 | M5 Proof loop | Baseline, migration, comparison, second run, install on an empty database. The bookshop passes. | |
 | M6 Generation | `mig make` writes snippets from the comparison. | |
 | M7 Releases and phases | Release files, the guard against accidental edits, ordering, `start` and `finish`, upgrade-path simulation. | |

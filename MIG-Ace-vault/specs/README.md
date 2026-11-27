@@ -21,7 +21,9 @@ A spec contains: goal, non-goals, the notes it builds on, numbered acceptance cr
 | [M4.2 Real PostgreSQL](m4-2-real-postgresql.md) | done; green on Linux, Windows and macOS |
 | [M4.3 Client contract and Java runner](m4-3-client-contract-and-java-runner.md) | done; green on Linux, Windows and macOS |
 | [M4.4 Corrections](m4-4-corrections.md) | ready |
+| [M4.5 Former names](m4-5-former-names.md) | ready; starts after M4.4 |
+| [M4.6 Install and replaceable objects](m4-6-install-and-replaceable-objects.md) | ready; starts after M4.5 |
 
 M3.1 comes first: it changes how every name is generated, and the expected files of the later specs depend on it. M3.2 comes second: it changes what `do` generates. M4.2 and M4.3 do not depend on each other.
 
-What was found and what was chosen on the way is in the [journal](../journal/README.md): the [session note](../journal/2026-11-21-workspace-and-migql-parser.md), the [review](../journal/2026-11-21-review-of-m0-and-m1.md) the [note on M1.1, M2 and M3](../journal/2026-11-21-m1-1-m2-m3.md) the [second review](../journal/2026-11-22-review-and-next-specs.md) the [note on M3.1, M3.2 and M4.1](../journal/2026-11-22-m3-1-m3-2-m4-1.md) and the [review of M3.1 to M4.3](../journal/2026-11-22-review-of-m3-1-to-m4-3.md), which has two findings that are not corrected yet.
+What was found and what was chosen on the way is in the [journal](../journal/README.md): the [session note](../journal/2026-11-21-workspace-and-migql-parser.md), the [review](../journal/2026-11-21-review-of-m0-and-m1.md) the [note on M1.1, M2 and M3](../journal/2026-11-21-m1-1-m2-m3.md) the [second review](../journal/2026-11-22-review-and-next-specs.md) the [note on M3.1, M3.2 and M4.1](../journal/2026-11-22-m3-1-m3-2-m4-1.md) the [review of M3.1 to M4.3](../journal/2026-11-22-review-of-m3-1-to-m4-3.md), whose findings M4.4 corrects, and the [note on the specs of 27 November](../journal/2026-11-27-specs-m4-5-and-m4-6.md).

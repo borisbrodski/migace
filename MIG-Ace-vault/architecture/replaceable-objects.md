@@ -37,11 +37,20 @@ The proof loop still compares the migrated database with the desired one at its 
 
 ## Order within a run
 
-**[direction]**
+**[decided]** on 2026-11-27: these objects are brought up to date after all snippets, and snippets do not use them.
 
-1. *Before the snippets:* functions and procedures that do not exist yet are created, with body checking switched off. Snippets can then use them in index expressions, defaults and constraints.
-2. *During the snippets:* PostgreSQL refuses to drop a column, or to change its type, while a view uses it. Before such a part, the script drops the views that depend on the column, including views built on those views. Nothing else is dropped early. Because the script carries every view, each of them can be created again at the end.
+1. *The snippets run.* The views, functions, procedures and triggers of the database are still those of the release it comes from.
+2. *During the snippets:* PostgreSQL refuses to drop a column, or to change its type, while a view uses it. Before such a part, the script drops the views that depend on the column, including views built on those views. Nothing else is dropped early. Because the script carries every view, each of them can be created again at the end. **[direction]**
 3. *After the snippets:* changed functions and procedures are replaced, missing and changed views are created in the order of the files, missing and changed triggers are created, and objects that are no longer expected are dropped.
+
+## Snippets do not use these objects
+
+**[decided]** A snippet that names a view, a function or a procedure of `schema/` is an error at build time.
+
+- While the snippets run, these objects are in the state of an older release, or not there at all. A snippet that uses one would run against whatever the database happens to have.
+- The check covers statements under `do`, conditions, checks and `native` parts. For a `native` part the build uses the parser of the database. Code inside a text, such as the body of a `do` block, cannot be checked; the build says so.
+- One consequence is a limit of the first version: an index, a default or a constraint that uses a function of the project cannot be created by a snippet, because the function would have to exist first. **[open]** (question 68)
+- Triggers are different. A data part does not name a trigger; it fires the triggers of the table it writes, in their old state. Whether a run switches them off for itself is **[open]** (question 67).
 
 ## What other sessions see
 
@@ -64,14 +73,6 @@ Measured on PostgreSQL 18 with three sessions, 2026-11-23.
 - Created and replaced objects belong to `start`. The new version of the application needs them.
 - Dropped objects belong to `finish`. The old version may use them until then.
 - A view or function that is replaced in `start` therefore serves both versions for a while. A change that the old version cannot live with gets a new name; the old object goes with `finish`.
-
-## Snippets and these objects
-
-A snippet of an old release runs with the functions and views of now when a database jumps.
-
-- The proof loop and the [upgrade-path simulation](../testing/upgrade-path-simulation.md) run exactly these jumps, so a snippet that breaks is found.
-- A data statement that calls a function of the project can compute something else on a database that jumps than it did on one that was upgraded release by release. No test compares these two.
-- A data statement of a snippet that uses a view or a function of `schema/` is a finding. **[decided]** Use in an index, a default or a constraint is no finding; there it is needed.
 
 ## Several databases
 
