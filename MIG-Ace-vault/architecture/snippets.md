@@ -25,12 +25,13 @@ Top-level keys:
 | `migration` or `repair` | snippet name; `repair` marks a repair snippet | direction |
 | `uid` | identity | direction |
 | `doc` | description | direction |
-| `when` | condition for the whole snippet | direction |
 | `let` | named conditions | direction |
 | `parts` | ordered list of parts | decided |
 | `testdata`, `testdata-before` | test data inserted after or before the snippet | decided |
 | `changed` | reason for an intentional change to a released snippet | decided |
-| `retired`, `requires-downtime`, `former-names`, `before`, `after` | mishap and ordering controls | direction |
+| `retired`, `requires-downtime` | mishap controls | direction |
+| `former-names` | earlier slugs of the snippet; conditions that name them still find it | decided |
+| `before`, `after` | ordering controls | deferred |
 
 ### The `upsert` operation
 
@@ -63,7 +64,9 @@ Each part is a list entry whose key is the part name. It holds exactly one opera
 
 | Sibling key | Meaning | Status |
 |---|---|---|
-| `when` | skip the part if false | direction |
+| `when` | skip the part if false. A condition belongs to one part; a snippet has none | decided |
+| `retired` | the part never runs again; conditions can still name it | decided |
+| `former-names` | earlier names of the part; its ledger rows and conditions under these names belong to it | decided |
 | `verify-before` | fail before execution if false | decided |
 | `verify-after` | fail after execution if false | decided |
 | `batch` | run a data statement in batches | direction |

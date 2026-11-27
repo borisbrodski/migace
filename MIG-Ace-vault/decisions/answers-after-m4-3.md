@@ -45,7 +45,9 @@ The reference runner reports `column "x" does not exist`. The Java runner report
 - **A run keeps the search path of the session** (46): shown to be wrong by finding 1 of the review.
 - **Binaries from a package of the npm registry** (53): two repackaging steps by single maintainers stand between the PostgreSQL project and the package.
 
-## Not answered yet
+### Added on 2026-11-27
 
-- Question 63, a part or a snippet that gets another name.
-- Questions 64 and 65, on replaceable objects.
+- **A part or a snippet that gets another name** (question 63): the key `former-names` on a part, and on a snippet for its slug. Ledger rows and conditions under a former name belong to the renamed part. A run that finds a ledger row of a part that the script does not know, in a snippet that has a part that did not run, stops before that snippet and proposes `former-names`. The build makes the same check against the release files.
+- **`schema/` and several databases** (question 64): a project with one database keeps `schema/` flat. A project with several databases has one folder per database below it, and may have one for files that every database understands. Both layouts are supported. The first version has one database.
+- **A snippet that uses a view or a function of the project** (question 65): a finding for a data statement. Use in an index, a default or a constraint is no finding.
+- **Splitting the files of `schema/`**: checked with PostgreSQL's own parser on a file with a view, functions with code in dollar quotes and with `begin atomic`, a procedure, a `do` block and a trigger. It gives seven statements for seven, each with its kind. Semicolons inside code and inside texts do not split.

@@ -19,7 +19,7 @@ Views, functions, procedures and triggers hold no data. Their source in `schema/
 **[direction]**
 
 - The author writes these objects in any file of `schema/`, several in one file or one per file. No layout is required.
-- The build splits the files into statements with the parser of the database itself. A statement that creates a view, a function, a procedure or a trigger is taken as the author wrote it. The author's text, with its comments, is what runs on every database.
+- The build splits the files into statements with the parser of the database itself. Checked for PostgreSQL: code in dollar quotes, `begin atomic` and semicolons inside texts do not split a statement. A statement that creates a view, a function, a procedure or a trigger is taken as the author wrote it. The author's text, with its comments, is what runs on every database.
 - The checksum of an object is computed from the tokens of its statement. White space and comments do not count, so formatting a file replaces nothing.
 - The migration script carries all of them, always: for every object its kind, its name, its checksum and its statement.
 
@@ -67,15 +67,15 @@ Measured on PostgreSQL 18 with three sessions, 2026-11-23.
 
 ## Snippets and these objects
 
-A snippet of an old release runs with the functions and views of now when a database jumps. **[open]** (question 65)
+A snippet of an old release runs with the functions and views of now when a database jumps.
 
 - The proof loop and the [upgrade-path simulation](../testing/upgrade-path-simulation.md) run exactly these jumps, so a snippet that breaks is found.
 - A data statement that calls a function of the project can compute something else on a database that jumps than it did on one that was upgraded release by release. No test compares these two.
-- Proposal: a finding when a data statement of a snippet uses a view or a function of `schema/`. Use in an index, a default or a constraint is no finding; there it is needed.
+- A data statement of a snippet that uses a view or a function of `schema/` is a finding. **[decided]** Use in an index, a default or a constraint is no finding; there it is needed.
 
 ## Several databases
 
-Views, functions and triggers are written in the language of one database. **[direction]** (question 64)
+Views, functions and triggers are written in the language of one database. The layout below is **[decided]**; the first version of MIG-Ace has one database.
 
 - The desired schema is per database already: the table definitions that an ORM generates differ from database to database.
 - A project with one database keeps `schema/` as it is. A project with several has one folder per database below `schema/`, and may have one folder with files that every database understands.
