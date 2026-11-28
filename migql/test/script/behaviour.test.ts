@@ -181,6 +181,60 @@ describe('One schema, nothing shared', () => {
     });
 });
 
+describe('Every try is recorded', () => {
+    const log = () => rows('select event, snippet_name, part, step, message from mig_log order by id');
+
+    // M4.4-AC-11
+    test('the start of a try is committed before its statement runs', async () => {
+        await bookshop();
+        const script = await scriptWith({ '20260302-0900-a': ['parts:', '  - p:', '      native:', '        postgresql: |',
+            '          do $$ begin',
+            "            if not exists (select 1 from mig_part_run where part = 'p' and state = 'started') then raise exception 'the try is not recorded'; end if;",
+            '          end $$'] });
+
+        await run(script);
+
+        expect(await states()).toEqual(['p 1/1 done']);
+    });
+
+    // M4.4-AC-12
+    test('a try that did not end is marked as abandoned by the next run, which writes a row of its own', async () => {
+        await bookshop();
+        const script = await scriptWith({ '20260302-0900-a': ['parts:', '  - p:', '      do: alter table customer add column note varchar(10)'] });
+        await run(await scriptWith({ '20260301-0900-z': ['parts:', '  - z:', '      do: delete from customer'] }));
+        // What a session leaves that ended in the middle of the step.
+        await exec(`insert into mig_part_run (run_id, snippet_uid, snippet_name, part, step, steps, state, sql, checksum, started_at)
+            values (1, 'UID1', '20260302-0900-a', 'p', 1, 1, 'started', 'alter table customer add column note varchar(10)', 'v1:x', now())`);
+
+        await run(script);
+
+        expect((await rows("select state, ended_at is not null as ended from mig_part_run where part = 'p' order by id")))
+            .toEqual([{ state: 'abandoned', ended: true }, { state: 'done', ended: true }]);
+        expect((await log()).filter(line => line.part === 'p').map(line => line.event)).toEqual(['abandoned', 'started', 'done']);
+    });
+
+    // M4.4-AC-13
+    test('the log has a line for the start and the end of the run, and for every start, end, failure and skip of a step', async () => {
+        await bookshop();
+        const script = await scriptWith({ '20260302-0900-a': ['parts:',
+            '  - skipped:', '      when: column customer.no_such_column exists', '      do: delete from customer',
+            '  - done:', '      do: delete from customer',
+            '  - broken:', '      do: delete from no_such_table'] });
+
+        await runFailing(script);
+
+        expect(await log()).toEqual([
+            { event: 'run started', snippet_name: null, part: null, step: null, message: null },
+            { event: 'skipped', snippet_name: '20260302-0900-a', part: 'skipped', step: 1, message: 'when is not true: column customer.no_such_column exists' },
+            { event: 'started', snippet_name: '20260302-0900-a', part: 'done', step: 1, message: null },
+            { event: 'done', snippet_name: '20260302-0900-a', part: 'done', step: 1, message: null },
+            { event: 'started', snippet_name: '20260302-0900-a', part: 'broken', step: 1, message: null },
+            { event: 'failed', snippet_name: '20260302-0900-a', part: 'broken', step: 1, message: 'relation "no_such_table" does not exist' },
+            { event: 'run ended', snippet_name: null, part: null, step: null, message: 'failed' },
+        ]);
+    });
+});
+
 describe('What a run leaves in its session', () => {
     const CLEAN = { lock_timeout: '0', statement_timeout: '0', settings: '', locks: 0, functions: 0 };
     const before = async () => {
@@ -523,7 +577,7 @@ describe('A statement outside a transaction', () => {
         await bookshop(CUSTOMERS);
         const script = await scriptWith(INDEX);
 
-        expect(script).toContain('-- @migace guard\nselect pg_temp.migace_outside_begin(');
+        expect(script).toContain('-- @migace guard\nselect pg_temp.migace_begin(');
         expect(script).toContain('-- @migace statement outside-transaction label="20260302-0900-a, part index"\ncreate unique index concurrently ux_customer_name on customer (name)\n');
         expect(await run(script)).toEqual(['20260302-0900-a, part index: done', '20260302-0900-a, part after: done', 'Done: 2 steps ran.']);
         expect(await states()).toEqual(['index 1/1 done', 'after 1/1 done']);

@@ -12,11 +12,15 @@ select set_config('search_path', (select string_agg(quote_ident(trim(name)), ', 
         with ordinality as schemas (name, position)
     where trim(name) <> ''), false)
 -- @migace statement
-select set_config('migace.failed', '', false), set_config('migace.executed', '0', false), set_config('migace.skip', '', false), set_config('migace.run', '', false)
+select set_config('migace.failed', '', false), set_config('migace.executed', '0', false), set_config('migace.skip', '', false),
+    set_config('migace.run', '', false), set_config('migace.try', '', false), set_config('migace.waited_since', '', false)
 -- @migace statement
 do $migace$
 begin
     while not pg_try_advisory_lock((1296648001::bigint << 32) | quote_ident(current_setting('migace.run_schema'))::regnamespace::oid::bigint) loop
+        if current_setting('migace.waited_since') = '' then
+            perform set_config('migace.waited_since', clock_timestamp()::text, false);
+        end if;
         commit;
         perform pg_sleep(0.2);
         commit;
@@ -52,12 +56,18 @@ begin
             error_code text, error_message text, error_detail text, error_context text);
         create index mig_part_run_step on @migace_schema@.mig_part_run (snippet_uid, part, step);
         create table @migace_schema@.mig_log (
-            id bigint generated always as identity primary key, run_id bigint, at timestamptz not null, message text not null);
+            id bigint generated always as identity primary key, run_id bigint, at timestamptz not null,
+            event text not null, snippet_name text, part text, step integer, message text);
     end if;
     insert into @migace_schema@.mig_meta (key, value) values ('format', '1') on conflict (key) do nothing;
     update @migace_schema@.mig_run set outcome = 'interrupted', ended_at = clock_timestamp() where outcome = 'running';
     insert into @migace_schema@.mig_run (started_at, outcome) values (clock_timestamp(), 'running') returning id into v_run;
     perform set_config('migace.run', v_run::text, false);
+    insert into @migace_schema@.mig_log (run_id, at, event) values (v_run, clock_timestamp(), 'run started');
+    if current_setting('migace.waited_since') <> '' then
+        insert into @migace_schema@.mig_log (run_id, at, event, message) values (v_run, clock_timestamp(), 'waited',
+            format('waited %s for the lock of another run', clock_timestamp() - current_setting('migace.waited_since')::timestamptz));
+    end if;
 end
 $migace$$migace_body$, '@migace_schema@', quote_ident(current_setting('migace.run_schema')));
 end
@@ -89,44 +99,81 @@ $migace$
 -- @migace statement
 do $migace_in_schema$
 begin
+    execute replace($migace_body$create or replace function pg_temp.migace_log(p_event text, p_snippet text, p_part text, p_step integer, p_message text) returns void language plpgsql as $migace$
+begin
+    insert into @migace_schema@.mig_log (run_id, at, event, snippet_name, part, step, message)
+    values (current_setting('migace.run')::bigint, clock_timestamp(), p_event, p_snippet, p_part, p_step, p_message);
+end
+$migace$$migace_body$, '@migace_schema@', quote_ident(current_setting('migace.run_schema')));
+end
+$migace_in_schema$
+-- @migace statement
+do $migace_in_schema$
+begin
     execute replace($migace_body$create or replace function pg_temp.migace_record(p_uid text, p_snippet text, p_part text, p_checksum text, p_step integer, p_steps integer, p_state text, p_sql text, p_started timestamptz,
-    p_code text, p_message text, p_detail text, p_context text) returns void language plpgsql as $migace$
+    p_code text, p_message text, p_detail text, p_context text) returns bigint language plpgsql as $migace$
+declare
+    v_id bigint;
 begin
     insert into @migace_schema@.mig_part_run (run_id, snippet_uid, snippet_name, part, step, steps, state, sql, checksum, started_at, ended_at,
         error_code, error_message, error_detail, error_context)
     values (current_setting('migace.run')::bigint, p_uid, p_snippet, p_part, p_step, p_steps, p_state, p_sql, p_checksum, p_started,
-        case when p_state = 'started' then null else clock_timestamp() end, p_code, p_message, p_detail, p_context);
+        case when p_state = 'started' then null else clock_timestamp() end, p_code, p_message, p_detail, p_context)
+    returning id into v_id;
+    return v_id;
 end
 $migace$$migace_body$, '@migace_schema@', quote_ident(current_setting('migace.run_schema')));
 end
 $migace_in_schema$
 -- @migace statement
+create or replace function pg_temp.migace_start_try(p_uid text, p_snippet text, p_part text, p_checksum text, p_step integer, p_steps integer, p_sql text) returns void language plpgsql as $migace$
+begin
+    perform set_config('migace.try', pg_temp.migace_record(p_uid, p_snippet, p_part, p_checksum, p_step, p_steps, 'started', p_sql, clock_timestamp(),
+        null, null, null, null)::text, false);
+    perform pg_temp.migace_log('started', p_snippet, p_part, p_step, null);
+end
+$migace$
+-- @migace statement
 do $migace_in_schema$
 begin
-    execute replace($migace_body$create or replace function pg_temp.migace_fail(p_uid text, p_snippet text, p_part text, p_checksum text, p_step integer, p_steps integer, p_sql text, p_started timestamptz,
+    execute replace($migace_body$create or replace function pg_temp.migace_end_try(p_state text, p_code text, p_message text, p_detail text, p_context text) returns void language plpgsql as $migace$
+begin
+    update @migace_schema@.mig_part_run set state = p_state, ended_at = clock_timestamp(),
+        error_code = p_code, error_message = p_message, error_detail = p_detail, error_context = p_context
+    where id = current_setting('migace.try')::bigint;
+end
+$migace$$migace_body$, '@migace_schema@', quote_ident(current_setting('migace.run_schema')));
+end
+$migace_in_schema$
+-- @migace statement
+create or replace function pg_temp.migace_fail(p_uid text, p_snippet text, p_part text, p_checksum text, p_step integer, p_steps integer, p_sql text, p_started timestamptz,
     p_code text, p_message text, p_detail text, p_context text) returns void language plpgsql as $migace$
 begin
-    perform pg_temp.migace_record(p_uid, p_snippet, p_part, p_checksum, p_step, p_steps, 'failed', p_sql, p_started, p_code, p_message, p_detail, p_context);
+    if current_setting('migace.try') <> '' then
+        perform pg_temp.migace_end_try('failed', p_code, p_message, p_detail, p_context);
+    else
+        perform pg_temp.migace_record(p_uid, p_snippet, p_part, p_checksum, p_step, p_steps, 'failed', p_sql, p_started, p_code, p_message, p_detail, p_context);
+    end if;
     perform set_config('migace.failed', format('%s, part %s: %s', p_snippet, p_part, p_message), false);
-    insert into @migace_schema@.mig_log (run_id, at, message) values (current_setting('migace.run')::bigint, clock_timestamp(), current_setting('migace.failed'));
+    perform pg_temp.migace_log('failed', p_snippet, p_part, p_step, p_message);
     raise notice '%, part %: FAILED: %', p_snippet, p_part, p_message;
 end
-$migace$$migace_body$, '@migace_schema@', quote_ident(current_setting('migace.run_schema')));
-end
-$migace_in_schema$
+$migace$
 -- @migace statement
 do $migace_in_schema$
 begin
-    execute replace($migace_body$create or replace function pg_temp.migace_begin(p_uid text, p_snippet text, p_part text, p_checksum text, p_step integer, p_steps integer, p_sql text, p_when text[], p_when_text text[], p_before text[], p_before_text text[]) returns boolean language plpgsql as $migace$
+    execute replace($migace_body$create or replace function pg_temp.migace_begin(p_uid text, p_snippet text, p_part text, p_checksum text, p_step integer, p_steps integer, p_sql text, p_when text[], p_when_text text[], p_before text[], p_before_text text[], p_cleanup text) returns boolean language plpgsql as $migace$
 declare
     v_done text;
     v_untrue integer;
+    v_abandoned integer;
     v_started timestamptz := clock_timestamp();
     v_code text;
     v_message text;
     v_detail text;
     v_context text;
 begin
+    perform set_config('migace.try', '', false);
     if current_setting('migace.failed') <> '' then
         return false;
     end if;
@@ -143,27 +190,39 @@ begin
     if current_setting('migace.skip') = p_uid || '/' || p_part then
         return false;
     end if;
-    if p_step > 1 then
-        return true;
-    end if;
-    begin
-        v_untrue := pg_temp.migace_first_untrue(p_when);
-        if v_untrue > 0 then
-            perform set_config('migace.skip', p_uid || '/' || p_part, false);
-            perform pg_temp.migace_record(p_uid, p_snippet, p_part, p_checksum, p_step, p_steps, 'skipped', null, v_started,
-                null, 'when is not true: ' || p_when_text[v_untrue], null, null);
-            raise notice '%, part %: skipped, because this is not true: %', p_snippet, p_part, p_when_text[v_untrue];
+    -- The conditions are decided before the first step only. A part that has started has to end.
+    if p_step = 1 then
+        begin
+            v_untrue := pg_temp.migace_first_untrue(p_when);
+            if v_untrue > 0 then
+                perform set_config('migace.skip', p_uid || '/' || p_part, false);
+                perform pg_temp.migace_record(p_uid, p_snippet, p_part, p_checksum, p_step, p_steps, 'skipped', null, v_started,
+                    null, 'when is not true: ' || p_when_text[v_untrue], null, null);
+                perform pg_temp.migace_log('skipped', p_snippet, p_part, p_step, 'when is not true: ' || p_when_text[v_untrue]);
+                raise notice '%, part %: skipped, because this is not true: %', p_snippet, p_part, p_when_text[v_untrue];
+                return false;
+            end if;
+            v_untrue := pg_temp.migace_first_untrue(p_before);
+            if v_untrue > 0 then
+                raise exception using message = 'verify-before is not true: ' || p_before_text[v_untrue], errcode = 'MA002';
+            end if;
+        exception when others then
+            get stacked diagnostics v_code = returned_sqlstate, v_message = message_text, v_detail = pg_exception_detail, v_context = pg_exception_context;
+            perform pg_temp.migace_fail(p_uid, p_snippet, p_part, p_checksum, p_step, p_steps, p_sql, v_started, v_code, v_message, v_detail, v_context);
             return false;
+        end;
+    end if;
+    -- A try that started and never ended: its session, the server or the computer ended in the middle.
+    update @migace_schema@.mig_part_run r set state = 'abandoned', ended_at = clock_timestamp()
+    where r.snippet_uid = p_uid and r.part = p_part and r.step = p_step and r.state = 'started';
+    get diagnostics v_abandoned = row_count;
+    if v_abandoned > 0 then
+        perform pg_temp.migace_log('abandoned', p_snippet, p_part, p_step, format('%s earlier try did not end', v_abandoned));
+        if p_cleanup is not null then
+            execute p_cleanup;
         end if;
-        v_untrue := pg_temp.migace_first_untrue(p_before);
-        if v_untrue > 0 then
-            raise exception using message = 'verify-before is not true: ' || p_before_text[v_untrue], errcode = 'MA002';
-        end if;
-    exception when others then
-        get stacked diagnostics v_code = returned_sqlstate, v_message = message_text, v_detail = pg_exception_detail, v_context = pg_exception_context;
-        perform pg_temp.migace_fail(p_uid, p_snippet, p_part, p_checksum, p_step, p_steps, p_sql, v_started, v_code, v_message, v_detail, v_context);
-        return false;
-    end;
+    end if;
+    perform pg_temp.migace_start_try(p_uid, p_snippet, p_part, p_checksum, p_step, p_steps, p_sql);
     return true;
 end
 $migace$$migace_body$, '@migace_schema@', quote_ident(current_setting('migace.run_schema')));
@@ -176,8 +235,22 @@ begin
 end
 $migace$
 -- @migace statement
-create or replace function pg_temp.migace_step(p_uid text, p_snippet text, p_part text, p_checksum text, p_step integer, p_steps integer, p_sql text, p_when text[], p_when_text text[], p_before text[], p_before_text text[],
-    p_after text[], p_after_text text[], p_stop text) returns void language plpgsql as $migace$
+create or replace function pg_temp.migace_blockers() returns text language plpgsql as $migace$
+declare
+    v_blockers text;
+begin
+    -- Who holds a lock on a table of the schema. The text of their statements is not read: it can hold data of persons.
+    select string_agg(format('%s: process %s, user %s, application %s, %s since %s', c.relname, l.pid, coalesce(a.usename::text, 'unknown'),
+            coalesce(nullif(a.application_name, ''), 'unknown'), l.mode, coalesce(a.xact_start::text, 'unknown')), '; ' order by c.relname, l.pid, l.mode)
+    into v_blockers
+    from pg_locks l join pg_class c on c.oid = l.relation join pg_namespace n on n.oid = c.relnamespace
+    left join pg_stat_activity a on a.pid = l.pid
+    where l.granted and l.pid <> pg_backend_pid() and l.locktype = 'relation' and c.relkind in ('r', 'p') and n.nspname = current_setting('migace.run_schema');
+    return v_blockers;
+end
+$migace$
+-- @migace statement
+create or replace function pg_temp.migace_step(p_uid text, p_snippet text, p_part text, p_checksum text, p_step integer, p_steps integer, p_sql text, p_after text[], p_after_text text[], p_stop text) returns void language plpgsql as $migace$
 declare
     v_untrue integer;
     v_started timestamptz := clock_timestamp();
@@ -188,7 +261,7 @@ declare
     v_detail text;
     v_context text;
 begin
-    if not pg_temp.migace_begin(p_uid, p_snippet, p_part, p_checksum, p_step, p_steps, p_sql, p_when, p_when_text, p_before, p_before_text) then
+    if current_setting('migace.try') = '' then
         return;
     end if;
     for v_attempt in 1 .. v_attempts loop
@@ -205,23 +278,25 @@ begin
                     raise exception using message = 'verify-after is not true: ' || p_after_text[v_untrue], errcode = 'MA002';
                 end if;
             end if;
-            perform pg_temp.migace_record(p_uid, p_snippet, p_part, p_checksum, p_step, p_steps, 'done', p_sql, v_started, null, null, null, null);
+            perform pg_temp.migace_end_try('done', null, null, null, null);
+            perform pg_temp.migace_log('done', p_snippet, p_part, p_step, null);
             exit;
         exception
             when lock_not_available then
-                select string_agg(distinct c.relname, ', ' order by c.relname) into v_locked
-                from pg_locks l join pg_class c on c.oid = l.relation join pg_namespace n on n.oid = c.relnamespace
-                where l.granted and l.pid <> pg_backend_pid() and l.locktype = 'relation' and c.relkind in ('r', 'p') and n.nspname = current_setting('migace.run_schema');
+                v_detail := pg_temp.migace_blockers();
+                select string_agg(distinct split_part(blocker, ':', 1), ', ') into v_locked from unnest(string_to_array(v_detail, '; ')) as blocker;
                 v_message := format('no lock within %s, attempt %s of %s. Locked by another session: %s',
                     pg_temp.migace_setting('lock_timeout', '5s'), v_attempt, v_attempts, coalesce(v_locked, 'unknown'));
                 if v_attempt = v_attempts then
-                    perform pg_temp.migace_fail(p_uid, p_snippet, p_part, p_checksum, p_step, p_steps, p_sql, v_started, '55P03', v_message, null, null);
+                    perform pg_temp.migace_fail(p_uid, p_snippet, p_part, p_checksum, p_step, p_steps, p_sql, v_started, '55P03', v_message, v_detail, null);
                     return;
                 end if;
-                perform pg_temp.migace_record(p_uid, p_snippet, p_part, p_checksum, p_step, p_steps, 'no lock', p_sql, v_started, '55P03', v_message, null, null);
+                perform pg_temp.migace_end_try('no lock', '55P03', v_message, v_detail, null);
+                perform pg_temp.migace_log('no lock', p_snippet, p_part, p_step, v_message || coalesce('. ' || v_detail, ''));
                 raise notice '%, part %: %', p_snippet, p_part, v_message;
                 perform pg_sleep(extract(epoch from pg_temp.migace_setting('lock_wait', '1s')::interval));
-                v_started := clock_timestamp();
+                perform pg_temp.migace_log('attempt', p_snippet, p_part, p_step, format('attempt %s of %s', v_attempt + 1, v_attempts));
+                perform pg_temp.migace_start_try(p_uid, p_snippet, p_part, p_checksum, p_step, p_steps, p_sql);
             when others then
                 get stacked diagnostics v_code = returned_sqlstate, v_message = message_text, v_detail = pg_exception_detail, v_context = pg_exception_context;
                 perform pg_temp.migace_fail(p_uid, p_snippet, p_part, p_checksum, p_step, p_steps, p_sql, v_started, v_code, v_message, v_detail, v_context);
@@ -235,53 +310,31 @@ begin
 end
 $migace$
 -- @migace statement
-do $migace_in_schema$
-begin
-    execute replace($migace_body$create or replace function pg_temp.migace_outside_begin(p_uid text, p_snippet text, p_part text, p_checksum text, p_step integer, p_steps integer, p_sql text, p_when text[], p_when_text text[], p_before text[], p_before_text text[], p_cleanup text) returns boolean language plpgsql as $migace$
-begin
-    if not pg_temp.migace_begin(p_uid, p_snippet, p_part, p_checksum, p_step, p_steps, p_sql, p_when, p_when_text, p_before, p_before_text) then
-        return false;
-    end if;
-    update @migace_schema@.mig_part_run r set state = 'abandoned', ended_at = clock_timestamp()
-    where r.snippet_uid = p_uid and r.part = p_part and r.step = p_step and r.state = 'started';
-    if found and p_cleanup is not null then
-        execute p_cleanup;
-    end if;
-    perform pg_temp.migace_record(p_uid, p_snippet, p_part, p_checksum, p_step, p_steps, 'started', p_sql, clock_timestamp(), null, null, null, null);
-    return true;
-end
-$migace$$migace_body$, '@migace_schema@', quote_ident(current_setting('migace.run_schema')));
-end
-$migace_in_schema$
--- @migace statement
-do $migace_in_schema$
-begin
-    execute replace($migace_body$create or replace function pg_temp.migace_outside_end(p_uid text, p_snippet text, p_part text, p_checksum text, p_step integer, p_steps integer, p_after text[], p_after_text text[]) returns void language plpgsql as $migace$
+create or replace function pg_temp.migace_outside_end(p_uid text, p_snippet text, p_part text, p_checksum text, p_step integer, p_steps integer, p_after text[], p_after_text text[]) returns void language plpgsql as $migace$
 declare
     v_untrue integer;
 begin
-    if current_setting('migace.failed') <> '' then
-        return;
-    end if;
-    update @migace_schema@.mig_part_run r set state = 'done', ended_at = clock_timestamp()
-    where r.run_id = current_setting('migace.run')::bigint and r.snippet_uid = p_uid and r.part = p_part and r.step = p_step and r.state = 'started';
-    if not found then
+    if current_setting('migace.failed') <> '' or current_setting('migace.try') = '' then
         return;
     end if;
     perform set_config('migace.executed', (current_setting('migace.executed')::integer + 1)::text, false);
     if p_step = p_steps then
         v_untrue := pg_temp.migace_first_untrue(p_after);
-        if v_untrue > 0 then
-            perform pg_temp.migace_fail(p_uid, p_snippet, p_part, p_checksum, p_step, p_steps, null, clock_timestamp(),
-                'MA002', 'verify-after is not true: ' || p_after_text[v_untrue], null, null);
-            return;
-        end if;
+    end if;
+    -- The statement ran and cannot be undone. Its try is done; a verify-after that is not true is a failure of its own.
+    perform pg_temp.migace_end_try('done', null, null, null, null);
+    perform pg_temp.migace_log('done', p_snippet, p_part, p_step, null);
+    if v_untrue > 0 then
+        perform set_config('migace.try', '', false);
+        perform pg_temp.migace_fail(p_uid, p_snippet, p_part, p_checksum, p_step, p_steps, null, clock_timestamp(),
+            'MA002', 'verify-after is not true: ' || p_after_text[v_untrue], null, null);
+        return;
+    end if;
+    if p_step = p_steps then
         raise notice '%, part %: done', p_snippet, p_part;
     end if;
 end
-$migace$$migace_body$, '@migace_schema@', quote_ident(current_setting('migace.run_schema')));
-end
-$migace_in_schema$
+$migace$
 -- @migace statement
 do $migace_in_schema$
 begin
@@ -324,6 +377,7 @@ begin
     update @migace_schema@.mig_run set ended_at = clock_timestamp(),
         outcome = case when v_failed then 'failed' when v_executed = 0 then 'nothing to do' else 'done' end
     where id = v_run;
+    perform pg_temp.migace_log('run ended', null, null, null, case when v_failed then 'failed' when v_executed = 0 then 'nothing to do' else 'done' end);
     if v_failed then
         raise notice 'Stopped. Nothing after the failed part was run.';
         return;
@@ -342,9 +396,19 @@ $migace$$migace_body$, '@migace_schema@', quote_ident(current_setting('migace.ru
 end
 $migace_in_schema$
 -- @migace statement label="20260302-0900-customer-loyalty, part add-column"
+select pg_temp.migace_begin('01JF2A6QW3ZK8M4T7R9B5X0C1D', '20260302-0900-customer-loyalty', 'add-column', 'v1:de0e049d9074d5eb9ec50240893d06e0059bca5dda567e17398e9de9798d8813', 1, 1,
+    'alter table customer add column loyalty_level varchar(10)',
+    null::text[], null::text[],
+    null::text[], null::text[],
+    null)
+-- @migace statement label="20260302-0900-customer-loyalty, part add-column"
 select pg_temp.migace_step('01JF2A6QW3ZK8M4T7R9B5X0C1D', '20260302-0900-customer-loyalty', 'add-column', 'v1:de0e049d9074d5eb9ec50240893d06e0059bca5dda567e17398e9de9798d8813', 1, 1,
     'alter table customer add column loyalty_level varchar(10)',
     null::text[], null::text[],
+    null)
+-- @migace statement label="20260302-0900-customer-loyalty, part fill-existing"
+select pg_temp.migace_begin('01JF2A6QW3ZK8M4T7R9B5X0C1D', '20260302-0900-customer-loyalty', 'fill-existing', 'v1:e8fae9270668214cc04e6de0679f9c70a721b1ab1677830d378e971e58a5277d', 1, 1,
+    'update customer set loyalty_level = ''BRONZE''',
     null::text[], null::text[],
     null::text[], null::text[],
     null)
@@ -352,6 +416,10 @@ select pg_temp.migace_step('01JF2A6QW3ZK8M4T7R9B5X0C1D', '20260302-0900-customer
 select pg_temp.migace_step('01JF2A6QW3ZK8M4T7R9B5X0C1D', '20260302-0900-customer-loyalty', 'fill-existing', 'v1:e8fae9270668214cc04e6de0679f9c70a721b1ab1677830d378e971e58a5277d', 1, 1,
     'update customer set loyalty_level = ''BRONZE''',
     null::text[], null::text[],
+    null)
+-- @migace statement label="20260302-0900-customer-loyalty, part make-mandatory"
+select pg_temp.migace_begin('01JF2A6QW3ZK8M4T7R9B5X0C1D', '20260302-0900-customer-loyalty', 'make-mandatory', 'v1:a57b154477dd9d09b8bc0ebc9976050b70e40df10041e64ec5acd570ccdaaf38', 1, 4,
+    'alter table customer add constraint customer_loyalty_level_not_null check (loyalty_level is not null) not valid',
     null::text[], null::text[],
     null::text[], null::text[],
     null)
@@ -359,6 +427,10 @@ select pg_temp.migace_step('01JF2A6QW3ZK8M4T7R9B5X0C1D', '20260302-0900-customer
 select pg_temp.migace_step('01JF2A6QW3ZK8M4T7R9B5X0C1D', '20260302-0900-customer-loyalty', 'make-mandatory', 'v1:a57b154477dd9d09b8bc0ebc9976050b70e40df10041e64ec5acd570ccdaaf38', 1, 4,
     'alter table customer add constraint customer_loyalty_level_not_null check (loyalty_level is not null) not valid',
     null::text[], null::text[],
+    null)
+-- @migace statement label="20260302-0900-customer-loyalty, part make-mandatory"
+select pg_temp.migace_begin('01JF2A6QW3ZK8M4T7R9B5X0C1D', '20260302-0900-customer-loyalty', 'make-mandatory', 'v1:a57b154477dd9d09b8bc0ebc9976050b70e40df10041e64ec5acd570ccdaaf38', 2, 4,
+    'alter table customer validate constraint customer_loyalty_level_not_null',
     null::text[], null::text[],
     null::text[], null::text[],
     null)
@@ -366,6 +438,10 @@ select pg_temp.migace_step('01JF2A6QW3ZK8M4T7R9B5X0C1D', '20260302-0900-customer
 select pg_temp.migace_step('01JF2A6QW3ZK8M4T7R9B5X0C1D', '20260302-0900-customer-loyalty', 'make-mandatory', 'v1:a57b154477dd9d09b8bc0ebc9976050b70e40df10041e64ec5acd570ccdaaf38', 2, 4,
     'alter table customer validate constraint customer_loyalty_level_not_null',
     null::text[], null::text[],
+    null)
+-- @migace statement label="20260302-0900-customer-loyalty, part make-mandatory"
+select pg_temp.migace_begin('01JF2A6QW3ZK8M4T7R9B5X0C1D', '20260302-0900-customer-loyalty', 'make-mandatory', 'v1:a57b154477dd9d09b8bc0ebc9976050b70e40df10041e64ec5acd570ccdaaf38', 3, 4,
+    'alter table customer alter column loyalty_level set not null',
     null::text[], null::text[],
     null::text[], null::text[],
     null)
@@ -373,6 +449,10 @@ select pg_temp.migace_step('01JF2A6QW3ZK8M4T7R9B5X0C1D', '20260302-0900-customer
 select pg_temp.migace_step('01JF2A6QW3ZK8M4T7R9B5X0C1D', '20260302-0900-customer-loyalty', 'make-mandatory', 'v1:a57b154477dd9d09b8bc0ebc9976050b70e40df10041e64ec5acd570ccdaaf38', 3, 4,
     'alter table customer alter column loyalty_level set not null',
     null::text[], null::text[],
+    null)
+-- @migace statement label="20260302-0900-customer-loyalty, part make-mandatory"
+select pg_temp.migace_begin('01JF2A6QW3ZK8M4T7R9B5X0C1D', '20260302-0900-customer-loyalty', 'make-mandatory', 'v1:a57b154477dd9d09b8bc0ebc9976050b70e40df10041e64ec5acd570ccdaaf38', 4, 4,
+    'alter table customer drop constraint customer_loyalty_level_not_null',
     null::text[], null::text[],
     null::text[], null::text[],
     null)
@@ -380,11 +460,23 @@ select pg_temp.migace_step('01JF2A6QW3ZK8M4T7R9B5X0C1D', '20260302-0900-customer
 select pg_temp.migace_step('01JF2A6QW3ZK8M4T7R9B5X0C1D', '20260302-0900-customer-loyalty', 'make-mandatory', 'v1:a57b154477dd9d09b8bc0ebc9976050b70e40df10041e64ec5acd570ccdaaf38', 4, 4,
     'alter table customer drop constraint customer_loyalty_level_not_null',
     null::text[], null::text[],
-    null::text[], null::text[],
-    null::text[], null::text[],
     null)
 -- @migace statement
 select pg_temp.migace_snippet('01JF2A6QW3ZK8M4T7R9B5X0C1D', '20260302-0900-customer-loyalty', array['add-column', 'fill-existing', 'make-mandatory']::text[], null)
+-- @migace statement label="20260309-1400-review-table, part create-table"
+select pg_temp.migace_begin('01JF4C9S2M7H5K3P8V6N1Y0E4R', '20260309-1400-review-table', 'create-table', 'v1:47110af6846310542c41682c41e164eb8d8b348a1e7000de77a97987012e4247', 1, 1,
+    'create table review (
+    id bigint not null,
+    book_id bigint not null,
+    customer_id bigint not null,
+    stars integer not null check (stars between 1 and 5),
+    review_text varchar(2000),
+    created_at timestamp not null,
+    primary key (id)
+)',
+    null::text[], null::text[],
+    null::text[], null::text[],
+    null)
 -- @migace statement label="20260309-1400-review-table, part create-table"
 select pg_temp.migace_step('01JF4C9S2M7H5K3P8V6N1Y0E4R', '20260309-1400-review-table', 'create-table', 'v1:47110af6846310542c41682c41e164eb8d8b348a1e7000de77a97987012e4247', 1, 1,
     'create table review (
@@ -397,6 +489,10 @@ select pg_temp.migace_step('01JF4C9S2M7H5K3P8V6N1Y0E4R', '20260309-1400-review-t
     primary key (id)
 )',
     null::text[], null::text[],
+    null)
+-- @migace statement label="20260309-1400-review-table, part fk-book"
+select pg_temp.migace_begin('01JF4C9S2M7H5K3P8V6N1Y0E4R', '20260309-1400-review-table', 'fk-book', 'v1:cb2249b43421626625718f829312634969b0cbae7920707eafe7db7a59e88feb', 1, 1,
+    'alter table review add constraint fk_review_book foreign key (book_id) references book',
     null::text[], null::text[],
     null::text[], null::text[],
     null)
@@ -404,6 +500,10 @@ select pg_temp.migace_step('01JF4C9S2M7H5K3P8V6N1Y0E4R', '20260309-1400-review-t
 select pg_temp.migace_step('01JF4C9S2M7H5K3P8V6N1Y0E4R', '20260309-1400-review-table', 'fk-book', 'v1:cb2249b43421626625718f829312634969b0cbae7920707eafe7db7a59e88feb', 1, 1,
     'alter table review add constraint fk_review_book foreign key (book_id) references book',
     null::text[], null::text[],
+    null)
+-- @migace statement label="20260309-1400-review-table, part fk-customer"
+select pg_temp.migace_begin('01JF4C9S2M7H5K3P8V6N1Y0E4R', '20260309-1400-review-table', 'fk-customer', 'v1:05306bc162ff68c30a57719f7fe3b64f9f17de090eb51cd31e43cd5b13dbb821', 1, 1,
+    'alter table review add constraint fk_review_customer foreign key (customer_id) references customer',
     null::text[], null::text[],
     null::text[], null::text[],
     null)
@@ -411,6 +511,10 @@ select pg_temp.migace_step('01JF4C9S2M7H5K3P8V6N1Y0E4R', '20260309-1400-review-t
 select pg_temp.migace_step('01JF4C9S2M7H5K3P8V6N1Y0E4R', '20260309-1400-review-table', 'fk-customer', 'v1:05306bc162ff68c30a57719f7fe3b64f9f17de090eb51cd31e43cd5b13dbb821', 1, 1,
     'alter table review add constraint fk_review_customer foreign key (customer_id) references customer',
     null::text[], null::text[],
+    null)
+-- @migace statement label="20260309-1400-review-table, part index-book"
+select pg_temp.migace_begin('01JF4C9S2M7H5K3P8V6N1Y0E4R', '20260309-1400-review-table', 'index-book', 'v1:32ba7506604830e4e74e92e89f9fea328737731f4ba5599b01e01d11fd72c7b7', 1, 1,
+    'create index ix_review_book on review (book_id)',
     null::text[], null::text[],
     null::text[], null::text[],
     null)
@@ -418,13 +522,11 @@ select pg_temp.migace_step('01JF4C9S2M7H5K3P8V6N1Y0E4R', '20260309-1400-review-t
 select pg_temp.migace_step('01JF4C9S2M7H5K3P8V6N1Y0E4R', '20260309-1400-review-table', 'index-book', 'v1:32ba7506604830e4e74e92e89f9fea328737731f4ba5599b01e01d11fd72c7b7', 1, 1,
     'create index ix_review_book on review (book_id)',
     null::text[], null::text[],
-    null::text[], null::text[],
-    null::text[], null::text[],
     null)
 -- @migace statement
 select pg_temp.migace_snippet('01JF4C9S2M7H5K3P8V6N1Y0E4R', '20260309-1400-review-table', array['create-table', 'fk-book', 'fk-customer', 'index-book']::text[], null)
 -- @migace guard
-select pg_temp.migace_outside_begin('01JFM8W1Y3A5C7E9G1J3L5N7Q9', '20260401-0830-orders-customer-index', 'index', 'v1:e31894b2e2071f48e107587a66349aa17a712aec0fcb5970c9802dce3ed563a5', 1, 1,
+select pg_temp.migace_begin('01JFM8W1Y3A5C7E9G1J3L5N7Q9', '20260401-0830-orders-customer-index', 'index', 'v1:e31894b2e2071f48e107587a66349aa17a712aec0fcb5970c9802dce3ed563a5', 1, 1,
     'create index concurrently ix_orders_customer on orders (customer_id)',
     null::text[], null::text[],
     null::text[], null::text[],
@@ -437,6 +539,18 @@ select pg_temp.migace_outside_end('01JFM8W1Y3A5C7E9G1J3L5N7Q9', '20260401-0830-o
 -- @migace statement
 select pg_temp.migace_snippet('01JFM8W1Y3A5C7E9G1J3L5N7Q9', '20260401-0830-orders-customer-index', array['index']::text[], null)
 -- @migace statement label="20260518-1000-order-status, part create-status-table"
+select pg_temp.migace_begin('01JG1D5R8Y3B6F9J2L4N7Q0T3W', '20260518-1000-order-status', 'create-status-table', 'v1:6d038856d0ae8419d42dec79f9d94464c79c8b01c7bd0465e121e5e05a490b83', 1, 1,
+    'create table order_status (
+    id bigint not null,
+    code varchar(20) not null,
+    label varchar(50) not null,
+    primary key (id),
+    constraint uq_order_status_code unique (code)
+)',
+    null::text[], null::text[],
+    null::text[], null::text[],
+    null)
+-- @migace statement label="20260518-1000-order-status, part create-status-table"
 select pg_temp.migace_step('01JG1D5R8Y3B6F9J2L4N7Q0T3W', '20260518-1000-order-status', 'create-status-table', 'v1:6d038856d0ae8419d42dec79f9d94464c79c8b01c7bd0465e121e5e05a490b83', 1, 1,
     'create table order_status (
     id bigint not null,
@@ -446,6 +560,15 @@ select pg_temp.migace_step('01JG1D5R8Y3B6F9J2L4N7Q0T3W', '20260518-1000-order-st
     constraint uq_order_status_code unique (code)
 )',
     null::text[], null::text[],
+    null)
+-- @migace statement label="20260518-1000-order-status, part add-statuses"
+select pg_temp.migace_begin('01JG1D5R8Y3B6F9J2L4N7Q0T3W', '20260518-1000-order-status', 'add-statuses', 'v1:e2211f2711807c75301dd39fdf617336ca5364591f7663afc0dd520c9c5fafc7', 1, 1,
+    'insert into order_status (id, code, label) values
+    (1, ''OPEN'', ''Open''),
+    (2, ''PAID'', ''Paid''),
+    (3, ''SHIPPED'', ''Shipped''),
+    (4, ''CANCELLED'', ''Cancelled''),
+    (5, ''UNKNOWN'', ''Unknown'')',
     null::text[], null::text[],
     null::text[], null::text[],
     null)
@@ -458,6 +581,10 @@ select pg_temp.migace_step('01JG1D5R8Y3B6F9J2L4N7Q0T3W', '20260518-1000-order-st
     (4, ''CANCELLED'', ''Cancelled''),
     (5, ''UNKNOWN'', ''Unknown'')',
     null::text[], null::text[],
+    null)
+-- @migace statement label="20260518-1000-order-status, part add-status-id"
+select pg_temp.migace_begin('01JG1D5R8Y3B6F9J2L4N7Q0T3W', '20260518-1000-order-status', 'add-status-id', 'v1:565f102dcee3aaff9855c355b74bc5a1693f720be8b6066dc2c31acd3b0c9353', 1, 1,
+    'alter table orders add column status_id bigint',
     null::text[], null::text[],
     null::text[], null::text[],
     null)
@@ -465,6 +592,10 @@ select pg_temp.migace_step('01JG1D5R8Y3B6F9J2L4N7Q0T3W', '20260518-1000-order-st
 select pg_temp.migace_step('01JG1D5R8Y3B6F9J2L4N7Q0T3W', '20260518-1000-order-status', 'add-status-id', 'v1:565f102dcee3aaff9855c355b74bc5a1693f720be8b6066dc2c31acd3b0c9353', 1, 1,
     'alter table orders add column status_id bigint',
     null::text[], null::text[],
+    null)
+-- @migace statement label="20260518-1000-order-status, part link-status"
+select pg_temp.migace_begin('01JG1D5R8Y3B6F9J2L4N7Q0T3W', '20260518-1000-order-status', 'link-status', 'v1:917a2f1a33824d6b5a48654cd9e9f4ae710f06386669589ad6c718558a3e87fd', 1, 1,
+    'update orders o set status_id = (select s.id from order_status s where s.code = upper(trim(o.status))) where o.status_id is null',
     null::text[], null::text[],
     null::text[], null::text[],
     null)
@@ -472,20 +603,32 @@ select pg_temp.migace_step('01JG1D5R8Y3B6F9J2L4N7Q0T3W', '20260518-1000-order-st
 select pg_temp.migace_step('01JG1D5R8Y3B6F9J2L4N7Q0T3W', '20260518-1000-order-status', 'link-status', 'v1:917a2f1a33824d6b5a48654cd9e9f4ae710f06386669589ad6c718558a3e87fd', 1, 1,
     'update orders o set status_id = (select s.id from order_status s where s.code = upper(trim(o.status))) where o.status_id is null',
     null::text[], null::text[],
+    null)
+-- @migace statement label="20260518-1000-order-status, part default-unknown"
+select pg_temp.migace_begin('01JG1D5R8Y3B6F9J2L4N7Q0T3W', '20260518-1000-order-status', 'default-unknown', 'v1:c8f6d2c5a09acf91d7f1f299208bfff2255b64a72d342be8c01dc00be6e0325d', 1, 1,
+    'update orders set status_id = (select id from order_status where code = ''UNKNOWN'') where status_id is null',
     null::text[], null::text[],
     null::text[], null::text[],
     null)
 -- @migace statement label="20260518-1000-order-status, part default-unknown"
 select pg_temp.migace_step('01JG1D5R8Y3B6F9J2L4N7Q0T3W', '20260518-1000-order-status', 'default-unknown', 'v1:c8f6d2c5a09acf91d7f1f299208bfff2255b64a72d342be8c01dc00be6e0325d', 1, 1,
     'update orders set status_id = (select id from order_status where code = ''UNKNOWN'') where status_id is null',
-    null::text[], null::text[],
-    null::text[], null::text[],
     array['not exists (select 1 from orders where (orders.status_id is not null) is not true)']::text[], array['all: orders.status_id is not null']::text[],
+    null)
+-- @migace statement label="20260518-1000-order-status, part status-fk"
+select pg_temp.migace_begin('01JG1D5R8Y3B6F9J2L4N7Q0T3W', '20260518-1000-order-status', 'status-fk', 'v1:5ba567981c8f0a05a8cf3c16eae712defd3d002db6206c2dfc5bef29c007682f', 1, 2,
+    'alter table orders add constraint fk_orders_status foreign key (status_id) references order_status not valid',
+    null::text[], null::text[],
+    null::text[], null::text[],
     null)
 -- @migace statement label="20260518-1000-order-status, part status-fk"
 select pg_temp.migace_step('01JG1D5R8Y3B6F9J2L4N7Q0T3W', '20260518-1000-order-status', 'status-fk', 'v1:5ba567981c8f0a05a8cf3c16eae712defd3d002db6206c2dfc5bef29c007682f', 1, 2,
     'alter table orders add constraint fk_orders_status foreign key (status_id) references order_status not valid',
     null::text[], null::text[],
+    null)
+-- @migace statement label="20260518-1000-order-status, part status-fk"
+select pg_temp.migace_begin('01JG1D5R8Y3B6F9J2L4N7Q0T3W', '20260518-1000-order-status', 'status-fk', 'v1:5ba567981c8f0a05a8cf3c16eae712defd3d002db6206c2dfc5bef29c007682f', 2, 2,
+    'alter table orders validate constraint fk_orders_status',
     null::text[], null::text[],
     null::text[], null::text[],
     null)
@@ -493,6 +636,10 @@ select pg_temp.migace_step('01JG1D5R8Y3B6F9J2L4N7Q0T3W', '20260518-1000-order-st
 select pg_temp.migace_step('01JG1D5R8Y3B6F9J2L4N7Q0T3W', '20260518-1000-order-status', 'status-fk', 'v1:5ba567981c8f0a05a8cf3c16eae712defd3d002db6206c2dfc5bef29c007682f', 2, 2,
     'alter table orders validate constraint fk_orders_status',
     null::text[], null::text[],
+    null)
+-- @migace statement label="20260518-1000-order-status, part status-mandatory"
+select pg_temp.migace_begin('01JG1D5R8Y3B6F9J2L4N7Q0T3W', '20260518-1000-order-status', 'status-mandatory', 'v1:6d47f209123e8a25bf676e5e8369b15930f7d7b107f5bbfdfadf51fb0c317d0a', 1, 4,
+    'alter table orders add constraint orders_status_id_not_null check (status_id is not null) not valid',
     null::text[], null::text[],
     null::text[], null::text[],
     null)
@@ -500,6 +647,10 @@ select pg_temp.migace_step('01JG1D5R8Y3B6F9J2L4N7Q0T3W', '20260518-1000-order-st
 select pg_temp.migace_step('01JG1D5R8Y3B6F9J2L4N7Q0T3W', '20260518-1000-order-status', 'status-mandatory', 'v1:6d47f209123e8a25bf676e5e8369b15930f7d7b107f5bbfdfadf51fb0c317d0a', 1, 4,
     'alter table orders add constraint orders_status_id_not_null check (status_id is not null) not valid',
     null::text[], null::text[],
+    null)
+-- @migace statement label="20260518-1000-order-status, part status-mandatory"
+select pg_temp.migace_begin('01JG1D5R8Y3B6F9J2L4N7Q0T3W', '20260518-1000-order-status', 'status-mandatory', 'v1:6d47f209123e8a25bf676e5e8369b15930f7d7b107f5bbfdfadf51fb0c317d0a', 2, 4,
+    'alter table orders validate constraint orders_status_id_not_null',
     null::text[], null::text[],
     null::text[], null::text[],
     null)
@@ -507,6 +658,10 @@ select pg_temp.migace_step('01JG1D5R8Y3B6F9J2L4N7Q0T3W', '20260518-1000-order-st
 select pg_temp.migace_step('01JG1D5R8Y3B6F9J2L4N7Q0T3W', '20260518-1000-order-status', 'status-mandatory', 'v1:6d47f209123e8a25bf676e5e8369b15930f7d7b107f5bbfdfadf51fb0c317d0a', 2, 4,
     'alter table orders validate constraint orders_status_id_not_null',
     null::text[], null::text[],
+    null)
+-- @migace statement label="20260518-1000-order-status, part status-mandatory"
+select pg_temp.migace_begin('01JG1D5R8Y3B6F9J2L4N7Q0T3W', '20260518-1000-order-status', 'status-mandatory', 'v1:6d47f209123e8a25bf676e5e8369b15930f7d7b107f5bbfdfadf51fb0c317d0a', 3, 4,
+    'alter table orders alter column status_id set not null',
     null::text[], null::text[],
     null::text[], null::text[],
     null)
@@ -514,6 +669,10 @@ select pg_temp.migace_step('01JG1D5R8Y3B6F9J2L4N7Q0T3W', '20260518-1000-order-st
 select pg_temp.migace_step('01JG1D5R8Y3B6F9J2L4N7Q0T3W', '20260518-1000-order-status', 'status-mandatory', 'v1:6d47f209123e8a25bf676e5e8369b15930f7d7b107f5bbfdfadf51fb0c317d0a', 3, 4,
     'alter table orders alter column status_id set not null',
     null::text[], null::text[],
+    null)
+-- @migace statement label="20260518-1000-order-status, part status-mandatory"
+select pg_temp.migace_begin('01JG1D5R8Y3B6F9J2L4N7Q0T3W', '20260518-1000-order-status', 'status-mandatory', 'v1:6d47f209123e8a25bf676e5e8369b15930f7d7b107f5bbfdfadf51fb0c317d0a', 4, 4,
+    'alter table orders drop constraint orders_status_id_not_null',
     null::text[], null::text[],
     null::text[], null::text[],
     null)
@@ -521,47 +680,72 @@ select pg_temp.migace_step('01JG1D5R8Y3B6F9J2L4N7Q0T3W', '20260518-1000-order-st
 select pg_temp.migace_step('01JG1D5R8Y3B6F9J2L4N7Q0T3W', '20260518-1000-order-status', 'status-mandatory', 'v1:6d47f209123e8a25bf676e5e8369b15930f7d7b107f5bbfdfadf51fb0c317d0a', 4, 4,
     'alter table orders drop constraint orders_status_id_not_null',
     null::text[], null::text[],
-    null::text[], null::text[],
-    null::text[], null::text[],
     null)
 -- @migace statement
 select pg_temp.migace_snippet('01JG1D5R8Y3B6F9J2L4N7Q0T3W', '20260518-1000-order-status', array['create-status-table', 'add-statuses', 'add-status-id', 'link-status', 'default-unknown', 'status-fk', 'status-mandatory']::text[], null)
 -- @migace statement label="20260525-1100-orders-ship-by, part add-column"
+select pg_temp.migace_begin('01JG2K8T5W1Z4C7F0H3M6P9S2V', '20260525-1100-orders-ship-by', 'add-column', 'v1:a85676063ee9977634459bc8797346cb81d145da2b76b97cde9dfb19224810d4', 1, 1,
+    'alter table orders add column ship_by date',
+    null::text[], null::text[],
+    null::text[], null::text[],
+    null)
+-- @migace statement label="20260525-1100-orders-ship-by, part add-column"
 select pg_temp.migace_step('01JG2K8T5W1Z4C7F0H3M6P9S2V', '20260525-1100-orders-ship-by', 'add-column', 'v1:a85676063ee9977634459bc8797346cb81d145da2b76b97cde9dfb19224810d4', 1, 1,
     'alter table orders add column ship_by date',
     null::text[], null::text[],
+    null)
+-- @migace statement label="20260525-1100-orders-ship-by, part fill-ship-by"
+select pg_temp.migace_begin('01JG2K8T5W1Z4C7F0H3M6P9S2V', '20260525-1100-orders-ship-by', 'fill-ship-by', 'v1:e1c19603c02b0ec41d671168220944abb776f225571f46f05c981f95707e7962', 1, 1,
+    'update orders set ship_by = cast(created_at as date) + make_interval(days => 3) where ship_by is null',
     null::text[], null::text[],
     null::text[], null::text[],
     null)
 -- @migace statement label="20260525-1100-orders-ship-by, part fill-ship-by"
 select pg_temp.migace_step('01JG2K8T5W1Z4C7F0H3M6P9S2V', '20260525-1100-orders-ship-by', 'fill-ship-by', 'v1:e1c19603c02b0ec41d671168220944abb776f225571f46f05c981f95707e7962', 1, 1,
     'update orders set ship_by = cast(created_at as date) + make_interval(days => 3) where ship_by is null',
-    null::text[], null::text[],
-    null::text[], null::text[],
     array['not exists (select 1 from orders where (orders.ship_by is not null) is not true)']::text[], array['all: orders.ship_by is not null']::text[],
     null)
 -- @migace statement
 select pg_temp.migace_snippet('01JG2K8T5W1Z4C7F0H3M6P9S2V', '20260525-1100-orders-ship-by', array['add-column', 'fill-ship-by']::text[], null)
 -- @migace statement label="20260601-0900-book-price-check, part price-not-negative"
-select pg_temp.migace_step('01JG3A1D4G7K0N3R6U9X2B5E8H', '20260601-0900-book-price-check', 'price-not-negative', 'v1:3dd5f50446f1af7ba1f67726c307a8c964d5daa494f5fdc5d401171d156ca97d', 1, 2,
+select pg_temp.migace_begin('01JG3A1D4G7K0N3R6U9X2B5E8H', '20260601-0900-book-price-check', 'price-not-negative', 'v1:3dd5f50446f1af7ba1f67726c307a8c964d5daa494f5fdc5d401171d156ca97d', 1, 2,
     'alter table book add constraint ck_book_price check (price_cents >= 0) not valid',
     null::text[], null::text[],
     array['not exists (select 1 from book where (book.price_cents < 0))']::text[], array['none: book.price_cents < 0']::text[],
+    null)
+-- @migace statement label="20260601-0900-book-price-check, part price-not-negative"
+select pg_temp.migace_step('01JG3A1D4G7K0N3R6U9X2B5E8H', '20260601-0900-book-price-check', 'price-not-negative', 'v1:3dd5f50446f1af7ba1f67726c307a8c964d5daa494f5fdc5d401171d156ca97d', 1, 2,
+    'alter table book add constraint ck_book_price check (price_cents >= 0) not valid',
     null::text[], null::text[],
+    null)
+-- @migace statement label="20260601-0900-book-price-check, part price-not-negative"
+select pg_temp.migace_begin('01JG3A1D4G7K0N3R6U9X2B5E8H', '20260601-0900-book-price-check', 'price-not-negative', 'v1:3dd5f50446f1af7ba1f67726c307a8c964d5daa494f5fdc5d401171d156ca97d', 2, 2,
+    'alter table book validate constraint ck_book_price',
+    null::text[], null::text[],
+    array['not exists (select 1 from book where (book.price_cents < 0))']::text[], array['none: book.price_cents < 0']::text[],
     null)
 -- @migace statement label="20260601-0900-book-price-check, part price-not-negative"
 select pg_temp.migace_step('01JG3A1D4G7K0N3R6U9X2B5E8H', '20260601-0900-book-price-check', 'price-not-negative', 'v1:3dd5f50446f1af7ba1f67726c307a8c964d5daa494f5fdc5d401171d156ca97d', 2, 2,
     'alter table book validate constraint ck_book_price',
     null::text[], null::text[],
-    array['not exists (select 1 from book where (book.price_cents < 0))']::text[], array['none: book.price_cents < 0']::text[],
-    null::text[], null::text[],
     null)
 -- @migace statement
 select pg_temp.migace_snippet('01JG3A1D4G7K0N3R6U9X2B5E8H', '20260601-0900-book-price-check', array['price-not-negative']::text[], null)
 -- @migace statement label="20260608-1500-book-title-search, part trigram-extension"
+select pg_temp.migace_begin('01JG3N7V4C8Q1S6W9Y2A5E0H3K', '20260608-1500-book-title-search', 'trigram-extension', 'v1:36b3a14b05a6994a3d0b9922e69f84e6f88dd97dff9c3cabc1298402faf3fe23', 1, 1,
+    'create extension if not exists pg_trgm',
+    null::text[], null::text[],
+    null::text[], null::text[],
+    null)
+-- @migace statement label="20260608-1500-book-title-search, part trigram-extension"
 select pg_temp.migace_step('01JG3N7V4C8Q1S6W9Y2A5E0H3K', '20260608-1500-book-title-search', 'trigram-extension', 'v1:36b3a14b05a6994a3d0b9922e69f84e6f88dd97dff9c3cabc1298402faf3fe23', 1, 1,
     'create extension if not exists pg_trgm',
     null::text[], null::text[],
+    null)
+-- @migace statement label="20260608-1500-book-title-search, part title-search-index"
+select pg_temp.migace_begin('01JG3N7V4C8Q1S6W9Y2A5E0H3K', '20260608-1500-book-title-search', 'title-search-index', 'v1:d311c0f4773936dfabc15494980069cda6a9a7df51cc87646c615f521cf15fc7', 1, 1,
+    'create index ix_book_title_search on book
+using gin (title gin_trgm_ops)',
     null::text[], null::text[],
     null::text[], null::text[],
     null)
@@ -570,25 +754,31 @@ select pg_temp.migace_step('01JG3N7V4C8Q1S6W9Y2A5E0H3K', '20260608-1500-book-tit
     'create index ix_book_title_search on book
 using gin (title gin_trgm_ops)',
     null::text[], null::text[],
-    null::text[], null::text[],
-    null::text[], null::text[],
     null)
 -- @migace statement
 select pg_temp.migace_snippet('01JG3N7V4C8Q1S6W9Y2A5E0H3K', '20260608-1500-book-title-search', array['trigram-extension', 'title-search-index']::text[], null)
 -- @migace statement label="20260622-0900-repair-order-status, part relink"
-select pg_temp.migace_step('01JG8T3B6X9D2F5H7K1M4Q0W8Z', '20260622-0900-repair-order-status', 'relink', 'v1:9d845bca24990b3e88d965efd61a203707bfbabd2fc2855f3b4ffe213e15b6cf', 1, 1,
+select pg_temp.migace_begin('01JG8T3B6X9D2F5H7K1M4Q0W8Z', '20260622-0900-repair-order-status', 'relink', 'v1:9d845bca24990b3e88d965efd61a203707bfbabd2fc2855f3b4ffe213e15b6cf', 1, 1,
     'update orders o set status_id = (select s.id from order_status s where s.code = upper(trim(o.status))) where o.status_id = (select id from order_status where code = ''UNKNOWN'') and exists (select 1 from order_status s where s.code = upper(trim(o.status)))',
     array['pg_temp.migace_ran(''01JG1D5R8Y3B6F9J2L4N7Q0T3W'', ''link-status'')']::text[], array['ran order-status.link-status']::text[],
     null::text[], null::text[],
+    null)
+-- @migace statement label="20260622-0900-repair-order-status, part relink"
+select pg_temp.migace_step('01JG8T3B6X9D2F5H7K1M4Q0W8Z', '20260622-0900-repair-order-status', 'relink', 'v1:9d845bca24990b3e88d965efd61a203707bfbabd2fc2855f3b4ffe213e15b6cf', 1, 1,
+    'update orders o set status_id = (select s.id from order_status s where s.code = upper(trim(o.status))) where o.status_id = (select id from order_status where code = ''UNKNOWN'') and exists (select 1 from order_status s where s.code = upper(trim(o.status)))',
     null::text[], null::text[],
     null)
 -- @migace statement
 select pg_temp.migace_snippet('01JG8T3B6X9D2F5H7K1M4Q0W8Z', '20260622-0900-repair-order-status', array['relink']::text[], null)
 -- @migace statement label="20260907-1000-customer-email, part rename-mail"
-select pg_temp.migace_step('01JH5P2R4T6V8X0Z2B4D6F8H0K', '20260907-1000-customer-email', 'rename-mail', 'v1:76730dec37f06625cb2cb36360e05d6c8ce3885b3ad7a9439687b367ba274c83', 1, 1,
+select pg_temp.migace_begin('01JH5P2R4T6V8X0Z2B4D6F8H0K', '20260907-1000-customer-email', 'rename-mail', 'v1:76730dec37f06625cb2cb36360e05d6c8ce3885b3ad7a9439687b367ba274c83', 1, 1,
     'alter table customer rename column mail to email',
     null::text[], null::text[],
     null::text[], null::text[],
+    null)
+-- @migace statement label="20260907-1000-customer-email, part rename-mail"
+select pg_temp.migace_step('01JH5P2R4T6V8X0Z2B4D6F8H0K', '20260907-1000-customer-email', 'rename-mail', 'v1:76730dec37f06625cb2cb36360e05d6c8ce3885b3ad7a9439687b367ba274c83', 1, 1,
+    'alter table customer rename column mail to email',
     null::text[], null::text[],
     null)
 -- @migace statement
@@ -631,4 +821,4 @@ begin
 end
 $migace$
 -- @migace statement
-select set_config('migace.' || name, '', false) from unnest(array['schema', 'other_schemas', 'lock_timeout', 'lock_attempts', 'lock_wait', 'run_schema', 'session_saved', 'session_search_path', 'session_lock_timeout', 'session_statement_timeout', 'failed', 'executed', 'skip', 'run']::text[]) as name
+select set_config('migace.' || name, '', false) from unnest(array['schema', 'other_schemas', 'lock_timeout', 'lock_attempts', 'lock_wait', 'run_schema', 'session_saved', 'session_search_path', 'session_lock_timeout', 'session_statement_timeout', 'failed', 'executed', 'skip', 'run', 'try', 'waited_since']::text[]) as name

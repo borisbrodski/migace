@@ -51,3 +51,25 @@ Measured on 2026-11-28, before the first correction, on this computer (Linux, Po
 - **A leftover parameter leaked into the next run.** A test that ran the bookshop without `other_schemas` passed when it ran alone and failed after the others: the value of an earlier run was still in the session. It passes now in both orders.
 - **The Java tests did not run again when a case changed.** Gradle did not know the folder of cases, so it called `test` up to date after seven new cases. The folder is now an input of the task.
 - M4.4-AC-10 is shown for the Java library with a scripted pool of one connection: after a failure the last part is sent before the connection is given back, and the next run uses it. What the database keeps is shown by M4.4-AC-09 on a real server.
+
+## Every try is recorded (M4.4-AC-11 to 15)
+
+- **A step inside a transaction is now two statements.** The first decides (done before, condition, `verify-before`), marks an earlier unfinished try as `abandoned`, and writes the new try as `started`. It is committed on its own. The second runs the statement and ends the row as `done`, `failed` or `no lock`. A statement outside a transaction already worked this way; both now use the same function, `migace_begin`.
+- **Further attempts after `no lock`** are tries of their own: the row of the attempt ends as `no lock`, and a new row starts. If the session ends during the wait, the last row stays `started`.
+- **A verify-after that is not true after a statement outside a transaction** keeps the row of the try as `done`, because the statement cannot be undone, and adds a `failed` row. This is what the code did before; it is now said in the code.
+- **The log table has new columns** (`event`, `snippet_name`, `part`, `step`; `message` may be empty). The ledger format stays 1: no ledger of format 1 exists outside the tests.
+- **A test on PGlite shows that the start is committed**: the statement of the part itself asks the ledger for its own row with `started`, and fails without it.
+- **Who holds a lock** comes from `pg_locks` and `pg_stat_activity`. For a session of another user without the right `pg_read_all_stats`, PostgreSQL may hide its user, application and times; the text then says `unknown`.
+
+### The bookshop after the changes (M4.4-AC-15)
+
+Same computer and server as before, five runs:
+
+| | Before | After |
+|---|---|---|
+| Statements of the bookshop script | 58 | 95 |
+| Lines of the script | 561 | 824 |
+| First run | 36 to 51 ms, middle value 44 ms | 44 to 84 ms, middle value 56 ms |
+| Second run | 16 to 23 ms, middle value 17 ms | 21 to 52 ms, middle value 27 ms |
+
+The 37 statements added: one more for each of the 29 steps inside a transaction, three more functions of the session, the four statements of the last part, and two more at the start; the release of the lock moved into the last part. The runs are about a quarter slower; every added statement is a round trip.

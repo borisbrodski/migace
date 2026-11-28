@@ -19,7 +19,7 @@ const LOCK_WAIT = '1s';
 export const RUN_SETTINGS = [
     'schema', 'other_schemas', 'lock_timeout', 'lock_attempts', 'lock_wait',
     'run_schema', 'session_saved', 'session_search_path', 'session_lock_timeout', 'session_statement_timeout',
-    'failed', 'executed', 'skip', 'run',
+    'failed', 'executed', 'skip', 'run', 'try', 'waited_since',
 ] as const;
 
 /** The plan cannot be written as a script. */
@@ -93,16 +93,16 @@ function partSections(snippet: PlanSnippet, part: PlanPart): Section[] {
         const after = conditions(part.verifyAfter);
         if (step?.outsideTransaction) {
             return [
-                { kind: 'guard', sql: `select pg_temp.migace_outside_begin(${identity}, ${position},\n    ${literal(step.sql)},\n    ${before},\n    ${literal(step.cleanup)})` },
+                { kind: 'guard', sql: `select pg_temp.migace_begin(${identity}, ${position},\n    ${literal(step.sql)},\n    ${before},\n    ${literal(step.cleanup)})` },
                 { kind: 'statement', sql: step.sql, outsideTransaction: true, label },
                 statement(`select pg_temp.migace_outside_end(${identity}, ${position},\n    ${after})`),
             ];
         }
-        return [{
-            kind: 'statement',
-            label,
-            sql: `select pg_temp.migace_step(${identity}, ${position},\n    ${literal(step?.sql)},\n    ${before},\n    ${after},\n    ${literal(part.stop)})`,
-        }];
+        // The start of the try is committed on its own, before the statement runs: a try that never ends still leaves its row.
+        return [
+            { kind: 'statement', label, sql: `select pg_temp.migace_begin(${identity}, ${position},\n    ${literal(step?.sql)},\n    ${before},\n    null)` },
+            { kind: 'statement', label, sql: `select pg_temp.migace_step(${identity}, ${position},\n    ${literal(step?.sql)},\n    ${after},\n    ${literal(part.stop)})` },
+        ];
     });
 }
 
@@ -144,13 +144,17 @@ function start(prefix: string): Section[] {
     from unnest(array[${RUN_SCHEMA}] || string_to_array(coalesce(current_setting('migace.other_schemas', true), ''), ','))
         with ordinality as schemas (name, position)
     where trim(name) <> ''), false)`),
-        statement("select set_config('migace.failed', '', false), set_config('migace.executed', '0', false), set_config('migace.skip', '', false), set_config('migace.run', '', false)"),
+        statement(`select set_config('migace.failed', '', false), set_config('migace.executed', '0', false), set_config('migace.skip', '', false),
+    set_config('migace.run', '', false), set_config('migace.try', '', false), set_config('migace.waited_since', '', false)`),
         // One run at a time. A run that waits here must not hold a transaction open: "create index concurrently" of the run
         // that has the lock waits for every older transaction, and the two would wait for each other. So the wait is a loop
         // that ends its transaction before every pause.
         statement(`do $migace$
 begin
     while not pg_try_advisory_lock(${LOCK_KEY}) loop
+        if current_setting('migace.waited_since') = '' then
+            perform set_config('migace.waited_since', clock_timestamp()::text, false);
+        end if;
         commit;
         perform pg_sleep(0.2);
         commit;
@@ -183,12 +187,18 @@ begin
             error_code text, error_message text, error_detail text, error_context text);
         create index ${prefix}part_run_step on ${t('part_run')} (snippet_uid, part, step);
         create table ${t('log')} (
-            id bigint generated always as identity primary key, run_id bigint, at timestamptz not null, message text not null);
+            id bigint generated always as identity primary key, run_id bigint, at timestamptz not null,
+            event text not null, snippet_name text, part text, step integer, message text);
     end if;
     insert into ${t('meta')} (key, value) values ('format', '${LEDGER_FORMAT}') on conflict (key) do nothing;
     update ${t('run')} set outcome = 'interrupted', ended_at = clock_timestamp() where outcome = 'running';
     insert into ${t('run')} (started_at, outcome) values (clock_timestamp(), 'running') returning id into v_run;
     perform set_config('migace.run', v_run::text, false);
+    insert into ${t('log')} (run_id, at, event) values (v_run, clock_timestamp(), 'run started');
+    if current_setting('migace.waited_since') <> '' then
+        insert into ${t('log')} (run_id, at, event, message) values (v_run, clock_timestamp(), 'waited',
+            format('waited %s for the lock of another run', clock_timestamp() - current_setting('migace.waited_since')::timestamptz));
+    end if;
 end
 $migace$`),
         ...functions(t).map(sql => sql.includes(SCHEMA) ? inSchema(sql) : statement(sql)),
@@ -218,34 +228,64 @@ begin
     return 0;
 end
 $migace$`,
+        `create or replace function pg_temp.migace_log(p_event text, p_snippet text, p_part text, p_step integer, p_message text) returns void language plpgsql as $migace$
+begin
+    insert into ${t('log')} (run_id, at, event, snippet_name, part, step, message)
+    values (current_setting('migace.run')::bigint, clock_timestamp(), p_event, p_snippet, p_part, p_step, p_message);
+end
+$migace$`,
         `create or replace function pg_temp.migace_record(${identity}, p_state text, p_sql text, p_started timestamptz,
-    p_code text, p_message text, p_detail text, p_context text) returns void language plpgsql as $migace$
+    p_code text, p_message text, p_detail text, p_context text) returns bigint language plpgsql as $migace$
+declare
+    v_id bigint;
 begin
     insert into ${t('part_run')} (run_id, snippet_uid, snippet_name, part, step, steps, state, sql, checksum, started_at, ended_at,
         error_code, error_message, error_detail, error_context)
     values (current_setting('migace.run')::bigint, p_uid, p_snippet, p_part, p_step, p_steps, p_state, p_sql, p_checksum, p_started,
-        case when p_state = 'started' then null else clock_timestamp() end, p_code, p_message, p_detail, p_context);
+        case when p_state = 'started' then null else clock_timestamp() end, p_code, p_message, p_detail, p_context)
+    returning id into v_id;
+    return v_id;
+end
+$migace$`,
+        `create or replace function pg_temp.migace_start_try(${identity}, p_sql text) returns void language plpgsql as $migace$
+begin
+    perform set_config('migace.try', pg_temp.migace_record(p_uid, p_snippet, p_part, p_checksum, p_step, p_steps, 'started', p_sql, clock_timestamp(),
+        null, null, null, null)::text, false);
+    perform pg_temp.migace_log('started', p_snippet, p_part, p_step, null);
+end
+$migace$`,
+        `create or replace function pg_temp.migace_end_try(p_state text, p_code text, p_message text, p_detail text, p_context text) returns void language plpgsql as $migace$
+begin
+    update ${t('part_run')} set state = p_state, ended_at = clock_timestamp(),
+        error_code = p_code, error_message = p_message, error_detail = p_detail, error_context = p_context
+    where id = current_setting('migace.try')::bigint;
 end
 $migace$`,
         `create or replace function pg_temp.migace_fail(${identity}, p_sql text, p_started timestamptz,
     p_code text, p_message text, p_detail text, p_context text) returns void language plpgsql as $migace$
 begin
-    perform pg_temp.migace_record(p_uid, p_snippet, p_part, p_checksum, p_step, p_steps, 'failed', p_sql, p_started, p_code, p_message, p_detail, p_context);
+    if current_setting('migace.try') <> '' then
+        perform pg_temp.migace_end_try('failed', p_code, p_message, p_detail, p_context);
+    else
+        perform pg_temp.migace_record(p_uid, p_snippet, p_part, p_checksum, p_step, p_steps, 'failed', p_sql, p_started, p_code, p_message, p_detail, p_context);
+    end if;
     perform set_config('migace.failed', format('%s, part %s: %s', p_snippet, p_part, p_message), false);
-    insert into ${t('log')} (run_id, at, message) values (current_setting('migace.run')::bigint, clock_timestamp(), current_setting('migace.failed'));
+    perform pg_temp.migace_log('failed', p_snippet, p_part, p_step, p_message);
     raise notice '%, part %: FAILED: %', p_snippet, p_part, p_message;
 end
 $migace$`,
-        `create or replace function pg_temp.migace_begin(${identity}, p_sql text, ${conditions}) returns boolean language plpgsql as $migace$
+        `create or replace function pg_temp.migace_begin(${identity}, p_sql text, ${conditions}, p_cleanup text) returns boolean language plpgsql as $migace$
 declare
     v_done text;
     v_untrue integer;
+    v_abandoned integer;
     v_started timestamptz := clock_timestamp();
     v_code text;
     v_message text;
     v_detail text;
     v_context text;
 begin
+    perform set_config('migace.try', '', false);
     if current_setting('migace.failed') <> '' then
         return false;
     end if;
@@ -262,27 +302,39 @@ begin
     if current_setting('migace.skip') = p_uid || '/' || p_part then
         return false;
     end if;
-    if p_step > 1 then
-        return true;
-    end if;
-    begin
-        v_untrue := pg_temp.migace_first_untrue(p_when);
-        if v_untrue > 0 then
-            perform set_config('migace.skip', p_uid || '/' || p_part, false);
-            perform pg_temp.migace_record(p_uid, p_snippet, p_part, p_checksum, p_step, p_steps, 'skipped', null, v_started,
-                null, 'when is not true: ' || p_when_text[v_untrue], null, null);
-            raise notice '%, part %: skipped, because this is not true: %', p_snippet, p_part, p_when_text[v_untrue];
+    -- The conditions are decided before the first step only. A part that has started has to end.
+    if p_step = 1 then
+        begin
+            v_untrue := pg_temp.migace_first_untrue(p_when);
+            if v_untrue > 0 then
+                perform set_config('migace.skip', p_uid || '/' || p_part, false);
+                perform pg_temp.migace_record(p_uid, p_snippet, p_part, p_checksum, p_step, p_steps, 'skipped', null, v_started,
+                    null, 'when is not true: ' || p_when_text[v_untrue], null, null);
+                perform pg_temp.migace_log('skipped', p_snippet, p_part, p_step, 'when is not true: ' || p_when_text[v_untrue]);
+                raise notice '%, part %: skipped, because this is not true: %', p_snippet, p_part, p_when_text[v_untrue];
+                return false;
+            end if;
+            v_untrue := pg_temp.migace_first_untrue(p_before);
+            if v_untrue > 0 then
+                raise exception using message = 'verify-before is not true: ' || p_before_text[v_untrue], errcode = 'MA002';
+            end if;
+        exception when others then
+            get stacked diagnostics v_code = returned_sqlstate, v_message = message_text, v_detail = pg_exception_detail, v_context = pg_exception_context;
+            perform pg_temp.migace_fail(p_uid, p_snippet, p_part, p_checksum, p_step, p_steps, p_sql, v_started, v_code, v_message, v_detail, v_context);
             return false;
+        end;
+    end if;
+    -- A try that started and never ended: its session, the server or the computer ended in the middle.
+    update ${t('part_run')} r set state = 'abandoned', ended_at = clock_timestamp()
+    where r.snippet_uid = p_uid and r.part = p_part and r.step = p_step and r.state = 'started';
+    get diagnostics v_abandoned = row_count;
+    if v_abandoned > 0 then
+        perform pg_temp.migace_log('abandoned', p_snippet, p_part, p_step, format('%s earlier try did not end', v_abandoned));
+        if p_cleanup is not null then
+            execute p_cleanup;
         end if;
-        v_untrue := pg_temp.migace_first_untrue(p_before);
-        if v_untrue > 0 then
-            raise exception using message = 'verify-before is not true: ' || p_before_text[v_untrue], errcode = 'MA002';
-        end if;
-    exception when others then
-        get stacked diagnostics v_code = returned_sqlstate, v_message = message_text, v_detail = pg_exception_detail, v_context = pg_exception_context;
-        perform pg_temp.migace_fail(p_uid, p_snippet, p_part, p_checksum, p_step, p_steps, p_sql, v_started, v_code, v_message, v_detail, v_context);
-        return false;
-    end;
+    end if;
+    perform pg_temp.migace_start_try(p_uid, p_snippet, p_part, p_checksum, p_step, p_steps, p_sql);
     return true;
 end
 $migace$`,
@@ -291,8 +343,21 @@ begin
     return coalesce(nullif(current_setting('migace.' || p_name, true), ''), p_default);
 end
 $migace$`,
-        `create or replace function pg_temp.migace_step(${identity}, p_sql text, ${conditions},
-    p_after text[], p_after_text text[], p_stop text) returns void language plpgsql as $migace$
+        `create or replace function pg_temp.migace_blockers() returns text language plpgsql as $migace$
+declare
+    v_blockers text;
+begin
+    -- Who holds a lock on a table of the schema. The text of their statements is not read: it can hold data of persons.
+    select string_agg(format('%s: process %s, user %s, application %s, %s since %s', c.relname, l.pid, coalesce(a.usename::text, 'unknown'),
+            coalesce(nullif(a.application_name, ''), 'unknown'), l.mode, coalesce(a.xact_start::text, 'unknown')), '; ' order by c.relname, l.pid, l.mode)
+    into v_blockers
+    from pg_locks l join pg_class c on c.oid = l.relation join pg_namespace n on n.oid = c.relnamespace
+    left join pg_stat_activity a on a.pid = l.pid
+    where l.granted and l.pid <> pg_backend_pid() and l.locktype = 'relation' and c.relkind in ('r', 'p') and n.nspname = ${RUN_SCHEMA};
+    return v_blockers;
+end
+$migace$`,
+        `create or replace function pg_temp.migace_step(${identity}, p_sql text, p_after text[], p_after_text text[], p_stop text) returns void language plpgsql as $migace$
 declare
     v_untrue integer;
     v_started timestamptz := clock_timestamp();
@@ -303,7 +368,7 @@ declare
     v_detail text;
     v_context text;
 begin
-    if not pg_temp.migace_begin(p_uid, p_snippet, p_part, p_checksum, p_step, p_steps, p_sql, p_when, p_when_text, p_before, p_before_text) then
+    if current_setting('migace.try') = '' then
         return;
     end if;
     for v_attempt in 1 .. v_attempts loop
@@ -320,23 +385,25 @@ begin
                     raise exception using message = 'verify-after is not true: ' || p_after_text[v_untrue], errcode = 'MA002';
                 end if;
             end if;
-            perform pg_temp.migace_record(p_uid, p_snippet, p_part, p_checksum, p_step, p_steps, 'done', p_sql, v_started, null, null, null, null);
+            perform pg_temp.migace_end_try('done', null, null, null, null);
+            perform pg_temp.migace_log('done', p_snippet, p_part, p_step, null);
             exit;
         exception
             when lock_not_available then
-                select string_agg(distinct c.relname, ', ' order by c.relname) into v_locked
-                from pg_locks l join pg_class c on c.oid = l.relation join pg_namespace n on n.oid = c.relnamespace
-                where l.granted and l.pid <> pg_backend_pid() and l.locktype = 'relation' and c.relkind in ('r', 'p') and n.nspname = ${RUN_SCHEMA};
+                v_detail := pg_temp.migace_blockers();
+                select string_agg(distinct split_part(blocker, ':', 1), ', ') into v_locked from unnest(string_to_array(v_detail, '; ')) as blocker;
                 v_message := format('no lock within %s, attempt %s of %s. Locked by another session: %s',
                     pg_temp.migace_setting('lock_timeout', '${LOCK_TIMEOUT}'), v_attempt, v_attempts, coalesce(v_locked, 'unknown'));
                 if v_attempt = v_attempts then
-                    perform pg_temp.migace_fail(p_uid, p_snippet, p_part, p_checksum, p_step, p_steps, p_sql, v_started, '55P03', v_message, null, null);
+                    perform pg_temp.migace_fail(p_uid, p_snippet, p_part, p_checksum, p_step, p_steps, p_sql, v_started, '55P03', v_message, v_detail, null);
                     return;
                 end if;
-                perform pg_temp.migace_record(p_uid, p_snippet, p_part, p_checksum, p_step, p_steps, 'no lock', p_sql, v_started, '55P03', v_message, null, null);
+                perform pg_temp.migace_end_try('no lock', '55P03', v_message, v_detail, null);
+                perform pg_temp.migace_log('no lock', p_snippet, p_part, p_step, v_message || coalesce('. ' || v_detail, ''));
                 raise notice '%, part %: %', p_snippet, p_part, v_message;
                 perform pg_sleep(extract(epoch from pg_temp.migace_setting('lock_wait', '${LOCK_WAIT}')::interval));
-                v_started := clock_timestamp();
+                perform pg_temp.migace_log('attempt', p_snippet, p_part, p_step, format('attempt %s of %s', v_attempt + 1, v_attempts));
+                perform pg_temp.migace_start_try(p_uid, p_snippet, p_part, p_checksum, p_step, p_steps, p_sql);
             when others then
                 get stacked diagnostics v_code = returned_sqlstate, v_message = message_text, v_detail = pg_exception_detail, v_context = pg_exception_context;
                 perform pg_temp.migace_fail(p_uid, p_snippet, p_part, p_checksum, p_step, p_steps, p_sql, v_started, v_code, v_message, v_detail, v_context);
@@ -349,40 +416,27 @@ begin
     end if;
 end
 $migace$`,
-        `create or replace function pg_temp.migace_outside_begin(${identity}, p_sql text, ${conditions}, p_cleanup text) returns boolean language plpgsql as $migace$
-begin
-    if not pg_temp.migace_begin(p_uid, p_snippet, p_part, p_checksum, p_step, p_steps, p_sql, p_when, p_when_text, p_before, p_before_text) then
-        return false;
-    end if;
-    update ${t('part_run')} r set state = 'abandoned', ended_at = clock_timestamp()
-    where r.snippet_uid = p_uid and r.part = p_part and r.step = p_step and r.state = 'started';
-    if found and p_cleanup is not null then
-        execute p_cleanup;
-    end if;
-    perform pg_temp.migace_record(p_uid, p_snippet, p_part, p_checksum, p_step, p_steps, 'started', p_sql, clock_timestamp(), null, null, null, null);
-    return true;
-end
-$migace$`,
         `create or replace function pg_temp.migace_outside_end(${identity}, p_after text[], p_after_text text[]) returns void language plpgsql as $migace$
 declare
     v_untrue integer;
 begin
-    if current_setting('migace.failed') <> '' then
-        return;
-    end if;
-    update ${t('part_run')} r set state = 'done', ended_at = clock_timestamp()
-    where r.run_id = current_setting('migace.run')::bigint and r.snippet_uid = p_uid and r.part = p_part and r.step = p_step and r.state = 'started';
-    if not found then
+    if current_setting('migace.failed') <> '' or current_setting('migace.try') = '' then
         return;
     end if;
     perform set_config('migace.executed', (current_setting('migace.executed')::integer + 1)::text, false);
     if p_step = p_steps then
         v_untrue := pg_temp.migace_first_untrue(p_after);
-        if v_untrue > 0 then
-            perform pg_temp.migace_fail(p_uid, p_snippet, p_part, p_checksum, p_step, p_steps, null, clock_timestamp(),
-                'MA002', 'verify-after is not true: ' || p_after_text[v_untrue], null, null);
-            return;
-        end if;
+    end if;
+    -- The statement ran and cannot be undone. Its try is done; a verify-after that is not true is a failure of its own.
+    perform pg_temp.migace_end_try('done', null, null, null, null);
+    perform pg_temp.migace_log('done', p_snippet, p_part, p_step, null);
+    if v_untrue > 0 then
+        perform set_config('migace.try', '', false);
+        perform pg_temp.migace_fail(p_uid, p_snippet, p_part, p_checksum, p_step, p_steps, null, clock_timestamp(),
+            'MA002', 'verify-after is not true: ' || p_after_text[v_untrue], null, null);
+        return;
+    end if;
+    if p_step = p_steps then
         raise notice '%, part %: done', p_snippet, p_part;
     end if;
 end
@@ -421,6 +475,7 @@ begin
     update ${t('run')} set ended_at = clock_timestamp(),
         outcome = case when v_failed then 'failed' when v_executed = 0 then 'nothing to do' else 'done' end
     where id = v_run;
+    perform pg_temp.migace_log('run ended', null, null, null, case when v_failed then 'failed' when v_executed = 0 then 'nothing to do' else 'done' end);
     if v_failed then
         raise notice 'Stopped. Nothing after the failed part was run.';
         return;

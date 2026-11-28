@@ -43,7 +43,7 @@ describe('The script of the bookshop', () => {
     });
 });
 
-// M4.1-AC-18, M4.1-AC-19, M4.1-AC-24
+// M4.1-AC-18, M4.1-AC-19, M4.1-AC-24, M4.4-AC-13
 describe('A run of the bookshop script', () => {
     test('runs every part once and in order, and a second run has nothing to do', async () => {
         await bookshop(DATA);
@@ -53,6 +53,9 @@ describe('A run of the bookshop script', () => {
         const firstRun = await run(script);
 
         await expect(firstRun.join('\n') + '\n').toMatchFileSnapshot(path.join(HERE, 'bookshop-first-run.txt'));
+        // M4.4-AC-13
+        const log = await rows("select concat_ws(' | ', event, snippet_name, part, step, message) as line from mig_log order by id");
+        await expect(log.map(row => row.line).join('\n') + '\n').toMatchFileSnapshot(path.join(HERE, 'bookshop-first-run-log.txt'));
         const after = await model();
         await expect(differencesText(compare(before, after))).toMatchFileSnapshot(path.join(HERE, 'bookshop-changes.txt'));
         expect(await rows('select id, status_id, ship_by::text as ship_by from orders order by id')).toEqual([

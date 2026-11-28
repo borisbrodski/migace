@@ -34,10 +34,11 @@ How the script reaches its behaviour with an adapter that has no logic. **[direc
   5. writes the result into the ledger.
 
   The statement and its record are committed together. A step is done completely, with its record, or not at all.
+- **The start of every try is committed before its statement runs** (since M4.4). A step inside a transaction is two statements: a call that decides and writes the row of the try with the state `started`, and a call that runs the statement and ends that row. A try whose session, server or computer ended in the middle keeps its row with `started`. The next run marks it `abandoned`, writes a line into the log, and starts a try of its own. The two rows stay apart.
 - **A failure is caught inside the block.** The block undoes its statement, writes the error with all details into the ledger, marks the run as failed in a session setting, and ends without an error. Every later block then does nothing. The last statement of the script raises the error, and the adapter reports it. This is how the ledger gets the full error from an adapter that only stops.
 - **A part with several steps** is several such blocks. After a failure the next run continues at the step that failed, not at the first one.
 - **A statement that cannot run inside a block**, such as `create index concurrently`, is sent as it is. A guard query before it decides whether it runs and records the start; a statement after it records the end. If it fails, the adapter stops; the ledger shows a step that started and did not end. The next run first removes what the failed attempt left, such as an invalid index, and repeats the step.
-- **A connection that is lost** rolls back the current step. The ledger has no record of it, so the next run runs it.
+- **A connection that is lost** rolls back the current step. Its try stays `started`, so the next run marks it `abandoned` and runs the step again.
 - **Progress** is reported with notices: one line per part that ran, was skipped or failed.
 
 ### The format of the script
@@ -67,7 +68,11 @@ Parameters of a run. Their names are provisional. **[direction]**
 | `migace.lock_attempts` | How often a step is tried when it got no lock. | `3` |
 | `migace.lock_wait` | The pause between two attempts. | `1s` |
 
-A step that got no lock writes a ledger row with the state `no lock` for every attempt. When the last attempt fails, the run ends with a failure that names the snippet, the part and the tables that other sessions hold locks on.
+A step that got no lock writes a ledger row with the state `no lock` for every attempt. When the last attempt fails, the run ends with a failure that names the snippet, the part and the tables that other sessions hold locks on. The row of the try and the log also name, for every session that holds such a lock, its process number, its user, the name of its application, the kind of lock and the start of its transaction. The text of its statement is not stored: it can hold data of persons.
+
+States of a row of the part-run table: `started`, `done`, `failed`, `skipped`, `no lock`, `abandoned`.
+
+The log table has one line per event, with the columns `event`, `snippet_name`, `part`, `step` and `message`. Events: `run started`, `waited` (for the lock of another run), `started`, `done`, `failed`, `skipped`, `no lock`, `attempt` (a further attempt after `no lock`), `abandoned`, `run ended` (with the outcome). The log of the first bookshop run is the committed file `migql/test/script/bookshop-first-run-log.txt`.
 
 The contract in full, with its cases as data, is in `clients/contract/README.md`. Fixed there in M4.3: the first line of a script names the version of the format, and a runner refuses a version it does not know; a guard query answers with exactly one row that holds true or false, and any other answer is an error; a runner reads the whole script before it sends anything.
 

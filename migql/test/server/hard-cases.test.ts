@@ -120,7 +120,8 @@ describe('A run whose connection is closed', () => {
 
         expect(await running).toMatch(/terminat|Connection terminated/i);
         expect(await rows(database, 'select stock from book')).toEqual([{ stock: 3 }]);
-        expect((await rows(database, 'select part, state from mig_part_run order by id')).map(row => `${row.part} ${row.state}`)).toEqual(['before done']);
+        // M4.4-AC-11: the try was committed before its statement ran.
+        expect((await rows(database, 'select part, state from mig_part_run order by id')).map(row => `${row.part} ${row.state}`)).toEqual(['before done', 'long started']);
 
         await killer.query('update orders set total_cents = 1 where id = 3');
         expect(await run(database, script)).toEqual([
@@ -128,12 +129,16 @@ describe('A run whose connection is closed', () => {
         ]);
         expect(await rows(database, 'select stock from book')).toEqual([{ stock: 4 }]);
         expect((await rows(database, 'select outcome from mig_run order by id')).map(row => row.outcome)).toEqual(['interrupted', 'done']);
+        // M4.4-AC-12: the try that did not end stays apart from the one that did.
+        expect((await rows(database, 'select part, state from mig_part_run order by id')).map(row => `${row.part} ${row.state}`))
+            .toEqual(['before done', 'long abandoned', 'long done', 'after done']);
     });
 });
 
 /** A session that holds a lock on a table that blocks every change of the table, until `release` is called. */
 async function lockedBy(database: string, table: string): Promise<{ release: () => Promise<void> }> {
     const holder: pg.Client = await connect(database);
+    await holder.query("set application_name = 'bookshop-report'");
     await holder.query(`begin; lock table ${table} in access exclusive mode`);
     return { release: async () => { await holder.query('commit'); } };
 }
@@ -172,6 +177,14 @@ describe('A lock that another session holds', () => {
         expect((await rows(database, 'select part, state, error_code from mig_part_run order by id')).map(row => `${row.part} ${row.state} ${row.error_code}`))
             .toEqual(['column no lock 55P03', 'column failed 55P03']);
         expect((await model(database)).tables.find(table => table.name === 'book')!.columns.map(column => column.name)).not.toContain('b');
+        // M4.4-AC-14: who holds the lock, but not the text of its statement.
+        const blocker = /^customer: process \d+, user \w+, application bookshop-report, AccessExclusiveLock since \d{4}-\d\d-\d\d /;
+        const tries = await rows(database, "select error_detail from mig_part_run where part = 'column' order by id");
+        expect(tries.map(row => row.error_detail)).toEqual([expect.stringMatching(blocker), expect.stringMatching(blocker)]);
+        const log = await rows(database, "select event, message from mig_log where part = 'column' order by id");
+        expect(log.map(row => row.event)).toEqual(['started', 'no lock', 'attempt', 'started', 'failed']);
+        expect(log[1].message).toMatch(/Locked by another session: customer\. customer: process \d+, user \w+, application bookshop-report, AccessExclusiveLock since /);
+        expect(JSON.stringify(await rows(database, 'select * from mig_part_run')) + JSON.stringify(await rows(database, 'select * from mig_log'))).not.toContain('lock table');
 
         await lock.release();
         expect(await run(database, script, QUICK)).toEqual(['20260302-0900-a, part column: done', '20260302-0900-a, part after: done', 'Done: 2 steps ran.']);
