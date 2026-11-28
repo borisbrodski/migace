@@ -8,7 +8,7 @@
       "parts": [
         {
           "name": "add-column",
-          "checksum": "v1:de0e049d9074d5eb9ec50240893d06e0059bca5dda567e17398e9de9798d8813",
+          "checksum": "v1:46ef9d6135ed41c4c238eb2a06c0cc0c6536bc5066fac6747273dfeacc803ede",
           "verifyBefore": [],
           "verifyAfter": [],
           "steps": [
@@ -20,7 +20,7 @@
         },
         {
           "name": "fill-existing",
-          "checksum": "v1:e8fae9270668214cc04e6de0679f9c70a721b1ab1677830d378e971e58a5277d",
+          "checksum": "v1:1c27a3e76c95b432f00ab60011ab94f0cb1aaa69c14bac8f72ff5ae94ac975c3",
           "verifyBefore": [],
           "verifyAfter": [],
           "steps": [
@@ -63,7 +63,7 @@
       "parts": [
         {
           "name": "create-table",
-          "checksum": "v1:47110af6846310542c41682c41e164eb8d8b348a1e7000de77a97987012e4247",
+          "checksum": "v1:fcd7c809cf3dbcb166fd96c3e71e858789a4c159f6f7c2d5c1e6be0dfc24a1f1",
           "verifyBefore": [],
           "verifyAfter": [],
           "steps": [
@@ -75,7 +75,7 @@
         },
         {
           "name": "fk-book",
-          "checksum": "v1:cb2249b43421626625718f829312634969b0cbae7920707eafe7db7a59e88feb",
+          "checksum": "v1:426a7335bcdb53e691a14f3286e4d9967b19e18ce0db61ee2aa23065fe90b4cb",
           "verifyBefore": [],
           "verifyAfter": [],
           "steps": [
@@ -87,7 +87,7 @@
         },
         {
           "name": "fk-customer",
-          "checksum": "v1:05306bc162ff68c30a57719f7fe3b64f9f17de090eb51cd31e43cd5b13dbb821",
+          "checksum": "v1:1b3fe3a75f4fe3571e96f281094d7941e34a2ce72d354b1bd69164fb7c6d19db",
           "verifyBefore": [],
           "verifyAfter": [],
           "steps": [
@@ -99,7 +99,7 @@
         },
         {
           "name": "index-book",
-          "checksum": "v1:32ba7506604830e4e74e92e89f9fea328737731f4ba5599b01e01d11fd72c7b7",
+          "checksum": "v1:3e42da17ec5e0197b6dff7e9afed933fbc8347797c6faa71f30bd98066a1f1c2",
           "verifyBefore": [],
           "verifyAfter": [],
           "steps": [
@@ -118,7 +118,7 @@
       "parts": [
         {
           "name": "index",
-          "checksum": "v1:e31894b2e2071f48e107587a66349aa17a712aec0fcb5970c9802dce3ed563a5",
+          "checksum": "v1:09382d5a6d84ee88ce142912f0783f6ddbefc650942de79ac8c3f9df919511c9",
           "verifyBefore": [],
           "verifyAfter": [],
           "steps": [
@@ -138,7 +138,7 @@
       "parts": [
         {
           "name": "create-status-table",
-          "checksum": "v1:6d038856d0ae8419d42dec79f9d94464c79c8b01c7bd0465e121e5e05a490b83",
+          "checksum": "v1:06fe85072a15b7e15bdc4e92adbaa04735da4cc57f3392b69722242f3d18cc36",
           "verifyBefore": [],
           "verifyAfter": [],
           "steps": [
@@ -162,7 +162,7 @@
         },
         {
           "name": "add-status-id",
-          "checksum": "v1:565f102dcee3aaff9855c355b74bc5a1693f720be8b6066dc2c31acd3b0c9353",
+          "checksum": "v1:cf0b54d570650f5262478046c444ab8169c494aba5c99159afa302534f919d9b",
           "verifyBefore": [],
           "verifyAfter": [],
           "steps": [
@@ -174,7 +174,7 @@
         },
         {
           "name": "link-status",
-          "checksum": "v1:917a2f1a33824d6b5a48654cd9e9f4ae710f06386669589ad6c718558a3e87fd",
+          "checksum": "v1:8586bf7e6c8cb8f0052b9fd0f5565c980d3571d468c6b1e9224ed49ff50cd9e8",
           "verifyBefore": [],
           "verifyAfter": [],
           "steps": [
@@ -186,7 +186,7 @@
         },
         {
           "name": "default-unknown",
-          "checksum": "v1:c8f6d2c5a09acf91d7f1f299208bfff2255b64a72d342be8c01dc00be6e0325d",
+          "checksum": "v1:7e866ddaa81fcc3dd9ac142887e0a581697bf7d85abc7023988592e468906371",
           "verifyBefore": [],
           "verifyAfter": [
             {
@@ -250,7 +250,7 @@
       "parts": [
         {
           "name": "add-column",
-          "checksum": "v1:a85676063ee9977634459bc8797346cb81d145da2b76b97cde9dfb19224810d4",
+          "checksum": "v1:a2ec6b440775e1a479b8abea2917334b27d88602f6a4f2c3af4963e2a01c03ec",
           "verifyBefore": [],
           "verifyAfter": [],
           "steps": [
@@ -262,7 +262,7 @@
         },
         {
           "name": "fill-ship-by",
-          "checksum": "v1:e1c19603c02b0ec41d671168220944abb776f225571f46f05c981f95707e7962",
+          "checksum": "v1:23943478978aac5c16e4ab745f2b63f13e3ce85a219fe2a3a3a6c24a9e62ebd4",
           "verifyBefore": [],
           "verifyAfter": [
             {
@@ -349,7 +349,7 @@
       "parts": [
         {
           "name": "relink",
-          "checksum": "v1:9d845bca24990b3e88d965efd61a203707bfbabd2fc2855f3b4ffe213e15b6cf",
+          "checksum": "v1:ad6a3e4ebc224ccde17d0648b7893eec066960beb21b1eff95207582c2259b12",
           "verifyBefore": [],
           "verifyAfter": [],
           "steps": [

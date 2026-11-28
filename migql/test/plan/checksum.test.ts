@@ -37,14 +37,16 @@ describe('Checksum of a part, rule v1', () => {
         ['one line', ["do: update orders o set status = upper(trim(o.status)) where o.id > 10 and o.status <> 'x  y'"]],
         ['comments', ['do: |', '  -- why this is needed', "  update orders o set status = upper(trim(o.status)) -- tidy", "  where o.id > 10 and o.status <> 'x  y'"]],
         ['a YAML comment', ["do: update orders o set status = upper(trim(o.status)) where o.id > 10 and o.status <> 'x  y' # tidy"]],
-        ['keywords in another case', ['do: |', "  UPDATE orders o SET status = upper(trim(o.status)) WHERE o.id > 10 AND o.status <> 'x  y'"]],
+        ['keywords in another case', ['do: |', "  update orders o SET status = upper(trim(o.status)) WHERE o.id > 10 AND o.status <> 'x  y'"]],
+        // M4.4-AC-22
+        ['quotes around a name', ['do: |', "  update orders o set \"status\" = upper(trim(o.\"status\")) where o.id > 10 and o.status <> 'x  y'"]],
     ])('%s does not change it', (_what, body) => {
         expect(checksum(...body)).toBe(checksum(...UPDATE));
     });
 
     test.each([
         ['a name', "update orders o set status = upper(trim(o.Status)) where o.id > 10 and o.status <> 'x  y'"],
-        ['a name in quotes', "update orders o set \"status\" = upper(trim(o.status)) where o.id > 10 and o.status <> 'x  y'"],
+        ['a name in quotes in another case', "update orders o set \"Status\" = upper(trim(o.status)) where o.id > 10 and o.status <> 'x  y'"],
         ['the case of a function', "update orders o set status = Upper(trim(o.status)) where o.id > 10 and o.status <> 'x  y'"],
         ['a number', "update orders o set status = upper(trim(o.status)) where o.id > 11 and o.status <> 'x  y'"],
         ['a text', "update orders o set status = upper(trim(o.status)) where o.id > 10 and o.status <> 'x y'"],
@@ -53,6 +55,40 @@ describe('Checksum of a part, rule v1', () => {
         ['brackets', "update orders o set status = upper(trim(o.status)) where (o.id > 10) and o.status <> 'x  y'"],
     ])('%s changes it', (_what, statement) => {
         expect(checksum('do: |', `  ${statement}`)).not.toBe(checksum(...UPDATE));
+    });
+
+    // M4.4-AC-21
+    test.each([['value', 'Value'], ['key', 'KEY'], ['type', 'Type']])('a name that is also a keyword counts with its characters: %s and %s differ', (word, other) => {
+        expect(checksum(`do: update t set ${word} = 1`)).not.toBe(checksum(`do: update t set ${other} = 1`));
+    });
+
+    test('a keyword that can be a name counts with its characters also where it is a keyword', () => {
+        expect(checksum('do: update t set a = 1')).not.toBe(checksum('do: UPDATE t set a = 1'));
+        expect(checksum('do: update t set a = 1')).toBe(checksum('do: update t SET a = 1'));
+    });
+
+    // M4.4-AC-22
+    test('a name and the same name in quotes are one name', () => {
+        expect(checksum('do: update t set Price = 1')).toBe(checksum('do: update t set "Price" = 1'));
+        expect(checksum('do: update t set value = 1')).toBe(checksum('do: update t set "value" = 1'));
+        expect(checksum('do: update t set Price = 1')).not.toBe(checksum('do: update t set "price" = 1'));
+    });
+
+    // M4.4-AC-21
+    test('the case of every letter of a name counts, also for the keywords that can be names', () => {
+        const note = fs.readFileSync(fileURLToPath(new URL('../../../MIG-Ace-vault/migql/keywords.md', import.meta.url)), 'utf8');
+        const nameKeywords = [...note.matchAll(/^\| `([a-z]+)` \| yes \|/gm)].map(row => row[1]);
+        expect(nameKeywords.length).toBeGreaterThanOrEqual(26);
+        const names = fc.oneof(fc.constantFrom(...nameKeywords), fc.constantFrom('price', 'status', 'customer_id'));
+
+        fc.assert(fc.property(names, fc.nat(), (name, position) => {
+            const index = position % name.length;
+            const changed = name.substring(0, index) + name[index].toUpperCase() + name.substring(index + 1);
+            fc.pre(changed !== name);
+
+            expect(checksum(`do: update t set ${changed} = 1`)).not.toBe(checksum(`do: update t set ${name} = 1`));
+            expect(checksum(`do: update t set ${name} = 1`)).toBe(checksum(`do: update t set "${name}" = 1`));
+        }), { seed: 20261128, numRuns: 300 });
     });
 
     test('the other keys of a part count, the name of the part does not', () => {
@@ -77,7 +113,8 @@ describe('Checksum of a part, rule v1', () => {
     });
 
     test('white space, comments and the case of keywords never change it', () => {
-        const KEYWORDS = /\b(update|set|where|and|is|not|null|select|from|in)\b/g;
+        // Keywords that cannot be names. The case of the others counts, see below.
+        const KEYWORDS = /\b(set|where|and|is|not|null|select|from|in)\b/g;
         const statement = ['update', 'orders', 'o', 'set', 'status_id', '=', '(', 'select', 's.id', 'from', 'order_status', 's', 'where', "s.code = 'A  b'", ')',
             'where', 'o.status_id', 'is', 'null', 'and', 'o.id', 'not', 'in', '(', '1', ',', '2', ')'];
         const expected = checksum('do: |', `  ${statement.join(' ')}`);

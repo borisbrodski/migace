@@ -1,5 +1,7 @@
 import { createHash } from 'node:crypto';
 import type { IToken } from 'chevrotain';
+import { MigqlGrammar } from '../generated/grammar.js';
+import { nameKeywords } from '../parser/name-keywords.js';
 
 /**
  * The checksum of a part. The ledger and the release files store it, to know which version of a part ran.
@@ -19,20 +21,40 @@ export function partChecksums(tokens: IToken[]): Map<string, Checksum> {
 
 /**
  * Rule v1: the tokens of the part as the author wrote it. White space and comments are no tokens and do not
- * count. The case of a keyword does not count. Everything else counts, also the choice between two spellings
- * of the same thing. Free text and native SQL count as written, without the indentation of their block and
- * without white space at the ends of their lines.
+ * count. The case of a keyword does not count, except for a keyword that can be a name: such a word counts
+ * with its characters wherever it stands, as every name does. Quotes around a name do not count. Everything
+ * else counts, also the choice between two spellings of the same thing. Free text and native SQL count as
+ * written, without the indentation of their block and without white space at the ends of their lines.
  */
 export function checksumV1(body: IToken[]): Checksum {
     const hash = createHash('sha256');
     for (const token of body) {
-        hash.update(`${token.tokenType.name}\u0000${textV1(token)}\u0001`);
+        hash.update(`${typeV1(token)}\u0000${textV1(token)}\u0001`);
     }
     return `v1:${hash.digest('hex')}`;
 }
 
+/** The keywords that can be names. Rule v1 takes them from the grammar of the first release; the list only grows. */
+const NAME_KEYWORDS = nameKeywords(MigqlGrammar());
+
+/** A name is a name, whether it is written plain, in quotes, or is a keyword that can be a name. */
+function isName(token: IToken): boolean {
+    const type = token.tokenType.name;
+    return type === 'ID' || type === 'QUOTED_ID' || NAME_KEYWORDS.has(type);
+}
+
+function typeV1(token: IToken): string {
+    return isName(token) ? 'ID' : token.tokenType.name;
+}
+
 function textV1(token: IToken): string {
     const type = token.tokenType.name;
+    if (type === 'QUOTED_ID') {
+        return token.image.slice(1, -1).replace(/""/g, '"');
+    }
+    if (isName(token)) {
+        return token.image;
+    }
     if (type === 'TEXT') {
         const indentation = (token.startColumn ?? 1) - 1;
         const [first, ...rest] = token.image.split(/\r?\n/);

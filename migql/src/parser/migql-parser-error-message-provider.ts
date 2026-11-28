@@ -1,5 +1,6 @@
 import type { IParserErrorMessageProvider, IToken, TokenType } from 'chevrotain';
-import { AstUtils, GrammarAST, type LangiumCoreServices } from 'langium';
+import type { LangiumCoreServices } from 'langium';
+import { nameKeywords } from './name-keywords.js';
 
 type Paths = TokenType[][];
 
@@ -32,8 +33,7 @@ export class MigqlParserErrorMessageProvider implements IParserErrorMessageProvi
     private readonly nameKeywords: Set<string>;
 
     constructor(services: LangiumCoreServices) {
-        const nameRule = services.Grammar.rules.find(rule => rule.name === 'Name')!;
-        this.nameKeywords = new Set(AstUtils.streamAllContents(nameRule).filter(GrammarAST.isKeyword).map(keyword => keyword.value));
+        this.nameKeywords = nameKeywords(services.Grammar);
     }
 
     buildMismatchTokenMessage(options: { expected: TokenType, actual: IToken }): string {

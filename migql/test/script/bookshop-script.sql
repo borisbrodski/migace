@@ -416,24 +416,24 @@ $migace$$migace_body$, '@migace_schema@', quote_ident(current_setting('migace.ru
 end
 $migace_in_schema$
 -- @migace statement label="20260302-0900-customer-loyalty, part add-column"
-select pg_temp.migace_begin('01JF2A6QW3ZK8M4T7R9B5X0C1D', '20260302-0900-customer-loyalty', 'add-column', 'v1:de0e049d9074d5eb9ec50240893d06e0059bca5dda567e17398e9de9798d8813', 1, 1,
+select pg_temp.migace_begin('01JF2A6QW3ZK8M4T7R9B5X0C1D', '20260302-0900-customer-loyalty', 'add-column', 'v1:46ef9d6135ed41c4c238eb2a06c0cc0c6536bc5066fac6747273dfeacc803ede', 1, 1,
     'alter table customer add column loyalty_level varchar(10)',
     null::text[], null::text[],
     null::text[], null::text[],
     null)
 -- @migace statement label="20260302-0900-customer-loyalty, part add-column"
-select pg_temp.migace_step('01JF2A6QW3ZK8M4T7R9B5X0C1D', '20260302-0900-customer-loyalty', 'add-column', 'v1:de0e049d9074d5eb9ec50240893d06e0059bca5dda567e17398e9de9798d8813', 1, 1,
+select pg_temp.migace_step('01JF2A6QW3ZK8M4T7R9B5X0C1D', '20260302-0900-customer-loyalty', 'add-column', 'v1:46ef9d6135ed41c4c238eb2a06c0cc0c6536bc5066fac6747273dfeacc803ede', 1, 1,
     'alter table customer add column loyalty_level varchar(10)',
     null::text[], null::text[],
     null)
 -- @migace statement label="20260302-0900-customer-loyalty, part fill-existing"
-select pg_temp.migace_begin('01JF2A6QW3ZK8M4T7R9B5X0C1D', '20260302-0900-customer-loyalty', 'fill-existing', 'v1:e8fae9270668214cc04e6de0679f9c70a721b1ab1677830d378e971e58a5277d', 1, 1,
+select pg_temp.migace_begin('01JF2A6QW3ZK8M4T7R9B5X0C1D', '20260302-0900-customer-loyalty', 'fill-existing', 'v1:1c27a3e76c95b432f00ab60011ab94f0cb1aaa69c14bac8f72ff5ae94ac975c3', 1, 1,
     'update customer set loyalty_level = ''BRONZE''',
     null::text[], null::text[],
     null::text[], null::text[],
     null)
 -- @migace statement label="20260302-0900-customer-loyalty, part fill-existing"
-select pg_temp.migace_step('01JF2A6QW3ZK8M4T7R9B5X0C1D', '20260302-0900-customer-loyalty', 'fill-existing', 'v1:e8fae9270668214cc04e6de0679f9c70a721b1ab1677830d378e971e58a5277d', 1, 1,
+select pg_temp.migace_step('01JF2A6QW3ZK8M4T7R9B5X0C1D', '20260302-0900-customer-loyalty', 'fill-existing', 'v1:1c27a3e76c95b432f00ab60011ab94f0cb1aaa69c14bac8f72ff5ae94ac975c3', 1, 1,
     'update customer set loyalty_level = ''BRONZE''',
     null::text[], null::text[],
     null)
@@ -484,7 +484,7 @@ select pg_temp.migace_step('01JF2A6QW3ZK8M4T7R9B5X0C1D', '20260302-0900-customer
 -- @migace statement
 select pg_temp.migace_snippet('01JF2A6QW3ZK8M4T7R9B5X0C1D', '20260302-0900-customer-loyalty', array['add-column', 'fill-existing', 'make-mandatory']::text[], null)
 -- @migace statement label="20260309-1400-review-table, part create-table"
-select pg_temp.migace_begin('01JF4C9S2M7H5K3P8V6N1Y0E4R', '20260309-1400-review-table', 'create-table', 'v1:47110af6846310542c41682c41e164eb8d8b348a1e7000de77a97987012e4247', 1, 1,
+select pg_temp.migace_begin('01JF4C9S2M7H5K3P8V6N1Y0E4R', '20260309-1400-review-table', 'create-table', 'v1:fcd7c809cf3dbcb166fd96c3e71e858789a4c159f6f7c2d5c1e6be0dfc24a1f1', 1, 1,
     'create table review (
     id bigint not null,
     book_id bigint not null,
@@ -498,7 +498,7 @@ select pg_temp.migace_begin('01JF4C9S2M7H5K3P8V6N1Y0E4R', '20260309-1400-review-
     null::text[], null::text[],
     null)
 -- @migace statement label="20260309-1400-review-table, part create-table"
-select pg_temp.migace_step('01JF4C9S2M7H5K3P8V6N1Y0E4R', '20260309-1400-review-table', 'create-table', 'v1:47110af6846310542c41682c41e164eb8d8b348a1e7000de77a97987012e4247', 1, 1,
+select pg_temp.migace_step('01JF4C9S2M7H5K3P8V6N1Y0E4R', '20260309-1400-review-table', 'create-table', 'v1:fcd7c809cf3dbcb166fd96c3e71e858789a4c159f6f7c2d5c1e6be0dfc24a1f1', 1, 1,
     'create table review (
     id bigint not null,
     book_id bigint not null,
@@ -511,42 +511,42 @@ select pg_temp.migace_step('01JF4C9S2M7H5K3P8V6N1Y0E4R', '20260309-1400-review-t
     null::text[], null::text[],
     null)
 -- @migace statement label="20260309-1400-review-table, part fk-book"
-select pg_temp.migace_begin('01JF4C9S2M7H5K3P8V6N1Y0E4R', '20260309-1400-review-table', 'fk-book', 'v1:cb2249b43421626625718f829312634969b0cbae7920707eafe7db7a59e88feb', 1, 1,
+select pg_temp.migace_begin('01JF4C9S2M7H5K3P8V6N1Y0E4R', '20260309-1400-review-table', 'fk-book', 'v1:426a7335bcdb53e691a14f3286e4d9967b19e18ce0db61ee2aa23065fe90b4cb', 1, 1,
     'alter table review add constraint fk_review_book foreign key (book_id) references book',
     null::text[], null::text[],
     null::text[], null::text[],
     null)
 -- @migace statement label="20260309-1400-review-table, part fk-book"
-select pg_temp.migace_step('01JF4C9S2M7H5K3P8V6N1Y0E4R', '20260309-1400-review-table', 'fk-book', 'v1:cb2249b43421626625718f829312634969b0cbae7920707eafe7db7a59e88feb', 1, 1,
+select pg_temp.migace_step('01JF4C9S2M7H5K3P8V6N1Y0E4R', '20260309-1400-review-table', 'fk-book', 'v1:426a7335bcdb53e691a14f3286e4d9967b19e18ce0db61ee2aa23065fe90b4cb', 1, 1,
     'alter table review add constraint fk_review_book foreign key (book_id) references book',
     null::text[], null::text[],
     null)
 -- @migace statement label="20260309-1400-review-table, part fk-customer"
-select pg_temp.migace_begin('01JF4C9S2M7H5K3P8V6N1Y0E4R', '20260309-1400-review-table', 'fk-customer', 'v1:05306bc162ff68c30a57719f7fe3b64f9f17de090eb51cd31e43cd5b13dbb821', 1, 1,
+select pg_temp.migace_begin('01JF4C9S2M7H5K3P8V6N1Y0E4R', '20260309-1400-review-table', 'fk-customer', 'v1:1b3fe3a75f4fe3571e96f281094d7941e34a2ce72d354b1bd69164fb7c6d19db', 1, 1,
     'alter table review add constraint fk_review_customer foreign key (customer_id) references customer',
     null::text[], null::text[],
     null::text[], null::text[],
     null)
 -- @migace statement label="20260309-1400-review-table, part fk-customer"
-select pg_temp.migace_step('01JF4C9S2M7H5K3P8V6N1Y0E4R', '20260309-1400-review-table', 'fk-customer', 'v1:05306bc162ff68c30a57719f7fe3b64f9f17de090eb51cd31e43cd5b13dbb821', 1, 1,
+select pg_temp.migace_step('01JF4C9S2M7H5K3P8V6N1Y0E4R', '20260309-1400-review-table', 'fk-customer', 'v1:1b3fe3a75f4fe3571e96f281094d7941e34a2ce72d354b1bd69164fb7c6d19db', 1, 1,
     'alter table review add constraint fk_review_customer foreign key (customer_id) references customer',
     null::text[], null::text[],
     null)
 -- @migace statement label="20260309-1400-review-table, part index-book"
-select pg_temp.migace_begin('01JF4C9S2M7H5K3P8V6N1Y0E4R', '20260309-1400-review-table', 'index-book', 'v1:32ba7506604830e4e74e92e89f9fea328737731f4ba5599b01e01d11fd72c7b7', 1, 1,
+select pg_temp.migace_begin('01JF4C9S2M7H5K3P8V6N1Y0E4R', '20260309-1400-review-table', 'index-book', 'v1:3e42da17ec5e0197b6dff7e9afed933fbc8347797c6faa71f30bd98066a1f1c2', 1, 1,
     'create index ix_review_book on review (book_id)',
     null::text[], null::text[],
     null::text[], null::text[],
     null)
 -- @migace statement label="20260309-1400-review-table, part index-book"
-select pg_temp.migace_step('01JF4C9S2M7H5K3P8V6N1Y0E4R', '20260309-1400-review-table', 'index-book', 'v1:32ba7506604830e4e74e92e89f9fea328737731f4ba5599b01e01d11fd72c7b7', 1, 1,
+select pg_temp.migace_step('01JF4C9S2M7H5K3P8V6N1Y0E4R', '20260309-1400-review-table', 'index-book', 'v1:3e42da17ec5e0197b6dff7e9afed933fbc8347797c6faa71f30bd98066a1f1c2', 1, 1,
     'create index ix_review_book on review (book_id)',
     null::text[], null::text[],
     null)
 -- @migace statement
 select pg_temp.migace_snippet('01JF4C9S2M7H5K3P8V6N1Y0E4R', '20260309-1400-review-table', array['create-table', 'fk-book', 'fk-customer', 'index-book']::text[], null)
 -- @migace guard
-select pg_temp.migace_begin('01JFM8W1Y3A5C7E9G1J3L5N7Q9', '20260401-0830-orders-customer-index', 'index', 'v1:e31894b2e2071f48e107587a66349aa17a712aec0fcb5970c9802dce3ed563a5', 1, 1,
+select pg_temp.migace_begin('01JFM8W1Y3A5C7E9G1J3L5N7Q9', '20260401-0830-orders-customer-index', 'index', 'v1:09382d5a6d84ee88ce142912f0783f6ddbefc650942de79ac8c3f9df919511c9', 1, 1,
     'create index concurrently ix_orders_customer on orders (customer_id)',
     null::text[], null::text[],
     null::text[], null::text[],
@@ -554,12 +554,12 @@ select pg_temp.migace_begin('01JFM8W1Y3A5C7E9G1J3L5N7Q9', '20260401-0830-orders-
 -- @migace statement outside-transaction label="20260401-0830-orders-customer-index, part index"
 create index concurrently ix_orders_customer on orders (customer_id)
 -- @migace statement
-select pg_temp.migace_outside_end('01JFM8W1Y3A5C7E9G1J3L5N7Q9', '20260401-0830-orders-customer-index', 'index', 'v1:e31894b2e2071f48e107587a66349aa17a712aec0fcb5970c9802dce3ed563a5', 1, 1,
+select pg_temp.migace_outside_end('01JFM8W1Y3A5C7E9G1J3L5N7Q9', '20260401-0830-orders-customer-index', 'index', 'v1:09382d5a6d84ee88ce142912f0783f6ddbefc650942de79ac8c3f9df919511c9', 1, 1,
     null::text[], null::text[])
 -- @migace statement
 select pg_temp.migace_snippet('01JFM8W1Y3A5C7E9G1J3L5N7Q9', '20260401-0830-orders-customer-index', array['index']::text[], null)
 -- @migace statement label="20260518-1000-order-status, part create-status-table"
-select pg_temp.migace_begin('01JG1D5R8Y3B6F9J2L4N7Q0T3W', '20260518-1000-order-status', 'create-status-table', 'v1:6d038856d0ae8419d42dec79f9d94464c79c8b01c7bd0465e121e5e05a490b83', 1, 1,
+select pg_temp.migace_begin('01JG1D5R8Y3B6F9J2L4N7Q0T3W', '20260518-1000-order-status', 'create-status-table', 'v1:06fe85072a15b7e15bdc4e92adbaa04735da4cc57f3392b69722242f3d18cc36', 1, 1,
     'create table order_status (
     id bigint not null,
     code varchar(20) not null,
@@ -571,7 +571,7 @@ select pg_temp.migace_begin('01JG1D5R8Y3B6F9J2L4N7Q0T3W', '20260518-1000-order-s
     null::text[], null::text[],
     null)
 -- @migace statement label="20260518-1000-order-status, part create-status-table"
-select pg_temp.migace_step('01JG1D5R8Y3B6F9J2L4N7Q0T3W', '20260518-1000-order-status', 'create-status-table', 'v1:6d038856d0ae8419d42dec79f9d94464c79c8b01c7bd0465e121e5e05a490b83', 1, 1,
+select pg_temp.migace_step('01JG1D5R8Y3B6F9J2L4N7Q0T3W', '20260518-1000-order-status', 'create-status-table', 'v1:06fe85072a15b7e15bdc4e92adbaa04735da4cc57f3392b69722242f3d18cc36', 1, 1,
     'create table order_status (
     id bigint not null,
     code varchar(20) not null,
@@ -603,35 +603,35 @@ select pg_temp.migace_step('01JG1D5R8Y3B6F9J2L4N7Q0T3W', '20260518-1000-order-st
     null::text[], null::text[],
     null)
 -- @migace statement label="20260518-1000-order-status, part add-status-id"
-select pg_temp.migace_begin('01JG1D5R8Y3B6F9J2L4N7Q0T3W', '20260518-1000-order-status', 'add-status-id', 'v1:565f102dcee3aaff9855c355b74bc5a1693f720be8b6066dc2c31acd3b0c9353', 1, 1,
+select pg_temp.migace_begin('01JG1D5R8Y3B6F9J2L4N7Q0T3W', '20260518-1000-order-status', 'add-status-id', 'v1:cf0b54d570650f5262478046c444ab8169c494aba5c99159afa302534f919d9b', 1, 1,
     'alter table orders add column status_id bigint',
     null::text[], null::text[],
     null::text[], null::text[],
     null)
 -- @migace statement label="20260518-1000-order-status, part add-status-id"
-select pg_temp.migace_step('01JG1D5R8Y3B6F9J2L4N7Q0T3W', '20260518-1000-order-status', 'add-status-id', 'v1:565f102dcee3aaff9855c355b74bc5a1693f720be8b6066dc2c31acd3b0c9353', 1, 1,
+select pg_temp.migace_step('01JG1D5R8Y3B6F9J2L4N7Q0T3W', '20260518-1000-order-status', 'add-status-id', 'v1:cf0b54d570650f5262478046c444ab8169c494aba5c99159afa302534f919d9b', 1, 1,
     'alter table orders add column status_id bigint',
     null::text[], null::text[],
     null)
 -- @migace statement label="20260518-1000-order-status, part link-status"
-select pg_temp.migace_begin('01JG1D5R8Y3B6F9J2L4N7Q0T3W', '20260518-1000-order-status', 'link-status', 'v1:917a2f1a33824d6b5a48654cd9e9f4ae710f06386669589ad6c718558a3e87fd', 1, 1,
+select pg_temp.migace_begin('01JG1D5R8Y3B6F9J2L4N7Q0T3W', '20260518-1000-order-status', 'link-status', 'v1:8586bf7e6c8cb8f0052b9fd0f5565c980d3571d468c6b1e9224ed49ff50cd9e8', 1, 1,
     'update orders o set status_id = (select s.id from order_status s where s.code = upper(trim(o.status))) where o.status_id is null',
     null::text[], null::text[],
     null::text[], null::text[],
     null)
 -- @migace statement label="20260518-1000-order-status, part link-status"
-select pg_temp.migace_step('01JG1D5R8Y3B6F9J2L4N7Q0T3W', '20260518-1000-order-status', 'link-status', 'v1:917a2f1a33824d6b5a48654cd9e9f4ae710f06386669589ad6c718558a3e87fd', 1, 1,
+select pg_temp.migace_step('01JG1D5R8Y3B6F9J2L4N7Q0T3W', '20260518-1000-order-status', 'link-status', 'v1:8586bf7e6c8cb8f0052b9fd0f5565c980d3571d468c6b1e9224ed49ff50cd9e8', 1, 1,
     'update orders o set status_id = (select s.id from order_status s where s.code = upper(trim(o.status))) where o.status_id is null',
     null::text[], null::text[],
     null)
 -- @migace statement label="20260518-1000-order-status, part default-unknown"
-select pg_temp.migace_begin('01JG1D5R8Y3B6F9J2L4N7Q0T3W', '20260518-1000-order-status', 'default-unknown', 'v1:c8f6d2c5a09acf91d7f1f299208bfff2255b64a72d342be8c01dc00be6e0325d', 1, 1,
+select pg_temp.migace_begin('01JG1D5R8Y3B6F9J2L4N7Q0T3W', '20260518-1000-order-status', 'default-unknown', 'v1:7e866ddaa81fcc3dd9ac142887e0a581697bf7d85abc7023988592e468906371', 1, 1,
     'update orders set status_id = (select id from order_status where code = ''UNKNOWN'') where status_id is null',
     null::text[], null::text[],
     null::text[], null::text[],
     null)
 -- @migace statement label="20260518-1000-order-status, part default-unknown"
-select pg_temp.migace_step('01JG1D5R8Y3B6F9J2L4N7Q0T3W', '20260518-1000-order-status', 'default-unknown', 'v1:c8f6d2c5a09acf91d7f1f299208bfff2255b64a72d342be8c01dc00be6e0325d', 1, 1,
+select pg_temp.migace_step('01JG1D5R8Y3B6F9J2L4N7Q0T3W', '20260518-1000-order-status', 'default-unknown', 'v1:7e866ddaa81fcc3dd9ac142887e0a581697bf7d85abc7023988592e468906371', 1, 1,
     'update orders set status_id = (select id from order_status where code = ''UNKNOWN'') where status_id is null',
     array['not exists (select 1 from orders where (orders.status_id is not null) is not true)']::text[], array['all: orders.status_id is not null']::text[],
     null)
@@ -704,24 +704,24 @@ select pg_temp.migace_step('01JG1D5R8Y3B6F9J2L4N7Q0T3W', '20260518-1000-order-st
 -- @migace statement
 select pg_temp.migace_snippet('01JG1D5R8Y3B6F9J2L4N7Q0T3W', '20260518-1000-order-status', array['create-status-table', 'add-statuses', 'add-status-id', 'link-status', 'default-unknown', 'status-fk', 'status-mandatory']::text[], null)
 -- @migace statement label="20260525-1100-orders-ship-by, part add-column"
-select pg_temp.migace_begin('01JG2K8T5W1Z4C7F0H3M6P9S2V', '20260525-1100-orders-ship-by', 'add-column', 'v1:a85676063ee9977634459bc8797346cb81d145da2b76b97cde9dfb19224810d4', 1, 1,
+select pg_temp.migace_begin('01JG2K8T5W1Z4C7F0H3M6P9S2V', '20260525-1100-orders-ship-by', 'add-column', 'v1:a2ec6b440775e1a479b8abea2917334b27d88602f6a4f2c3af4963e2a01c03ec', 1, 1,
     'alter table orders add column ship_by date',
     null::text[], null::text[],
     null::text[], null::text[],
     null)
 -- @migace statement label="20260525-1100-orders-ship-by, part add-column"
-select pg_temp.migace_step('01JG2K8T5W1Z4C7F0H3M6P9S2V', '20260525-1100-orders-ship-by', 'add-column', 'v1:a85676063ee9977634459bc8797346cb81d145da2b76b97cde9dfb19224810d4', 1, 1,
+select pg_temp.migace_step('01JG2K8T5W1Z4C7F0H3M6P9S2V', '20260525-1100-orders-ship-by', 'add-column', 'v1:a2ec6b440775e1a479b8abea2917334b27d88602f6a4f2c3af4963e2a01c03ec', 1, 1,
     'alter table orders add column ship_by date',
     null::text[], null::text[],
     null)
 -- @migace statement label="20260525-1100-orders-ship-by, part fill-ship-by"
-select pg_temp.migace_begin('01JG2K8T5W1Z4C7F0H3M6P9S2V', '20260525-1100-orders-ship-by', 'fill-ship-by', 'v1:e1c19603c02b0ec41d671168220944abb776f225571f46f05c981f95707e7962', 1, 1,
+select pg_temp.migace_begin('01JG2K8T5W1Z4C7F0H3M6P9S2V', '20260525-1100-orders-ship-by', 'fill-ship-by', 'v1:23943478978aac5c16e4ab745f2b63f13e3ce85a219fe2a3a3a6c24a9e62ebd4', 1, 1,
     'update orders set ship_by = cast(created_at as date) + make_interval(days => 3) where ship_by is null',
     null::text[], null::text[],
     null::text[], null::text[],
     null)
 -- @migace statement label="20260525-1100-orders-ship-by, part fill-ship-by"
-select pg_temp.migace_step('01JG2K8T5W1Z4C7F0H3M6P9S2V', '20260525-1100-orders-ship-by', 'fill-ship-by', 'v1:e1c19603c02b0ec41d671168220944abb776f225571f46f05c981f95707e7962', 1, 1,
+select pg_temp.migace_step('01JG2K8T5W1Z4C7F0H3M6P9S2V', '20260525-1100-orders-ship-by', 'fill-ship-by', 'v1:23943478978aac5c16e4ab745f2b63f13e3ce85a219fe2a3a3a6c24a9e62ebd4', 1, 1,
     'update orders set ship_by = cast(created_at as date) + make_interval(days => 3) where ship_by is null',
     array['not exists (select 1 from orders where (orders.ship_by is not null) is not true)']::text[], array['all: orders.ship_by is not null']::text[],
     null)
@@ -778,13 +778,13 @@ using gin (title gin_trgm_ops)',
 -- @migace statement
 select pg_temp.migace_snippet('01JG3N7V4C8Q1S6W9Y2A5E0H3K', '20260608-1500-book-title-search', array['trigram-extension', 'title-search-index']::text[], null)
 -- @migace statement label="20260622-0900-repair-order-status, part relink"
-select pg_temp.migace_begin('01JG8T3B6X9D2F5H7K1M4Q0W8Z', '20260622-0900-repair-order-status', 'relink', 'v1:9d845bca24990b3e88d965efd61a203707bfbabd2fc2855f3b4ffe213e15b6cf', 1, 1,
+select pg_temp.migace_begin('01JG8T3B6X9D2F5H7K1M4Q0W8Z', '20260622-0900-repair-order-status', 'relink', 'v1:ad6a3e4ebc224ccde17d0648b7893eec066960beb21b1eff95207582c2259b12', 1, 1,
     'update orders o set status_id = (select s.id from order_status s where s.code = upper(trim(o.status))) where o.status_id = (select id from order_status where code = ''UNKNOWN'') and exists (select 1 from order_status s where s.code = upper(trim(o.status)))',
     array['pg_temp.migace_ran(''01JG1D5R8Y3B6F9J2L4N7Q0T3W'', ''link-status'')']::text[], array['ran order-status.link-status']::text[],
     null::text[], null::text[],
     null)
 -- @migace statement label="20260622-0900-repair-order-status, part relink"
-select pg_temp.migace_step('01JG8T3B6X9D2F5H7K1M4Q0W8Z', '20260622-0900-repair-order-status', 'relink', 'v1:9d845bca24990b3e88d965efd61a203707bfbabd2fc2855f3b4ffe213e15b6cf', 1, 1,
+select pg_temp.migace_step('01JG8T3B6X9D2F5H7K1M4Q0W8Z', '20260622-0900-repair-order-status', 'relink', 'v1:ad6a3e4ebc224ccde17d0648b7893eec066960beb21b1eff95207582c2259b12', 1, 1,
     'update orders o set status_id = (select s.id from order_status s where s.code = upper(trim(o.status))) where o.status_id = (select id from order_status where code = ''UNKNOWN'') and exists (select 1 from order_status s where s.code = upper(trim(o.status)))',
     null::text[], null::text[],
     null)
