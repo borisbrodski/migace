@@ -2,7 +2,7 @@ import { describe, expect, test } from 'vitest';
 import { ACTIONS } from '../../src/actions/catalogue.js';
 import { isActionEntry } from '../../src/generated/ast.js';
 import { partsOf } from '../../src/model/snippet.js';
-import { createMigql, DIAGNOSTICS_ONLY, error, lines } from '../support.js';
+import { createMigql, error, lines } from '../support.js';
 
 const { parse, parseMarked, tokens } = createMigql();
 
@@ -191,7 +191,7 @@ describe('Statements that became actions', () => {
 
         expect(parsed).toHaveDocumentIssues([
             error('"ensure column" is not a statement any more. Use the action in the place of do: column-ensure: { table: orders, column: note, type: varchar(500) }', 0),
-        ], DIAGNOSTICS_ONLY);
+        ]);
     });
 
     test('rename column table.old to new under do is an error that names the action', async () => {
@@ -199,7 +199,7 @@ describe('Statements that became actions', () => {
 
         expect(parsed).toHaveDocumentIssues([
             error('"rename column" is not a statement any more. Use the action in the place of do: column-rename: { table: customer, from: mail, to: email }', 0),
-        ], DIAGNOSTICS_ONLY);
+        ]);
     });
 
     // M3.2-AC-02

@@ -3,7 +3,7 @@ import * as path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { describe, expect, test } from 'vitest';
 import { IssueCodes } from '../../src/validation/migql-validator.js';
-import { createMigql, DIAGNOSTICS_ONLY, error } from '../support.js';
+import { createMigql, error } from '../support.js';
 
 /**
  * The catalogue of constructs is the specification of the statement language.
@@ -69,6 +69,6 @@ describe.each(constructs)('Construct %s', construct => {
 
         const parsed = await parseMarked(text);
 
-        expect(parsed).toHaveDocumentIssues(expected.map((message, marker) => error(message, marker)), { ...DIAGNOSTICS_ONLY, ignoreNonErrorDiagnostics: true });
+        expect(parsed).toHaveDocumentIssues(expected.map((message, marker) => error(message, marker)), { ignoreNonErrorDiagnostics: true });
     });
 });

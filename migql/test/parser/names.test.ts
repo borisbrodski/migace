@@ -5,7 +5,7 @@ import { describe, expect, test } from 'vitest';
 import { isDoEntry, isUpdate } from '../../src/generated/ast.js';
 import { exactName, sameName } from '../../src/model/names.js';
 import { partsOf } from '../../src/model/snippet.js';
-import { createMigql, DIAGNOSTICS_ONLY, error, lines } from '../support.js';
+import { createMigql, error, lines } from '../support.js';
 
 const { services, parse, parseMarked } = createMigql();
 
@@ -71,13 +71,13 @@ describe('Names: what is not supported', () => {
     test('an empty name is an error', async () => {
         expect(await parseMarked(part('do: |', '  update <<{|""|}>> set a = 1'))).toHaveDocumentIssues([
             error('A name cannot be empty. Write the name between the double quotes.', 0),
-        ], DIAGNOSTICS_ONLY);
+        ]);
     });
 
     test('a double quote inside a name is an error', async () => {
         expect(await parseMarked(part('do: |', '  update t set <<{|"a""b"|}>> = 1'))).toHaveDocumentIssues([
             error('A double quote inside a name is not supported. Choose a name without it.', 0),
-        ], DIAGNOSTICS_ONLY);
+        ]);
     });
 });
 
@@ -128,7 +128,7 @@ describe('Names: keywords that may be a name without quotes', () => {
 
         expect(parsed).toHaveDocumentIssues([
             error(`Expected a name, but found "${keyword}". "${keyword}" is a keyword. To use it as a name, write it in double quotes: "${keyword}".`, 0),
-        ], DIAGNOSTICS_ONLY);
+        ]);
     });
 
     test('a keyword in quotes is a name everywhere', async () => {

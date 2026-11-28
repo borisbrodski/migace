@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { createMigql, DIAGNOSTICS_ONLY, error, lines } from '../support.js';
+import { createMigql, error, lines } from '../support.js';
 
 const { parseMarked, parse, clear } = createMigql();
 
@@ -118,7 +118,7 @@ describe('Validation: phase', () => {
     test('any other phase is an error at the value', async () => {
         const parsed = await parseMarked(lines(NAME, 'parts:', '  - p:', '      do: update t set c = 1', '      phase: <<{|start|}>>'));
 
-        expect(parsed).toHaveDocumentIssues([error('Expected "finish", but found "start".', 0)], DIAGNOSTICS_ONLY);
+        expect(parsed).toHaveDocumentIssues([error('Expected "finish", but found "start".', 0)]);
     });
 });
 
@@ -131,6 +131,6 @@ describe('Validation: requires-downtime', () => {
         await clear();
         expect(await parseMarked(lines(NAME, 'requires-downtime: <<{|yes|}>>'))).toHaveDocumentIssues([
             error('Expected "true" or "false", but found "yes".', 0),
-        ], DIAGNOSTICS_ONLY);
+        ]);
     });
 });

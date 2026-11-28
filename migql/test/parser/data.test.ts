@@ -3,7 +3,7 @@ import { isDocEntry, isDoEntry, isFillEntry, isInsertEntry, isUpsertEntry, isKey
 import type { Snippet } from '../../src/generated/ast.js';
 import { partsOf } from '../../src/model/snippet.js';
 import { printExpression } from '../expression-printer.js';
-import { createMigql, DIAGNOSTICS_ONLY, error, lines } from '../support.js';
+import { createMigql, error, lines } from '../support.js';
 
 const { parse, parseMarked, clear } = createMigql();
 
@@ -65,7 +65,7 @@ describe('Parser: test data', () => {
         await clear();
 
         const parsed = await parseMarked(lines(NAME, 'testdata:', '  - table: review', '    fill: <<{|some|}>>'));
-        expect(parsed).toHaveDocumentIssues([error('Expected "all" or "required", but found "some".', 0)], DIAGNOSTICS_ONLY);
+        expect(parsed).toHaveDocumentIssues([error('Expected "all" or "required", but found "some".', 0)]);
     });
 
     // M1.1-AC-14
@@ -183,7 +183,7 @@ describe('Parser: names in double quotes', () => {
 
         expect(parsed).toHaveDocumentIssues([
             error('Expected a name, but found "where". "where" is a keyword. To use it as a name, write it in double quotes: "where".', 0),
-        ], DIAGNOSTICS_ONLY);
+        ]);
     });
 });
 

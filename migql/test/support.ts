@@ -1,7 +1,7 @@
 import { EmptyFileSystem, URI } from 'langium';
 import { clearDocuments, parseHelper } from 'langium/test';
 import { afterEach } from 'vitest';
-import { DocumentIssueSeverity, DocumentIssueSource } from 'langium-tools/base';
+import { DocumentIssueSeverity } from 'langium-tools/base';
 import { type IssueExpectation, parseWithMarks } from 'langium-tools/testing';
 import { createMigqlServices } from '../src/migql-module.js';
 import type { Snippet } from '../src/generated/ast.js';
@@ -57,14 +57,9 @@ export function createMigql() {
     };
 }
 
-/**
- * Every problem of a document is a diagnostic with a range. Lexer and parser problems are
- * listed a second time without their end; the tests leave that copy out.
- */
-export const DIAGNOSTICS_ONLY = { ignoreLexerErrors: true, ignoreParserErrors: true };
-
+/** An error at a marker, from the lexer, the parser or a check. */
 export function error(message: string | RegExp, markerId: number): IssueExpectation {
-    return { source: DocumentIssueSource.VALIDATION, severity: DocumentIssueSeverity.ERROR, message, markerId };
+    return { severity: DocumentIssueSeverity.ERROR, message, markerId };
 }
 
 /** Lines of a snippet as one text. Keeps the indentation of the test source out of the snippet. */

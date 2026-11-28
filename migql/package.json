@@ -16,7 +16,7 @@
   "dependencies": {
     "@migace/core": "*",
     "langium": "^4.4.2",
-    "langium-tools": "0.4.0",
+    "langium-tools": "0.5.0",
     "libpg-query": "^18.2.4"
   },
   "devDependencies": {

@@ -94,7 +94,7 @@ Real PostgreSQL runs from binaries as a child process. Snapshots use PostgreSQL 
 - A milestone starts when its spec exists with numbered acceptance criteria.
 - A milestone is done when every acceptance criterion has a passing scenario, all stages are green, and no golden file changed without review.
 - Coverage is measured and enforced since 2026-11-22. **[direction]** The limits are the levels reached at that day; they are raised when the coverage rises.
-  - TypeScript, all packages in one run (`npm run test:coverage`, `vitest.coverage.config.ts`): lines 99 %, statements 99 %, functions 99 %, branches 95 %. Not counted: the files that Langium writes, and the temporary server, which only the server stage tests.
+  - TypeScript, all packages in one run (`npm run test:coverage`, `vitest.coverage.config.ts`): lines 99 %, statements 99 %, functions 99 %, branches 93 %. Vitest 5 counts branches from the syntax tree; the same code gave 95.4 % with Vitest 2 and 93.9 % now. Not counted: the files that Langium writes, and the temporary server, which only the server stage tests.
   - Java runner (`./gradlew check`, JaCoCo): lines 94 %, branches 93 %.
 - Mutation score is reported, not enforced. Tools: Stryker (`npm run test:mutation`), PIT (`./gradlew pitest`), and `node tools/break-the-script.mjs` for the SQL inside the migration script, which a mutation tool sees only as text.
 - Numbers that are published on the website (`website/src/pages/docs/quality.md`) and in `README.md` are updated together.
@@ -105,7 +105,7 @@ To be confirmed in the first milestone. **[open]**
 
 | Purpose | Tool |
 |---|---|
-| TypeScript tests | Vitest, in the version that langium-tools requires |
+| TypeScript tests | Vitest 5, inside the range that langium-tools allows |
 | Language tests | [langium-tools](../migql/langium-tools.md): matchers, marked text, generator snapshot tests |
 | Property-based tests | fast-check |
 | Mutation tests | Stryker |

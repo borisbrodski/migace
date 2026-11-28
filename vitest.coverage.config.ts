@@ -23,7 +23,6 @@ export default defineConfig({
         testTimeout: 30000,
         coverage: {
             provider: 'v8',
-            all: true,
             include: ['core/src/**/*.ts', 'migql/src/**/*.ts', 'migql/generators/**/*.ts', 'databases/postgresql/src/**/*.ts'],
             exclude: [
                 // Written by Langium from the grammar.
@@ -34,7 +33,9 @@ export default defineConfig({
             ],
             reporter: ['text-summary', 'json-summary', 'html'],
             reportsDirectory: 'coverage',
-            thresholds: { lines: 99, statements: 99, functions: 99, branches: 95 },
+            // Since Vitest 4 the branches are counted from the syntax tree, not from V8's byte ranges.
+            // The same code gave 95.4 % with Vitest 2 and gives 93.9 % now.
+            thresholds: { lines: 99, statements: 99, functions: 99, branches: 93 },
         },
     },
 });

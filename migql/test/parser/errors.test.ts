@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'vitest';
-import { createMigql, DIAGNOSTICS_ONLY, error, lines } from '../support.js';
+import { DocumentIssueSource, getDocumentIssues } from 'langium-tools/base';
+import { createMigql, error, lines } from '../support.js';
 
 const { parseMarked } = createMigql();
 
@@ -9,8 +10,22 @@ function part(...body: string[]): string {
 
 async function expectErrors(text: string, ...messages: string[]): Promise<void> {
     const parsed = await parseMarked(text);
-    expect(parsed).toHaveDocumentIssues(messages.map((message, marker) => error(message, marker)), DIAGNOSTICS_ONLY);
+    expect(parsed).toHaveDocumentIssues(messages.map((message, marker) => error(message, marker)));
 }
+
+describe('Parser: one issue per problem', () => {
+    test('a syntax error is reported once, by the parser, with its whole range', async () => {
+        const { document } = await parseMarked(part('do: update t set <<{|=|}>> 1'));
+        const issues = getDocumentIssues(document);
+        expect(issues).toHaveLength(1);
+        expect(issues[0]).toMatchObject({
+            source: DocumentIssueSource.PARSER,
+            message: 'Expected a name, but found "=".',
+            endLine: issues[0].startLine,
+            endColumn: issues[0].startColumn + 1,
+        });
+    });
+});
 
 // M1-AC-26
 describe('Parser: messages say what was expected', () => {
