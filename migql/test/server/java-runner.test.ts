@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, test } from 'vitest';
 import { compare, differencesText } from '@migace/core';
 import { BOOKSHOP_MIGRATIONS, scriptOf } from '../script/support.js';
-import { LEDGER, useServer } from './support.js';
+import { EXTENSIONS, LEDGER, useServer } from './support.js';
 
 const JAVA_BUILD = fileURLToPath(new URL('../../../clients/java/build', import.meta.url));
 const JAR = path.join(JAVA_BUILD, 'libs', 'migace-runner.jar');
@@ -20,7 +20,7 @@ function java(database: string, scriptFile: string) {
     const drivers = fs.readdirSync(DRIVER).map(file => path.join(DRIVER, file));
     const { host, port, user } = server().connection(database);
     const result = spawnSync('java', ['-cp', [JAR, ...drivers].join(path.delimiter), 'org.openbrod.migace.Main',
-        '--url', `jdbc:postgresql://${host}:${port}/${database}`, '--user', user, '--schema', 'public', scriptFile], { encoding: 'utf8' });
+        '--url', `jdbc:postgresql://${host}:${port}/${database}`, '--user', user, '--schema', 'public', '--param', `other_schemas=${EXTENSIONS}`, scriptFile], { encoding: 'utf8' });
     return { code: result.status, lines: result.stdout.split(/\r?\n/).filter(line => line.length > 0), errors: result.stderr };
 }
 

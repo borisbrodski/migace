@@ -36,7 +36,7 @@ interface Statement {
 }
 
 export async function runScript(script: string, execute: Execute, options: RunOptions = {}): Promise<void> {
-    const statements = readScript(script);
+    const { statements, finallyStatements } = readScript(script);
     const parameters = Object.entries(options.parameters ?? {});
     const badName = parameters.find(([name]) => !/^\w+$/.test(name));
     if (badName) {
@@ -53,14 +53,32 @@ export async function runScript(script: string, execute: Execute, options: RunOp
             throw failed;
         }
     };
-    for (const [name, value] of parameters) {
-        await send(`select set_config('migace.${name}', '${value.replace(/'/g, "''")}', false)`);
-    }
-    for (const statement of statements) {
-        if (statement.guard !== undefined && !guardSays(await send(statement.guard, statement.label), statement)) {
-            continue;
+    const sendStatement = async (statement: Statement) => {
+        if (statement.guard === undefined || guardSays(await send(statement.guard, statement.label), statement)) {
+            await send(statement.sql, statement.label);
         }
-        await send(statement.sql, statement.label);
+    };
+    let firstError: unknown;
+    try {
+        for (const [name, value] of parameters) {
+            await send(`select set_config('migace.${name}', '${value.replace(/'/g, "''")}', false)`);
+        }
+        for (const statement of statements) {
+            await sendStatement(statement);
+        }
+    } catch (error) {
+        firstError = error;
+    }
+    // The statements after "-- @migace finally" are sent in any case. An error among them never hides the first one.
+    for (const statement of finallyStatements) {
+        try {
+            await sendStatement(statement);
+        } catch (error) {
+            firstError ??= error;
+        }
+    }
+    if (firstError !== undefined) {
+        throw firstError;
     }
 }
 
@@ -77,7 +95,7 @@ function guardSays(rows: Array<Record<string, unknown>>, statement: Statement): 
 const guardWithoutStatement = (line: number) => new ScriptRefused(`Line ${line}: this guard is not followed by a statement.`);
 
 /** Reads the statements of a script. Nothing is sent before the whole script was read without a problem. */
-function readScript(script: string): Statement[] {
+function readScript(script: string): { statements: Statement[], finallyStatements: Statement[] } {
     const lines = script.replace(/\r\n/g, '\n').split('\n');
     const format = /^-- @migace script format=(\d+)$/.exec(lines[0] ?? '');
     if (!format) {
@@ -87,6 +105,7 @@ function readScript(script: string): Statement[] {
         throw new ScriptRefused(`This runner reads the script format ${SCRIPT_FORMAT}. The script has the format ${format[1]}.`);
     }
     const statements: Statement[] = [];
+    let finallyAt: number | undefined;
     let current: { kind: 'statement' | 'guard', label?: string, line: number, lines: string[] } | undefined;
     let guard: string | undefined;
     const close = () => {
@@ -110,18 +129,26 @@ function readScript(script: string): Statement[] {
             return;
         }
         const kind = marker[1];
-        if (kind !== 'statement' && kind !== 'guard') {
+        if (kind !== 'statement' && kind !== 'guard' && kind !== 'finally') {
             throw new ScriptRefused(`Line ${lineNumber}: unknown marker "${kind}".`);
         }
-        if (current?.kind === 'guard' && kind === 'guard') {
+        if (current?.kind === 'guard' && kind !== 'statement') {
             throw guardWithoutStatement(current.line);
         }
         close();
+        if (kind === 'finally') {
+            if (finallyAt !== undefined) {
+                throw new ScriptRefused(`Line ${lineNumber}: a second "-- @migace finally". A script has it at most once.`);
+            }
+            finallyAt = statements.length;
+            current = undefined;
+            return;
+        }
         current = { kind, label: /label="([^"]*)"/.exec(marker[2])?.[1], line: lineNumber, lines: [] };
     });
     if (current?.kind === 'guard') {
         throw guardWithoutStatement(current.line);
     }
     close();
-    return statements;
+    return { statements: statements.slice(0, finallyAt), finallyStatements: finallyAt === undefined ? [] : statements.slice(finallyAt) };
 }

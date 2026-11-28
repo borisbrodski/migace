@@ -14,7 +14,11 @@ status: mixed
 
 ## One schema
 
-A run works in the schema of the migration and in no other. **[decided]** Its ledger, its lock and every object it changes belong to that schema. Nothing of another schema is read or written, also when that schema has a ledger of its own. Schemas that a run has to see, for the types of an extension, are named by a parameter. After a run the session is as it was before: its search path, its settings, no lock and no function of MIG-Ace. The code follows this with [M4.4](../specs/m4-4-corrections.md).
+A run works in the schema of the migration and in no other. **[decided]** Its ledger, its lock and every object it changes belong to that schema. Nothing of another schema is read or written, also when that schema has a ledger of its own. Schemas that a run has to see, for the types of an extension, are named by the parameter `migace.other_schemas`. After a run the session is as it was before: its search path, its settings, no lock and no function of MIG-Ace. Built with [M4.4](../specs/m4-4-corrections.md):
+
+- The search path of a run is the schema of the migration, then the schemas of `migace.other_schemas`, in their order. The session's own path is saved at the start and set back at the end.
+- The script names its ledger tables with their schema. A ledger in a schema of `migace.other_schemas` is neither read nor written.
+- The lock of a run is `pg_try_advisory_lock` with one key of 64 bits: the letters `MIGA` in the upper half, the number (`oid`) of the schema in the lower half. Two schemas of one database never share it. No hash is used.
 
 ## Inside the script
 
@@ -46,6 +50,7 @@ The script is a text file with LF line endings. Lines that start with `-- @migac
 | `-- @migace statement` | The lines up to the next marker are one statement. The runner sends it. |
 | `-- @migace guard` | The lines up to the next marker are a query that returns one value. The statement that follows is sent only if the value is true. |
 | `-- @migace statement outside-transaction` | A statement that the database refuses inside a transaction. A runner with autocommit sends it like any other. |
+| `-- @migace finally` | The statements after it are sent also after an error. They set the session back: its search path and limits, the lock, the functions and the settings of the run. |
 | `… label="<text>"` | Says what the statement belongs to. A runner puts it in front of the message of an error of that statement. |
 
 - Parameters of a run are session settings `migace.<name>`. The runner sets them before the first statement. `migace.schema` is the schema of the migration.
@@ -57,6 +62,7 @@ Parameters of a run. Their names are provisional. **[direction]**
 | Session setting | Meaning | Default |
 |---|---|---|
 | `migace.schema` | The schema of the migration. | the current schema of the session |
+| `migace.other_schemas` | Further schemas that the run sees, separated by commas, for example the schema of an extension. They come after the schema of the migration in the search path. | none |
 | `migace.lock_timeout` | How long a step waits for a lock before it gives up. | `5s` |
 | `migace.lock_attempts` | How often a step is tried when it got no lock. | `3` |
 | `migace.lock_wait` | The pause between two attempts. | `1s` |
@@ -75,7 +81,9 @@ What the first implementation does differently from the list above, and why:
 - **Waiting for the lock of the run is a loop.** A plain call of `pg_advisory_lock` keeps a transaction open while it waits. `create index concurrently` of the run that holds the lock waits for every older transaction, so the two waited for each other and PostgreSQL ended one of them. The script now tries the lock, ends its transaction, pauses and tries again.
 
 - **A step is a call, not a block.** The logic of a step is in functions that the script creates for the session (`pg_temp.migace_step` and others). A step is then one short `select`, and the statement of the part is an argument. This keeps the script small and makes hostile text harmless.
-- **The search path** is the schema of the migration, followed by what the session had. See question 46.
+- **The search path** is the schema of the migration and the schemas of `migace.other_schemas`, nothing else. Until M4.4 it kept what the session had behind it; the [review](../journal/2026-11-22-review-of-m3-1-to-m4-3.md) showed that a run then used the ledger of another schema.
+- **The end of a run** is a part of its own, after `-- @migace finally`. The runner sends it also after an error. Until M4.4 the lock was released by a statement that a failure outside a transaction never reached.
+- **The tables of the ledger are named with their schema**, which is known only when the script runs. A statement that names them is sent as the text of an `execute`, and the name of the schema is put in first.
 - **A statement outside a transaction** is three entries: a guard that decides and records the start, the statement, and a call that records the end.
 
 ### Checksum of a part

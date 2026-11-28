@@ -1,0 +1,24 @@
+{
+  "description": "After the first error the runner sends no further statement before the line \"-- @migace finally\", but every statement after it. It then reports the first error.",
+  "script": "-- @migace script format=1\n-- @migace statement\nselect 1 / 0\n-- @migace statement\nselect 2\n-- @migace finally\n-- @migace statement\nselect 3\n-- @migace statement\nselect 4\n",
+  "answers": [
+    {
+      "error": {
+        "code": "22012",
+        "message": "division by zero"
+      }
+    }
+  ],
+  "expected": {
+    "outcome": "failure",
+    "sent": [
+      "select 1 / 0",
+      "select 3",
+      "select 4"
+    ],
+    "error": {
+      "message": "division by zero",
+      "code": "22012"
+    }
+  }
+}

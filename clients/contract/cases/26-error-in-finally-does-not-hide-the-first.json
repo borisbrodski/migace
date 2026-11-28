@@ -1,0 +1,30 @@
+{
+  "description": "An error of a statement after \"-- @migace finally\" does not hide the first error. The runner still sends the statements after it.",
+  "script": "-- @migace script format=1\n-- @migace statement label=\"a, part p\"\nselect 1 / 0\n-- @migace finally\n-- @migace statement\nselect broken()\n-- @migace statement\nselect 3\n",
+  "answers": [
+    {
+      "error": {
+        "code": "22012",
+        "message": "division by zero"
+      }
+    },
+    {
+      "error": {
+        "code": "42883",
+        "message": "function broken() does not exist"
+      }
+    }
+  ],
+  "expected": {
+    "outcome": "failure",
+    "sent": [
+      "select 1 / 0",
+      "select broken()",
+      "select 3"
+    ],
+    "error": {
+      "message": "a, part p: division by zero",
+      "code": "22012"
+    }
+  }
+}

@@ -29,11 +29,22 @@ final class Script {
         }
     }
 
+    /** The statements of a script: those before the line "-- @migace finally", and those after it, which are sent in any case. */
+    static final class Parts {
+        final List<Statement> main;
+        final List<Statement> always;
+
+        Parts(List<Statement> main, List<Statement> always) {
+            this.main = main;
+            this.always = always;
+        }
+    }
+
     private Script() {
     }
 
     /** Reads the statements of a script. Throws before anything can be sent if the text is no script of a known format. */
-    static List<Statement> read(String text) {
+    static Parts read(String text) {
         String[] lines = text.replace("\r\n", "\n").split("\n", -1);
         Matcher first = FIRST_LINE.matcher(lines[0]);
         if (!first.matches()) {
@@ -43,6 +54,7 @@ final class Script {
             throw refused("This runner reads the script format " + FORMAT + ". The script has the format " + first.group(1) + ".");
         }
         List<Statement> statements = new ArrayList<>();
+        int finallyAt = -1;
         String kind = null;
         String label = null;
         String guard = null;
@@ -61,7 +73,7 @@ final class Script {
                 continue;
             }
             String nextKind = isMarker ? marker.group(1) : null;
-            if (isMarker && !nextKind.equals("statement") && !nextKind.equals("guard")) {
+            if (isMarker && !nextKind.equals("statement") && !nextKind.equals("guard") && !nextKind.equals("finally")) {
                 throw refused("Line " + (index + 1) + ": unknown marker \"" + nextKind + "\".");
             }
             if ("guard".equals(kind) && !"statement".equals(nextKind)) {
@@ -73,7 +85,13 @@ final class Script {
                 statements.add(new Statement(body.toString().trim(), guard, label, markerLine));
                 guard = null;
             }
-            if (isMarker) {
+            if ("finally".equals(nextKind)) {
+                if (finallyAt >= 0) {
+                    throw refused("Line " + (index + 1) + ": a second \"-- @migace finally\". A script has it at most once.");
+                }
+                finallyAt = statements.size();
+                kind = null;
+            } else if (isMarker) {
                 kind = nextKind;
                 Matcher labelled = LABEL.matcher(marker.group(2));
                 label = labelled.find() ? labelled.group(1) : null;
@@ -81,7 +99,10 @@ final class Script {
                 body.setLength(0);
             }
         }
-        return statements;
+        if (finallyAt < 0) {
+            return new Parts(statements, new ArrayList<>());
+        }
+        return new Parts(statements.subList(0, finallyAt), statements.subList(finallyAt, statements.size()));
     }
 
     private static MigrationFailedException refused(String message) {

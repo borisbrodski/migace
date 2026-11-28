@@ -91,25 +91,49 @@ public final class MigAce {
 
     /** Runs the script on the connection. The connection stays open and gets back the autocommit setting it had. */
     public void exec(Connection connection) {
-        java.util.List<Script.Statement> statements = Script.read(script);
+        Script.Parts parts = Script.read(script);
         try {
             boolean autoCommit = connection.getAutoCommit();
             // Every statement of the script is a transaction of its own.
             connection.setAutoCommit(true);
             try {
-                for (Map.Entry<String, String> parameter : parameters.entrySet()) {
-                    send(connection, "select set_config('migace." + parameter.getKey() + "', '" + parameter.getValue().replace("'", "''") + "', false)", null);
-                }
-                for (Script.Statement statement : statements) {
-                    if (statement.guard == null || guardSays(send(connection, statement.guard, statement.label), statement)) {
-                        send(connection, statement.sql, statement.label);
+                MigrationFailedException first = null;
+                try {
+                    for (Map.Entry<String, String> parameter : parameters.entrySet()) {
+                        send(connection, "select set_config('migace." + parameter.getKey() + "', '" + parameter.getValue().replace("'", "''") + "', false)", null);
                     }
+                    for (Script.Statement statement : parts.main) {
+                        sendStatement(connection, statement);
+                    }
+                } catch (MigrationFailedException e) {
+                    first = e;
+                }
+                // The statements after "-- @migace finally" are sent in any case. An error among them never hides the first one.
+                for (Script.Statement statement : parts.always) {
+                    try {
+                        sendStatement(connection, statement);
+                    } catch (MigrationFailedException e) {
+                        if (first == null) {
+                            first = e;
+                        } else {
+                            first.addSuppressed(e);
+                        }
+                    }
+                }
+                if (first != null) {
+                    throw first;
                 }
             } finally {
                 connection.setAutoCommit(autoCommit);
             }
         } catch (SQLException e) {
             throw new MigrationFailedException(e.getMessage(), e.getSQLState(), false, e);
+        }
+    }
+
+    private void sendStatement(Connection connection, Script.Statement statement) {
+        if (statement.guard == null || guardSays(send(connection, statement.guard, statement.label), statement)) {
+            send(connection, statement.sql, statement.label);
         }
     }
 

@@ -91,6 +91,30 @@ class MigAceTest {
         assertFalse(database.closed);
     }
 
+    // M4.4-AC-10
+    @Test
+    void aPoolOfOneConnectionGetsItBackAfterTheLastStatementsRanAlsoAfterAFailureAndTheNextRunUsesIt() {
+        String withFinally = "-- @migace script format=1\n-- @migace statement\nselect broken()\n-- @migace statement\nselect 2\n"
+            + "-- @migace finally\n-- @migace statement\nselect 'clean up'\n";
+        ScriptedDatabase database = new ScriptedDatabase();
+        ScriptedDatabase.Answer failing = new ScriptedDatabase.Answer();
+        failing.errorMessage = "function broken() does not exist";
+        failing.errorCode = "42883";
+        database.answers.add(failing);
+        DataSource pool = dataSourceOf(database);
+
+        MigrationFailedException failure = assertThrows(MigrationFailedException.class, () -> MigAce.script(withFinally).exec(pool));
+        assertEquals("function broken() does not exist", failure.getMessage());
+        assertEquals(Arrays.asList("select broken()", "select 'clean up'"), database.sent);
+        assertEquals("close", database.log.get(database.log.size() - 1));
+
+        database.closed = false;
+        MigAce.script(withFinally).exec(pool);
+
+        assertEquals(Arrays.asList("select broken()", "select 'clean up'", "select broken()", "select 2", "select 'clean up'"), database.sent);
+        assertTrue(database.closed);
+    }
+
     @Test
     void aConnectionTakenFromADataSourceIsClosed() {
         ScriptedDatabase database = new ScriptedDatabase();

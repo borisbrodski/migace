@@ -1,12 +1,22 @@
 -- @migace script format=1
 -- @migace statement
-select set_config('search_path', quote_ident(coalesce(nullif(current_setting('migace.schema', true), ''), current_schema())) || ', ' || current_setting('search_path'), false)
+select set_config('migace.session_search_path', current_setting('search_path'), false),
+    set_config('migace.session_lock_timeout', current_setting('lock_timeout'), false),
+    set_config('migace.session_statement_timeout', current_setting('statement_timeout'), false),
+    set_config('migace.session_saved', 'yes', false)
+-- @migace statement
+select set_config('migace.run_schema', coalesce(nullif(current_setting('migace.schema', true), ''), current_schema()), false)
+-- @migace statement
+select set_config('search_path', (select string_agg(quote_ident(trim(name)), ', ' order by position)
+    from unnest(array[current_setting('migace.run_schema')] || string_to_array(coalesce(current_setting('migace.other_schemas', true), ''), ','))
+        with ordinality as schemas (name, position)
+    where trim(name) <> ''), false)
 -- @migace statement
 select set_config('migace.failed', '', false), set_config('migace.executed', '0', false), set_config('migace.skip', '', false), set_config('migace.run', '', false)
 -- @migace statement
 do $migace$
 begin
-    while not pg_try_advisory_lock(hashtext('migace ' || current_schema())) loop
+    while not pg_try_advisory_lock((1296648001::bigint << 32) | quote_ident(current_setting('migace.run_schema'))::regnamespace::oid::bigint) loop
         commit;
         perform pg_sleep(0.2);
         commit;
@@ -14,46 +24,54 @@ begin
 end
 $migace$
 -- @migace statement
-do $migace$
+do $migace_in_schema$
+begin
+    execute replace($migace_body$do $migace$
 declare
     v_format integer;
     v_run bigint;
 begin
-    if to_regclass('mig_meta') is not null then
-        select value::integer into v_format from mig_meta where key = 'format';
+    if to_regclass(quote_ident(current_setting('migace.run_schema')) || '.mig_meta') is not null then
+        select value::integer into v_format from @migace_schema@.mig_meta where key = 'format';
         if v_format > 1 then
             perform set_config('migace.failed', format('The ledger of this database has the format %s. This script knows the format %s and changes nothing. Use the script of a newer version.', v_format, 1), false);
             return;
         end if;
     end if;
-    if to_regclass('mig_meta') is null then
-        create table mig_meta (key text primary key, value text not null);
-        create table mig_run (
+    if to_regclass(quote_ident(current_setting('migace.run_schema')) || '.mig_meta') is null then
+        create table @migace_schema@.mig_meta (key text primary key, value text not null);
+        create table @migace_schema@.mig_run (
             id bigint generated always as identity primary key,
             started_at timestamptz not null, ended_at timestamptz, outcome text not null);
-        create table mig_snippet (uid text primary key, name text not null, state text not null, updated_at timestamptz not null);
-        create table mig_part_run (
+        create table @migace_schema@.mig_snippet (uid text primary key, name text not null, state text not null, updated_at timestamptz not null);
+        create table @migace_schema@.mig_part_run (
             id bigint generated always as identity primary key,
             run_id bigint not null, snippet_uid text not null, snippet_name text not null, part text not null,
             step integer not null, steps integer not null, state text not null, sql text, checksum text not null,
             started_at timestamptz not null, ended_at timestamptz,
             error_code text, error_message text, error_detail text, error_context text);
-        create index mig_part_run_step on mig_part_run (snippet_uid, part, step);
-        create table mig_log (
+        create index mig_part_run_step on @migace_schema@.mig_part_run (snippet_uid, part, step);
+        create table @migace_schema@.mig_log (
             id bigint generated always as identity primary key, run_id bigint, at timestamptz not null, message text not null);
     end if;
-    insert into mig_meta (key, value) values ('format', '1') on conflict (key) do nothing;
-    update mig_run set outcome = 'interrupted', ended_at = clock_timestamp() where outcome = 'running';
-    insert into mig_run (started_at, outcome) values (clock_timestamp(), 'running') returning id into v_run;
+    insert into @migace_schema@.mig_meta (key, value) values ('format', '1') on conflict (key) do nothing;
+    update @migace_schema@.mig_run set outcome = 'interrupted', ended_at = clock_timestamp() where outcome = 'running';
+    insert into @migace_schema@.mig_run (started_at, outcome) values (clock_timestamp(), 'running') returning id into v_run;
     perform set_config('migace.run', v_run::text, false);
 end
-$migace$
--- @migace statement
-create or replace function pg_temp.migace_ran(p_uid text, p_part text) returns boolean language plpgsql as $migace$
-begin
-    return exists (select 1 from mig_part_run r where r.snippet_uid = p_uid and r.part = p_part and r.state = 'done' and r.step = r.steps);
+$migace$$migace_body$, '@migace_schema@', quote_ident(current_setting('migace.run_schema')));
 end
-$migace$
+$migace_in_schema$
+-- @migace statement
+do $migace_in_schema$
+begin
+    execute replace($migace_body$create or replace function pg_temp.migace_ran(p_uid text, p_part text) returns boolean language plpgsql as $migace$
+begin
+    return exists (select 1 from @migace_schema@.mig_part_run r where r.snippet_uid = p_uid and r.part = p_part and r.state = 'done' and r.step = r.steps);
+end
+$migace$$migace_body$, '@migace_schema@', quote_ident(current_setting('migace.run_schema')));
+end
+$migace_in_schema$
 -- @migace statement
 create or replace function pg_temp.migace_first_untrue(p_conditions text[]) returns integer language plpgsql as $migace$
 declare
@@ -69,27 +87,37 @@ begin
 end
 $migace$
 -- @migace statement
-create or replace function pg_temp.migace_record(p_uid text, p_snippet text, p_part text, p_checksum text, p_step integer, p_steps integer, p_state text, p_sql text, p_started timestamptz,
+do $migace_in_schema$
+begin
+    execute replace($migace_body$create or replace function pg_temp.migace_record(p_uid text, p_snippet text, p_part text, p_checksum text, p_step integer, p_steps integer, p_state text, p_sql text, p_started timestamptz,
     p_code text, p_message text, p_detail text, p_context text) returns void language plpgsql as $migace$
 begin
-    insert into mig_part_run (run_id, snippet_uid, snippet_name, part, step, steps, state, sql, checksum, started_at, ended_at,
+    insert into @migace_schema@.mig_part_run (run_id, snippet_uid, snippet_name, part, step, steps, state, sql, checksum, started_at, ended_at,
         error_code, error_message, error_detail, error_context)
     values (current_setting('migace.run')::bigint, p_uid, p_snippet, p_part, p_step, p_steps, p_state, p_sql, p_checksum, p_started,
         case when p_state = 'started' then null else clock_timestamp() end, p_code, p_message, p_detail, p_context);
 end
-$migace$
+$migace$$migace_body$, '@migace_schema@', quote_ident(current_setting('migace.run_schema')));
+end
+$migace_in_schema$
 -- @migace statement
-create or replace function pg_temp.migace_fail(p_uid text, p_snippet text, p_part text, p_checksum text, p_step integer, p_steps integer, p_sql text, p_started timestamptz,
+do $migace_in_schema$
+begin
+    execute replace($migace_body$create or replace function pg_temp.migace_fail(p_uid text, p_snippet text, p_part text, p_checksum text, p_step integer, p_steps integer, p_sql text, p_started timestamptz,
     p_code text, p_message text, p_detail text, p_context text) returns void language plpgsql as $migace$
 begin
     perform pg_temp.migace_record(p_uid, p_snippet, p_part, p_checksum, p_step, p_steps, 'failed', p_sql, p_started, p_code, p_message, p_detail, p_context);
     perform set_config('migace.failed', format('%s, part %s: %s', p_snippet, p_part, p_message), false);
-    insert into mig_log (run_id, at, message) values (current_setting('migace.run')::bigint, clock_timestamp(), current_setting('migace.failed'));
+    insert into @migace_schema@.mig_log (run_id, at, message) values (current_setting('migace.run')::bigint, clock_timestamp(), current_setting('migace.failed'));
     raise notice '%, part %: FAILED: %', p_snippet, p_part, p_message;
 end
-$migace$
+$migace$$migace_body$, '@migace_schema@', quote_ident(current_setting('migace.run_schema')));
+end
+$migace_in_schema$
 -- @migace statement
-create or replace function pg_temp.migace_begin(p_uid text, p_snippet text, p_part text, p_checksum text, p_step integer, p_steps integer, p_sql text, p_when text[], p_when_text text[], p_before text[], p_before_text text[]) returns boolean language plpgsql as $migace$
+do $migace_in_schema$
+begin
+    execute replace($migace_body$create or replace function pg_temp.migace_begin(p_uid text, p_snippet text, p_part text, p_checksum text, p_step integer, p_steps integer, p_sql text, p_when text[], p_when_text text[], p_before text[], p_before_text text[]) returns boolean language plpgsql as $migace$
 declare
     v_done text;
     v_untrue integer;
@@ -102,7 +130,7 @@ begin
     if current_setting('migace.failed') <> '' then
         return false;
     end if;
-    select r.checksum into v_done from mig_part_run r
+    select r.checksum into v_done from @migace_schema@.mig_part_run r
     where r.snippet_uid = p_uid and r.part = p_part and r.step = p_step and r.state = 'done' order by r.id desc limit 1;
     if found then
         if p_step = p_steps and v_done <> p_checksum then
@@ -138,7 +166,9 @@ begin
     end;
     return true;
 end
-$migace$
+$migace$$migace_body$, '@migace_schema@', quote_ident(current_setting('migace.run_schema')));
+end
+$migace_in_schema$
 -- @migace statement
 create or replace function pg_temp.migace_setting(p_name text, p_default text) returns text language plpgsql as $migace$
 begin
@@ -181,7 +211,7 @@ begin
             when lock_not_available then
                 select string_agg(distinct c.relname, ', ' order by c.relname) into v_locked
                 from pg_locks l join pg_class c on c.oid = l.relation join pg_namespace n on n.oid = c.relnamespace
-                where l.granted and l.pid <> pg_backend_pid() and l.locktype = 'relation' and c.relkind in ('r', 'p') and n.nspname = current_schema();
+                where l.granted and l.pid <> pg_backend_pid() and l.locktype = 'relation' and c.relkind in ('r', 'p') and n.nspname = current_setting('migace.run_schema');
                 v_message := format('no lock within %s, attempt %s of %s. Locked by another session: %s',
                     pg_temp.migace_setting('lock_timeout', '5s'), v_attempt, v_attempts, coalesce(v_locked, 'unknown'));
                 if v_attempt = v_attempts then
@@ -205,12 +235,14 @@ begin
 end
 $migace$
 -- @migace statement
-create or replace function pg_temp.migace_outside_begin(p_uid text, p_snippet text, p_part text, p_checksum text, p_step integer, p_steps integer, p_sql text, p_when text[], p_when_text text[], p_before text[], p_before_text text[], p_cleanup text) returns boolean language plpgsql as $migace$
+do $migace_in_schema$
+begin
+    execute replace($migace_body$create or replace function pg_temp.migace_outside_begin(p_uid text, p_snippet text, p_part text, p_checksum text, p_step integer, p_steps integer, p_sql text, p_when text[], p_when_text text[], p_before text[], p_before_text text[], p_cleanup text) returns boolean language plpgsql as $migace$
 begin
     if not pg_temp.migace_begin(p_uid, p_snippet, p_part, p_checksum, p_step, p_steps, p_sql, p_when, p_when_text, p_before, p_before_text) then
         return false;
     end if;
-    update mig_part_run r set state = 'abandoned', ended_at = clock_timestamp()
+    update @migace_schema@.mig_part_run r set state = 'abandoned', ended_at = clock_timestamp()
     where r.snippet_uid = p_uid and r.part = p_part and r.step = p_step and r.state = 'started';
     if found and p_cleanup is not null then
         execute p_cleanup;
@@ -218,16 +250,20 @@ begin
     perform pg_temp.migace_record(p_uid, p_snippet, p_part, p_checksum, p_step, p_steps, 'started', p_sql, clock_timestamp(), null, null, null, null);
     return true;
 end
-$migace$
+$migace$$migace_body$, '@migace_schema@', quote_ident(current_setting('migace.run_schema')));
+end
+$migace_in_schema$
 -- @migace statement
-create or replace function pg_temp.migace_outside_end(p_uid text, p_snippet text, p_part text, p_checksum text, p_step integer, p_steps integer, p_after text[], p_after_text text[]) returns void language plpgsql as $migace$
+do $migace_in_schema$
+begin
+    execute replace($migace_body$create or replace function pg_temp.migace_outside_end(p_uid text, p_snippet text, p_part text, p_checksum text, p_step integer, p_steps integer, p_after text[], p_after_text text[]) returns void language plpgsql as $migace$
 declare
     v_untrue integer;
 begin
     if current_setting('migace.failed') <> '' then
         return;
     end if;
-    update mig_part_run r set state = 'done', ended_at = clock_timestamp()
+    update @migace_schema@.mig_part_run r set state = 'done', ended_at = clock_timestamp()
     where r.run_id = current_setting('migace.run')::bigint and r.snippet_uid = p_uid and r.part = p_part and r.step = p_step and r.state = 'started';
     if not found then
         return;
@@ -243,9 +279,13 @@ begin
         raise notice '%, part %: done', p_snippet, p_part;
     end if;
 end
-$migace$
+$migace$$migace_body$, '@migace_schema@', quote_ident(current_setting('migace.run_schema')));
+end
+$migace_in_schema$
 -- @migace statement
-create or replace function pg_temp.migace_snippet(p_uid text, p_name text, p_parts text[], p_retired text) returns void language plpgsql as $migace$
+do $migace_in_schema$
+begin
+    execute replace($migace_body$create or replace function pg_temp.migace_snippet(p_uid text, p_name text, p_parts text[], p_retired text) returns void language plpgsql as $migace$
 declare
     v_run bigint := nullif(current_setting('migace.run'), '')::bigint;
     v_state text;
@@ -255,20 +295,24 @@ begin
     end if;
     v_state := case
         when p_retired is not null then 'retired'
-        when exists (select 1 from mig_part_run r where r.run_id = v_run and r.snippet_uid = p_uid and r.state = 'failed') then 'failed'
+        when exists (select 1 from @migace_schema@.mig_part_run r where r.run_id = v_run and r.snippet_uid = p_uid and r.state = 'failed') then 'failed'
         when not exists (select 1 from unnest(p_parts) as part where not pg_temp.migace_ran(p_uid, part)) then 'done'
-        when exists (select 1 from mig_part_run r where r.run_id = v_run and r.snippet_uid = p_uid and r.state = 'skipped') then 'skipped'
+        when exists (select 1 from @migace_schema@.mig_part_run r where r.run_id = v_run and r.snippet_uid = p_uid and r.state = 'skipped') then 'skipped'
         else 'pending'
     end;
-    insert into mig_snippet (uid, name, state, updated_at) values (p_uid, p_name, v_state, clock_timestamp())
+    insert into @migace_schema@.mig_snippet (uid, name, state, updated_at) values (p_uid, p_name, v_state, clock_timestamp())
     on conflict (uid) do update set name = excluded.name, state = excluded.state, updated_at = excluded.updated_at;
     if p_retired is not null and current_setting('migace.failed') = '' then
         raise notice '%: retired, never runs: %', p_name, p_retired;
     end if;
 end
-$migace$
+$migace$$migace_body$, '@migace_schema@', quote_ident(current_setting('migace.run_schema')));
+end
+$migace_in_schema$
 -- @migace statement
-create or replace function pg_temp.migace_finish(p_fingerprint text) returns void language plpgsql as $migace$
+do $migace_in_schema$
+begin
+    execute replace($migace_body$create or replace function pg_temp.migace_finish(p_fingerprint text) returns void language plpgsql as $migace$
 declare
     v_run bigint := nullif(current_setting('migace.run'), '')::bigint;
     v_failed boolean := current_setting('migace.failed') <> '';
@@ -277,7 +321,7 @@ begin
     if v_run is null then
         return;
     end if;
-    update mig_run set ended_at = clock_timestamp(),
+    update @migace_schema@.mig_run set ended_at = clock_timestamp(),
         outcome = case when v_failed then 'failed' when v_executed = 0 then 'nothing to do' else 'done' end
     where id = v_run;
     if v_failed then
@@ -285,7 +329,7 @@ begin
         return;
     end if;
     if p_fingerprint is not null then
-        insert into mig_meta (key, value) values ('fingerprint', p_fingerprint)
+        insert into @migace_schema@.mig_meta (key, value) values ('fingerprint', p_fingerprint)
         on conflict (key) do update set value = excluded.value;
     end if;
     if v_executed = 0 then
@@ -294,7 +338,9 @@ begin
         raise notice 'Done: % steps ran.', v_executed;
     end if;
 end
-$migace$
+$migace$$migace_body$, '@migace_schema@', quote_ident(current_setting('migace.run_schema')));
+end
+$migace_in_schema$
 -- @migace statement label="20260302-0900-customer-loyalty, part add-column"
 select pg_temp.migace_step('01JF2A6QW3ZK8M4T7R9B5X0C1D', '20260302-0900-customer-loyalty', 'add-column', 'v1:de0e049d9074d5eb9ec50240893d06e0059bca5dda567e17398e9de9798d8813', 1, 1,
     'alter table customer add column loyalty_level varchar(10)',
@@ -550,8 +596,6 @@ select pg_temp.migace_snippet('01JH5P2R4T6V8X0Z2B4D6F8H0K', '20260907-1000-custo
 -- @migace statement
 select pg_temp.migace_finish(null)
 -- @migace statement
-select pg_advisory_unlock(hashtext('migace ' || current_schema()))
--- @migace statement
 do $migace$
 begin
     if current_setting('migace.failed') <> '' then
@@ -559,3 +603,32 @@ begin
     end if;
 end
 $migace$
+-- @migace finally
+-- @migace statement
+select set_config('search_path', current_setting('migace.session_search_path'), false),
+    set_config('lock_timeout', current_setting('migace.session_lock_timeout'), false),
+    set_config('statement_timeout', current_setting('migace.session_statement_timeout'), false)
+where current_setting('migace.session_saved', true) = 'yes'
+-- @migace statement
+do $migace$
+declare
+    v_schema oid := to_regnamespace(quote_ident(nullif(current_setting('migace.run_schema', true), '')));
+begin
+    if exists (select 1 from pg_locks l where l.locktype = 'advisory' and l.pid = pg_backend_pid()
+            and l.classid = 1296648001 and l.objid = v_schema and l.objsubid = 1) then
+        perform pg_advisory_unlock((1296648001::bigint << 32) | v_schema::bigint);
+    end if;
+end
+$migace$
+-- @migace statement
+do $migace$
+declare
+    v_function regprocedure;
+begin
+    for v_function in select p.oid::regprocedure from pg_proc p where p.pronamespace = pg_my_temp_schema() and p.proname like 'migace\_%' loop
+        execute 'drop function ' || v_function;
+    end loop;
+end
+$migace$
+-- @migace statement
+select set_config('migace.' || name, '', false) from unnest(array['schema', 'other_schemas', 'lock_timeout', 'lock_attempts', 'lock_wait', 'run_schema', 'session_saved', 'session_search_path', 'session_lock_timeout', 'session_statement_timeout', 'failed', 'executed', 'skip', 'run']::text[]) as name

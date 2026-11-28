@@ -4,14 +4,14 @@ import { describe, expect, test } from 'vitest';
 import { canonicalForm, compare, type Difference, differencesText, fingerprint } from '@migace/core';
 import { PostgresqlSchemaReader, runScript } from '@migace/postgresql';
 import { BOOKSHOP_MIGRATIONS, scriptOf } from '../script/support.js';
-import { DATA, LEDGER, RELEASE_1_0_0, useServer } from './support.js';
+import { DATA, EXTENSIONS, LEDGER, RELEASE_1_0_0, RUN_PARAMETERS, useServer } from './support.js';
 
 const { bookshop, run, rows, model, server } = useServer();
 
 /** The same bookshop on PGlite, in the schema public. */
 async function pglite() {
     const database = new PGlite({ extensions: { pg_trgm } });
-    for (const sql of [...RELEASE_1_0_0, DATA]) {
+    for (const sql of [`create schema ${EXTENSIONS}; create extension pg_trgm with schema ${EXTENSIONS}`, ...RELEASE_1_0_0, DATA]) {
         await database.exec(sql);
     }
     const query = async (sql: string, parameters?: unknown[]) => (await database.query<Record<string, unknown>>(sql, parameters)).rows;
@@ -22,7 +22,7 @@ async function pglite() {
         run: async (script: string) => {
             const notices: string[] = [];
             await runScript(script, async (sql, onNotice) => (await database.query<Record<string, unknown>>(sql, [], { onNotice: notice => onNotice(notice.message ?? '') })).rows,
-                { parameters: { schema: 'public' }, onNotice: notice => notices.push(notice) });
+                { parameters: RUN_PARAMETERS, onNotice: notice => notices.push(notice) });
             return notices;
         },
     };

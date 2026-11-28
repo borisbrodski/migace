@@ -18,6 +18,11 @@ export const DATA = `
     insert into orders (id, customer_id, status, created_at, total_cents) values
         (1, 1, 'SHIPPED', timestamp '2026-01-10 10:00', 990), (2, 1, 'shipped ', timestamp '2026-02-01 09:00', 990), (3, 2, 'no idea', timestamp '2026-02-02 09:00', 0);`;
 
+/** The schema of the extension pg_trgm, which the bookshop needs. */
+export const EXTENSIONS = 'extensions';
+/** The parameters of a run of the bookshop: its schema, and the schema of the extension. */
+export const RUN_PARAMETERS = { schema: 'public', other_schemas: EXTENSIONS };
+
 type Row = Record<string, unknown>;
 
 /** Sends the statements of a runner over a connection of the PostgreSQL driver. */
@@ -47,7 +52,7 @@ export function useServer() {
         await server.createDatabase('bookshop_1_0_0');
         const client = new pg.Client(server.connection('bookshop_1_0_0'));
         await client.connect();
-        for (const sql of [...RELEASE_1_0_0, DATA]) {
+        for (const sql of [`create schema ${EXTENSIONS}; create extension pg_trgm with schema ${EXTENSIONS}`, ...RELEASE_1_0_0, DATA]) {
             await client.query(sql);
         }
         await client.end();
@@ -81,7 +86,7 @@ export function useServer() {
             const client = await connect(database);
             const notices: string[] = [];
             try {
-                await runScript(script, executeOn(client), { parameters: { schema: 'public', ...parameters }, onNotice: notice => notices.push(notice) });
+                await runScript(script, executeOn(client), { parameters: { ...RUN_PARAMETERS, ...parameters }, onNotice: notice => notices.push(notice) });
             } finally {
                 await client.end();
             }

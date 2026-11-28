@@ -1,0 +1,25 @@
+{
+  "description": "When only a statement after \"-- @migace finally\" fails, its error is reported. The statements after it are still sent.",
+  "script": "-- @migace script format=1\n-- @migace statement\nselect 1\n-- @migace finally\n-- @migace statement\nselect broken()\n-- @migace statement\nselect 3\n",
+  "answers": [
+    {},
+    {
+      "error": {
+        "code": "42883",
+        "message": "function broken() does not exist"
+      }
+    }
+  ],
+  "expected": {
+    "outcome": "failure",
+    "sent": [
+      "select 1",
+      "select broken()",
+      "select 3"
+    ],
+    "error": {
+      "message": "function broken() does not exist",
+      "code": "42883"
+    }
+  }
+}

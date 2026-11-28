@@ -33,8 +33,9 @@ tasks.withType(JavaCompile).configureEach {
 
 test {
     useJUnitPlatform()
-    // The cases of the client contract are data files that every runner plays.
+    // The cases of the client contract are data files that every runner plays. A changed case runs the tests again.
     systemProperty 'migace.contract.cases', file('../contract/cases').absolutePath
+    inputs.dir('../contract/cases').withPropertyName('contractCases')
 }
 
 jacocoTestReport {

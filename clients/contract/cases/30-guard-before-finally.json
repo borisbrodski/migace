@@ -1,0 +1,13 @@
+{
+  "description": "A guard directly before \"-- @migace finally\" is not followed by a statement. It is an error that names the line of the guard. Nothing is sent.",
+  "script": "-- @migace script format=1\n-- @migace statement\nselect 1\n-- @migace guard\nselect wanted()\n-- @migace finally\n-- @migace statement\nselect 2\n",
+  "expected": {
+    "outcome": "refused",
+    "sent": [],
+    "error": {
+      "mentions": [
+        "Line 4"
+      ]
+    }
+  }
+}

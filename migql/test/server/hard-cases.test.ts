@@ -3,7 +3,7 @@ import { describe, expect, test } from 'vitest';
 import { compare, differencesText } from '@migace/core';
 import { runScript } from '@migace/postgresql';
 import { BOOKSHOP_MIGRATIONS, scriptOf, scriptWith } from '../script/support.js';
-import { executeOn, useServer } from './support.js';
+import { executeOn, RUN_PARAMETERS, useServer } from './support.js';
 
 const { bookshop, connect, run, rows, model, server } = useServer();
 
@@ -38,6 +38,33 @@ describe('Two runs at the same time', () => {
         expect((await doneRows(database)).map(row => row.done)).toEqual([1, 1, 1]);
         expect((await rows(database, 'select outcome from mig_run order by id')).map(row => row.outcome)).toEqual(['done', 'nothing to do']);
     });
+
+    // M4.4-AC-05
+    test('on two schemas they do not wait for each other; on the same schema they do', async () => {
+        // Two names with the same hashtext('migace ' || name): a lock made from a hash of the name would be shared.
+        const [first, second] = ['tenant_28465', 'tenant_132194'];
+        const database = await bookshop();
+        const admin = await connect(database);
+        await admin.query(`create schema ${first}; create table ${first}.customer (id bigint primary key);
+            create schema ${second}; create table ${second}.customer (id bigint primary key)`);
+        const slow = await scriptWith({ '20260302-0900-a': ['parts:', '  - slow:', '      native:', '        postgresql: select pg_sleep(2)'] });
+        const quick = await scriptWith({ '20260302-0900-b': ['parts:', '  - quick:', '      do: alter table customer add column a integer'] });
+        const timed = async (running: Promise<unknown>) => {
+            await running;
+            return performance.now();
+        };
+
+        const started = performance.now();
+        const slowEnd = timed(run(database, slow, { schema: first }));
+        await sleep(300);
+        const [onOtherSchema, onSameSchema] = await Promise.all([
+            timed(run(database, quick, { schema: second })),
+            timed(run(database, quick, { schema: first })),
+        ]);
+
+        expect(onOtherSchema - started).toBeLessThan(1500);
+        expect(onSameSchema).toBeGreaterThanOrEqual(await slowEnd);
+    });
 });
 
 // M4.2-AC-11
@@ -47,7 +74,7 @@ describe('A run whose connection is closed', () => {
         const reference = await bookshop();
         let statements = 0;
         const counting = await connect(reference);
-        await runScript(script, async (sql, onNotice) => { statements++; return executeOn(counting)(sql, onNotice); }, { parameters: { schema: 'public' } });
+        await runScript(script, async (sql, onNotice) => { statements++; return executeOn(counting)(sql, onNotice); }, { parameters: RUN_PARAMETERS });
         const expectedModel = await model(reference);
         const expectedDone = await doneRows(reference);
         expect(statements).toBeGreaterThan(50);
@@ -63,7 +90,7 @@ describe('A run whose connection is closed', () => {
                 }
                 sent++;
                 return executeOn(client)(sql, onNotice);
-            }, { parameters: { schema: 'public' } }).catch(() => undefined);
+            }, { parameters: RUN_PARAMETERS }).catch(() => undefined);
 
             await run(database, script);
 
@@ -81,7 +108,7 @@ describe('A run whose connection is closed', () => {
             '  - after:', '      do: alter table customer add column b integer',
         ] });
         const running = connect(database).then(async client => {
-            const result = failure(runScript(script, executeOn(client), { parameters: { schema: 'public' } }));
+            const result = failure(runScript(script, executeOn(client), { parameters: RUN_PARAMETERS }));
             return result;
         });
         const killer = await connect(database);
@@ -159,6 +186,30 @@ describe('A lock that another session holds', () => {
     });
 });
 
+// M4.4-AC-09
+describe('A session that is used again', () => {
+    test('fails outside a transaction and stays open; a second session runs the corrected script without waiting; then the first finds nothing to do', async () => {
+        const database = await bookshop();
+        const broken = await scriptWith({ '20260302-0900-a': ['parts:', '  - index:', '      do: create index concurrently ix_customer_x on customer (no_such_column)'] });
+        const corrected = await scriptWith({ '20260302-0900-a': ['parts:', '  - index:', '      do: create index concurrently ix_customer_x on customer (name)'] });
+        const first = await connect(database);
+        const second = await connect(database);
+        const notices = (client: pg.Client, script: string) => {
+            const received: string[] = [];
+            return runScript(script, executeOn(client), { parameters: RUN_PARAMETERS, onNotice: notice => received.push(notice) }).then(() => received);
+        };
+
+        expect(await failure(runScript(broken, executeOn(first), { parameters: RUN_PARAMETERS })))
+            .toBe('20260302-0900-a, part index: column "no_such_column" does not exist');
+        const started = performance.now();
+        // The try of the first session is abandoned; what it may have left is removed first.
+        expect(await notices(second, corrected)).toEqual(['index "ix_customer_x" does not exist, skipping', '20260302-0900-a, part index: done', 'Done: 1 steps ran.']);
+        expect(performance.now() - started).toBeLessThan(3000);
+        expect(await notices(first, corrected)).toEqual(['20260302-0900-a, part index: already done', 'Nothing to do.']);
+        expect((await first.query("select current_setting('search_path') as path")).rows).toEqual([{ path: '"$user", public' }]);
+    });
+});
+
 // M4.2-AC-16, M4.2-AC-17
 describe('A statement outside a transaction on a real server', () => {
     const INDEX = { '20260302-0900-a': ['parts:', '  - index:', '      do: create index concurrently ix_customer_name on customer (name)'] };
@@ -181,7 +232,7 @@ describe('A statement outside a transaction on a real server', () => {
         const writer = await connect(database);
         await writer.query("begin; update customer set name = name || '!' where id = 1");
         const runner = await connect(database);
-        const running = failure(runScript(script, executeOn(runner), { parameters: { schema: 'public' } }));
+        const running = failure(runScript(script, executeOn(runner), { parameters: RUN_PARAMETERS }));
         const killer = await connect(database);
         let invalid = 0;
         while (invalid === 0) {

@@ -2,11 +2,11 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { describe, expect, test } from 'vitest';
 import { fingerprint } from '@migace/core';
-import { ScriptError, writeScript } from '@migace/postgresql';
+import { RUN_SETTINGS, ScriptError, writeScript } from '@migace/postgresql';
 import { projectWith } from '../plan/project-folder.js';
-import { BOOKSHOP_MIGRATIONS, createScriptDatabase, planOf, scriptOf, scriptWith } from './support.js';
+import { BOOKSHOP_MIGRATIONS, createScriptDatabase, EXTENSIONS, planOf, scriptOf, scriptWith } from './support.js';
 
-const { bookshop, empty, run, runFailing, rows, exec, model, schema } = createScriptDatabase();
+const { bookshop, empty, run, runFailing, rows, exec, model, schema, session, sessionState } = createScriptDatabase();
 
 const CUSTOMERS = "insert into customer (id, name, mail, created_at) values (1, 'Maria', 'maria@example.org', now()), (2, 'Jo', null, now())";
 
@@ -66,13 +66,18 @@ describe('The ledger', () => {
         expect(await locks()).toEqual([{ held: 0 }]);
 
         const script = await scriptWith({ '20260302-0900-a': ['parts:', '  - p:', '      do: delete from customer', '  - q:', '      do: delete from no_such_table'] });
-        const statements = script.split(/^-- @migace .*$/m).slice(1).map(text => text.trim());
-        await exec(`select set_config('migace.schema', '${schema()}', false)`);
-        for (const statement of statements.slice(0, -1)) {
-            await rows(statement);
+        const [main, last] = script.split(/^-- @migace finally$/m).map(part => part.split(/^-- @migace .*$/m).slice(1).map(text => text.trim()));
+        await session(`select set_config('migace.schema', '${schema()}', false), set_config('migace.other_schemas', '${EXTENSIONS}', false)`);
+        for (const statement of main.slice(0, -1)) {
+            await session(statement);
+        }
+        expect(await locks()).toEqual([{ held: 1 }]);
+        await expect(session(main[main.length - 1])).rejects.toThrow('20260302-0900-a, part q: relation "no_such_table" does not exist');
+        expect(await locks()).toEqual([{ held: 1 }]);
+        for (const statement of last) {
+            await session(statement);
         }
         expect(await locks()).toEqual([{ held: 0 }]);
-        await expect(rows(statements[statements.length - 1])).rejects.toThrow('20260302-0900-a, part q: relation "no_such_table" does not exist');
     });
 
     // M4.1-AC-14
@@ -105,6 +110,134 @@ describe('The schema of a run', () => {
         expect(await columns(other)).toEqual([{ column_name: 'id' }]);
         expect(await rows(`select count(*)::integer as tables from information_schema.tables where table_schema in ('${other}', 'public') and table_name like 'mig_%'`))
             .toEqual([{ tables: 0 }]);
+    });
+});
+
+describe('One schema, nothing shared', () => {
+    const ledgerOf = (name: string) => rows(`select snippet_name, part, state from ${name}.mig_part_run order by id`);
+
+    // M4.4-AC-01
+    test('a run finds its ledger only in the schema of the migration, also when the search path of the session names another one', async () => {
+        await bookshop();
+        const first = schema();
+        await run(await scriptOf(BOOKSHOP_MIGRATIONS));
+        const ledgerOfFirst = await ledgerOf(first);
+        await bookshop();
+        const second = schema();
+        await session(`set search_path to public, ${first}`);
+
+        await run(await scriptOf(BOOKSHOP_MIGRATIONS), { schema: second, other_schemas: EXTENSIONS });
+
+        expect(await ledgerOf(second)).toEqual(ledgerOfFirst);
+        expect(await ledgerOf(first)).toEqual(ledgerOfFirst);
+        expect(await rows(`select count(*)::integer as runs from ${first}.mig_run`)).toEqual([{ runs: 1 }]);
+    });
+
+    // M4.4-AC-02
+    test('the search path of a run is its schema; a table of another schema is not found without its schema', async () => {
+        await empty('create table archive (id bigint)');
+        const other = schema();
+        await empty('create table customer (id bigint)');
+        await session(`set search_path to ${other}, public`);
+
+        const { error } = await runFailing(await scriptWith({ '20260302-0900-a': ['parts:', '  - p:', '      do: delete from archive'] }));
+
+        expect(error).toBe('20260302-0900-a, part p: relation "archive" does not exist');
+    });
+
+    // M4.4-AC-03
+    test('the bookshop needs the schema of pg_trgm in other_schemas; without it the index of the title search fails', async () => {
+        await bookshop();
+
+        const { error } = await runFailing(await scriptOf(BOOKSHOP_MIGRATIONS), { schema: schema() });
+
+        expect(error).toMatch(/^20260608-1500-book-title-search, part title-search-index: operator class "gin_trgm_ops" does not exist/);
+    });
+
+    // M4.4-AC-04
+    test('a schema that other_schemas names is seen, and its own ledger is neither read nor written', async () => {
+        await bookshop();
+        const first = schema();
+        await run(await scriptOf(BOOKSHOP_MIGRATIONS));
+        const ledgerOfFirst = await ledgerOf(first);
+        await bookshop();
+        const second = schema();
+
+        await run(await scriptOf(BOOKSHOP_MIGRATIONS), { schema: second, other_schemas: `${EXTENSIONS}, ${first}` });
+
+        expect(await ledgerOf(second)).toEqual(ledgerOfFirst);
+        expect(await ledgerOf(first)).toEqual(ledgerOfFirst);
+        expect(await rows(`select count(*)::integer as runs from ${first}.mig_run`)).toEqual([{ runs: 1 }]);
+    });
+
+    test('a schema that other_schemas names is found by a statement of a snippet', async () => {
+        await empty('create table archive (id bigint)');
+        const other = schema();
+        await empty('create table customer (id bigint)');
+
+        await run(await scriptWith({ '20260302-0900-a': ['parts:', '  - p:', '      do: delete from archive'] }), { schema: schema(), other_schemas: other });
+
+        expect(await rows('select state from mig_part_run')).toEqual([{ state: 'done' }]);
+    });
+});
+
+describe('What a run leaves in its session', () => {
+    const CLEAN = { lock_timeout: '0', statement_timeout: '0', settings: '', locks: 0, functions: 0 };
+    const before = async () => {
+        for (const setting of ['set search_path to public, extensions', "set lock_timeout = '7s'", "set statement_timeout = '1h'"]) {
+            await session(setting);
+        }
+        return sessionState();
+    };
+    const reset = async () => {
+        for (const setting of ['set search_path to public', 'reset lock_timeout', 'reset statement_timeout']) {
+            await session(setting);
+        }
+    };
+
+    // M4.4-AC-06
+    test('after a good run: the search path and the limits it had before, no lock, no function and no setting of MIG-Ace', async () => {
+        await bookshop();
+        const state = await before();
+
+        await run(await scriptOf(BOOKSHOP_MIGRATIONS));
+
+        expect(await sessionState()).toEqual(state);
+        expect(state).toEqual({ ...CLEAN, search_path: 'public, extensions', lock_timeout: '7s', statement_timeout: '1h' });
+        await reset();
+    });
+
+    // M4.4-AC-07
+    test('after a failure that the script reports at its end', async () => {
+        await bookshop();
+        const state = await before();
+
+        const { error } = await runFailing(await scriptWith({ '20260302-0900-a': ['parts:', '  - p:', '      do: delete from no_such_table'] }));
+
+        expect(error).toBe('20260302-0900-a, part p: relation "no_such_table" does not exist');
+        expect(await sessionState()).toEqual(state);
+        await reset();
+    });
+
+    // M4.4-AC-07
+    test('after a failure at a statement outside a transaction, after which the runner stops', async () => {
+        await bookshop();
+        const state = await before();
+
+        const { error } = await runFailing(await scriptWith({ '20260302-0900-a': ['parts:', '  - p:', '      do: create index concurrently ix_x on customer (no_such_column)'] }));
+
+        expect(error).toBe('20260302-0900-a, part p: column "no_such_column" does not exist');
+        expect(await sessionState()).toEqual(state);
+        expect(await rows('select state from mig_part_run')).toEqual([{ state: 'started' }]);
+        await reset();
+    });
+
+    test('every setting of MIG-Ace that the script uses is one that its last statements set back', async () => {
+        const script = await scriptOf(BOOKSHOP_MIGRATIONS);
+        const used = new Set([...script.matchAll(/'migace\.(\w+)'/g), ...script.matchAll(/migace_setting\('(\w+)'/g)].map(match => match[1]));
+
+        expect([...used].filter(name => !(RUN_SETTINGS as readonly string[]).includes(name))).toEqual([]);
+        expect(used.size).toBeGreaterThan(10);
     });
 });
 

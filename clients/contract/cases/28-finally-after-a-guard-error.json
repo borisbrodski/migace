@@ -1,0 +1,21 @@
+{
+  "description": "A guard that gives no clear answer is an error like any other: the statements after \"-- @migace finally\" are sent.",
+  "script": "-- @migace script format=1\n-- @migace guard\nselect wanted()\n-- @migace statement\nselect 1\n-- @migace finally\n-- @migace statement\nselect 2\n",
+  "answers": [
+    {
+      "rows": []
+    }
+  ],
+  "expected": {
+    "outcome": "failure",
+    "sent": [
+      "select wanted()",
+      "select 2"
+    ],
+    "error": {
+      "mentions": [
+        "line 4"
+      ]
+    }
+  }
+}

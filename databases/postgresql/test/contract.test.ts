@@ -61,7 +61,7 @@ describe('The cases of the client contract', () => {
         const readme = fs.readFileSync(path.join(CONTRACT, 'README.md'), 'utf8');
 
         for (const word of ['script', 'parameters', 'answers', 'rows', 'notices', 'error', 'expected', 'outcome', 'sent', 'mentions',
-            '-- @migace script format=1', '-- @migace statement', '-- @migace guard', 'outside-transaction', 'label=']) {
+            '-- @migace script format=1', '-- @migace statement', '-- @migace guard', '-- @migace finally', 'outside-transaction', 'label=']) {
             expect(readme, word).toContain(word);
         }
     });

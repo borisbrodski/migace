@@ -12,6 +12,16 @@ const LOCK_TIMEOUT = '5s';
 const LOCK_ATTEMPTS = 3;
 const LOCK_WAIT = '1s';
 
+/**
+ * Every session setting that a run sets: the parameters, and what the script keeps for itself.
+ * The last statements of the script set each of them back to empty.
+ */
+export const RUN_SETTINGS = [
+    'schema', 'other_schemas', 'lock_timeout', 'lock_attempts', 'lock_wait',
+    'run_schema', 'session_saved', 'session_search_path', 'session_lock_timeout', 'session_statement_timeout',
+    'failed', 'executed', 'skip', 'run',
+] as const;
+
 /** The plan cannot be written as a script. */
 export class ScriptError extends Error { }
 
@@ -38,7 +48,7 @@ export function writeScript(plan: Plan): string {
         ...plan.snippets.flatMap(snippet => snippetSections(snippet)),
         ...finish(plan),
     ];
-    return [`${MARKER} script format=${SCRIPT_FORMAT}`, ...sections.map(sectionText), ''].join('\n');
+    return [`${MARKER} script format=${SCRIPT_FORMAT}`, ...sections.map(sectionText), `${MARKER} finally`, ...cleanUp().map(sectionText), ''].join('\n');
 }
 
 function sectionText(section: Section): string {
@@ -96,39 +106,70 @@ function partSections(snippet: PlanSnippet, part: PlanPart): Section[] {
     });
 }
 
+/** Stands for the schema of the run in the text of a statement, until the statement puts the name in. */
+const SCHEMA = '@migace_schema@';
+/** The schema of the run, as the first statement of the script stores it. */
+const RUN_SCHEMA = "current_setting('migace.run_schema')";
+/**
+ * The key of the lock of a run: "MIGA" in the upper half, the number of the schema in the lower half.
+ * Two schemas of one database never share it.
+ */
+const LOCK_KEY = `(1296648001::bigint << 32) | quote_ident(${RUN_SCHEMA})::regnamespace::oid::bigint`;
+
+/**
+ * A statement that names the tables of the ledger. Their schema is known only when the script runs,
+ * so the statement is the text of an `execute`, and the name of the schema is put in first.
+ */
+function inSchema(sql: string): Section {
+    return statement(`do $migace_in_schema$
+begin
+    execute replace($migace_body$${sql}$migace_body$, '${SCHEMA}', quote_ident(${RUN_SCHEMA}));
+end
+$migace_in_schema$`);
+}
+
 /** What every run does first: the schema, the lock, the ledger, the functions of this session and the row of the run. */
 function start(prefix: string): Section[] {
-    const t = (name: string) => `${prefix}${name}`;
+    const t = (name: string) => `${SCHEMA}.${prefix}${name}`;
+    const ledger = `to_regclass(quote_ident(${RUN_SCHEMA}) || '.${prefix}meta')`;
     return [
-        // The schema of the migration comes first: everything is created and looked up there. What the session had in its
-        // search path stays behind it, so that types and operators of extensions are still found.
-        statement("select set_config('search_path', quote_ident(coalesce(nullif(current_setting('migace.schema', true), ''), current_schema())) || ', ' || current_setting('search_path'), false)"),
+        // What the run changes in the session, so that the last statements can set it back.
+        statement(`select set_config('migace.session_search_path', current_setting('search_path'), false),
+    set_config('migace.session_lock_timeout', current_setting('lock_timeout'), false),
+    set_config('migace.session_statement_timeout', current_setting('statement_timeout'), false),
+    set_config('migace.session_saved', 'yes', false)`),
+        // The run works in its schema. It sees no other schema except those that the parameter other_schemas names.
+        statement("select set_config('migace.run_schema', coalesce(nullif(current_setting('migace.schema', true), ''), current_schema()), false)"),
+        statement(`select set_config('search_path', (select string_agg(quote_ident(trim(name)), ', ' order by position)
+    from unnest(array[${RUN_SCHEMA}] || string_to_array(coalesce(current_setting('migace.other_schemas', true), ''), ','))
+        with ordinality as schemas (name, position)
+    where trim(name) <> ''), false)`),
         statement("select set_config('migace.failed', '', false), set_config('migace.executed', '0', false), set_config('migace.skip', '', false), set_config('migace.run', '', false)"),
         // One run at a time. A run that waits here must not hold a transaction open: "create index concurrently" of the run
         // that has the lock waits for every older transaction, and the two would wait for each other. So the wait is a loop
         // that ends its transaction before every pause.
         statement(`do $migace$
 begin
-    while not pg_try_advisory_lock(hashtext('migace ' || current_schema())) loop
+    while not pg_try_advisory_lock(${LOCK_KEY}) loop
         commit;
         perform pg_sleep(0.2);
         commit;
     end loop;
 end
 $migace$`),
-        statement(`do $migace$
+        inSchema(`do $migace$
 declare
     v_format integer;
     v_run bigint;
 begin
-    if to_regclass('${t('meta')}') is not null then
+    if ${ledger} is not null then
         select value::integer into v_format from ${t('meta')} where key = 'format';
         if v_format > ${LEDGER_FORMAT} then
             perform set_config('migace.failed', format('The ledger of this database has the format %s. This script knows the format %s and changes nothing. Use the script of a newer version.', v_format, ${LEDGER_FORMAT}), false);
             return;
         end if;
     end if;
-    if to_regclass('${t('meta')}') is null then
+    if ${ledger} is null then
         create table ${t('meta')} (key text primary key, value text not null);
         create table ${t('run')} (
             id bigint generated always as identity primary key,
@@ -140,7 +181,7 @@ begin
             step integer not null, steps integer not null, state text not null, sql text, checksum text not null,
             started_at timestamptz not null, ended_at timestamptz,
             error_code text, error_message text, error_detail text, error_context text);
-        create index ${t('part_run_step')} on ${t('part_run')} (snippet_uid, part, step);
+        create index ${prefix}part_run_step on ${t('part_run')} (snippet_uid, part, step);
         create table ${t('log')} (
             id bigint generated always as identity primary key, run_id bigint, at timestamptz not null, message text not null);
     end if;
@@ -150,7 +191,7 @@ begin
     perform set_config('migace.run', v_run::text, false);
 end
 $migace$`),
-        ...functions(t).map(statement),
+        ...functions(t).map(sql => sql.includes(SCHEMA) ? inSchema(sql) : statement(sql)),
     ];
 }
 
@@ -285,7 +326,7 @@ begin
             when lock_not_available then
                 select string_agg(distinct c.relname, ', ' order by c.relname) into v_locked
                 from pg_locks l join pg_class c on c.oid = l.relation join pg_namespace n on n.oid = c.relnamespace
-                where l.granted and l.pid <> pg_backend_pid() and l.locktype = 'relation' and c.relkind in ('r', 'p') and n.nspname = current_schema();
+                where l.granted and l.pid <> pg_backend_pid() and l.locktype = 'relation' and c.relkind in ('r', 'p') and n.nspname = ${RUN_SCHEMA};
                 v_message := format('no lock within %s, attempt %s of %s. Locked by another session: %s',
                     pg_temp.migace_setting('lock_timeout', '${LOCK_TIMEOUT}'), v_attempt, v_attempts, coalesce(v_locked, 'unknown'));
                 if v_attempt = v_attempts then
@@ -398,11 +439,10 @@ $migace$`,
     ];
 }
 
-/** What every run does last: the row of the run, the fingerprint, the lock, and the error if a part failed. */
+/** What every run does at its end: the row of the run, the fingerprint, and the error if a part failed. */
 function finish(plan: Plan): Section[] {
     return [
         statement(`select pg_temp.migace_finish(${literal(plan.fingerprint)})`),
-        statement("select pg_advisory_unlock(hashtext('migace ' || current_schema()))"),
         statement(`do $migace$
 begin
     if current_setting('migace.failed') <> '' then
@@ -410,5 +450,38 @@ begin
     end if;
 end
 $migace$`),
+    ];
+}
+
+/**
+ * The statements after "-- @migace finally", which a runner sends also after an error. They leave the session as it was
+ * before the run: its search path and limits, no lock and no function of MIG-Ace, and no setting of the run.
+ */
+function cleanUp(): Section[] {
+    return [
+        statement(`select set_config('search_path', current_setting('migace.session_search_path'), false),
+    set_config('lock_timeout', current_setting('migace.session_lock_timeout'), false),
+    set_config('statement_timeout', current_setting('migace.session_statement_timeout'), false)
+where current_setting('migace.session_saved', true) = 'yes'`),
+        statement(`do $migace$
+declare
+    v_schema oid := to_regnamespace(quote_ident(nullif(current_setting('migace.run_schema', true), '')));
+begin
+    if exists (select 1 from pg_locks l where l.locktype = 'advisory' and l.pid = pg_backend_pid()
+            and l.classid = 1296648001 and l.objid = v_schema and l.objsubid = 1) then
+        perform pg_advisory_unlock((1296648001::bigint << 32) | v_schema::bigint);
+    end if;
+end
+$migace$`),
+        statement(`do $migace$
+declare
+    v_function regprocedure;
+begin
+    for v_function in select p.oid::regprocedure from pg_proc p where p.pronamespace = pg_my_temp_schema() and p.proname like 'migace\\_%' loop
+        execute 'drop function ' || v_function;
+    end loop;
+end
+$migace$`),
+        statement(`select set_config('migace.' || name, '', false) from unnest(${list([...RUN_SETTINGS])}) as name`),
     ];
 }

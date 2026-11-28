@@ -17,8 +17,9 @@ All logic of a migration is in the script: what runs, what is skipped, what is w
    A single quote in the value is doubled. The name is made of letters, digits and underscores.
 4. It sends the **statements** of the script, one at a time and in order.
 5. Before a statement with a **guard** it sends the guard query. The query returns one row with one value. `true`: the statement is sent. `false`: the statement is not sent, and the runner goes on with the next one. No row, more than one row, or a value that is neither: an error, as if a statement had failed.
-6. At the **first error** it stops. Nothing is sent after it. It reports the error with the message and the code of the database. If the statement has a label, the label and `: ` stand in front of the message.
-7. It passes the **notices** of the database to its caller, in the order in which they arrive.
+6. At the **first error** it stops sending the statements before the line `-- @migace finally`. It reports the error with the message and the code of the database. If the statement has a label, the label and `: ` stand in front of the message. A failed guard is such an error, and so is a failed parameter.
+7. It then sends the statements after the line **`-- @migace finally`**, in order, whether an error came or not. They put the session back as it was before the run. An error among them does not stop them: the runner sends the next one. It never hides the first error: the runner reports the first error of the whole run.
+8. It passes the **notices** of the database to its caller, in the order in which they arrive.
 
 ## The script
 
@@ -29,11 +30,12 @@ A script is a text file. Its line endings are LF or CRLF; a runner reads both. L
 | `-- @migace script format=1` | The first line of every script. The number is the version of this contract. A runner refuses a number it does not know. |
 | `-- @migace statement` | The lines up to the next marker line are one statement. |
 | `-- @migace guard` | The lines up to the next marker line are a guard query. It belongs to the statement that follows. A guard is always followed by a statement. |
+| `-- @migace finally` | The statements after this line are sent also after an error. A script has this line at most once. The line itself is no statement. |
 | `outside-transaction` | An attribute of a statement: the database refuses it inside a transaction. A runner with autocommit sends it like any other. |
 | `label="<text>"` | An attribute of a statement: what it belongs to. The text has no double quote. |
 
 - A statement is everything between its marker line and the next one: semicolons, blocks in dollar quotes, empty lines and comment lines are part of it. Empty lines before the first and after the last line of the statement are not sent. Line breaks inside a statement are sent as LF.
-- The first line must be the line with the format. After it, a line that is no marker line and stands before the first marker is an error, unless it is empty. An unknown marker is an error. Both name the line, and nothing is sent.
+- The first line must be the line with the format. After it, a line that is no marker line and stands before the first marker is an error, unless it is empty. An unknown marker is an error. A second `-- @migace finally` is an error. A guard that is followed by a marker other than `-- @migace statement` is an error. Each of them names the line, and nothing is sent.
 - The script contains nothing that only one client understands.
 
 ## The cases
