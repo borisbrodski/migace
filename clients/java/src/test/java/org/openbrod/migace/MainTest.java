@@ -92,7 +92,8 @@ class MainTest {
         int code = run(Collections.emptyMap(), "--url", "jdbc:scripted:shop", "--user", "owner", "--schema", "shop", script.toString());
 
         assertEquals(0, code);
-        assertEquals(Arrays.asList("select set_config('migace.schema', 'shop', false)", "select 1"), driver.database.sent);
+        assertEquals(Arrays.asList("select set_config('migace.schema', 'shop', false)", "select set_config('migace.parameters', 'schema', false)", "select 1"),
+            driver.database.sent);
         assertEquals("owner", driver.properties.getProperty("user"));
         assertTrue(output().contains("20260302-0900-a, part p: done"));
     }
@@ -101,7 +102,8 @@ class MainTest {
     void otherParametersOfTheRunAreOptions() {
         run(Collections.emptyMap(), "--url", "jdbc:scripted:shop", "--user", "owner", "--param", "lock_timeout=2s", "--param", "lock_attempts=5", script.toString());
 
-        assertEquals(Arrays.asList("select set_config('migace.lock_timeout', '2s', false)", "select set_config('migace.lock_attempts', '5', false)", "select 1"),
+        assertEquals(Arrays.asList("select set_config('migace.lock_timeout', '2s', false)", "select set_config('migace.lock_attempts', '5', false)",
+            "select set_config('migace.parameters', 'lock_timeout,lock_attempts', false)", "select 1"),
             driver.database.sent);
     }
 

@@ -102,6 +102,10 @@ public final class MigAce {
                     for (Map.Entry<String, String> parameter : parameters.entrySet()) {
                         send(connection, "select set_config('migace." + parameter.getKey() + "', '" + parameter.getValue().replace("'", "''") + "', false)", null);
                     }
+                    // The script cannot see which settings exist. It learns the names from this list and refuses one it does not know.
+                    if (!parameters.isEmpty()) {
+                        send(connection, "select set_config('migace.parameters', '" + String.join(",", parameters.keySet()) + "', false)", null);
+                    }
                     for (Script.Statement statement : parts.main) {
                         sendStatement(connection, statement);
                     }

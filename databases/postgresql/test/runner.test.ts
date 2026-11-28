@@ -79,6 +79,7 @@ describe('The reference runner', () => {
         expect(sent).toEqual([
             "select set_config('migace.schema', 'book shop', false)",
             "select set_config('migace.note', 'it''s', false)",
+            "select set_config('migace.parameters', 'schema,note', false)",
             'select 1',
         ]);
     });

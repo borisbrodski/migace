@@ -63,6 +63,10 @@ export async function runScript(script: string, execute: Execute, options: RunOp
         for (const [name, value] of parameters) {
             await send(`select set_config('migace.${name}', '${value.replace(/'/g, "''")}', false)`);
         }
+        // The script cannot see which settings exist. It learns the names from this list and refuses one it does not know.
+        if (parameters.length > 0) {
+            await send(`select set_config('migace.parameters', '${parameters.map(([name]) => name).join(',')}', false)`);
+        }
         for (const statement of statements) {
             await sendStatement(statement);
         }

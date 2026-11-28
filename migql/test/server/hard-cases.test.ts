@@ -190,12 +190,29 @@ describe('A lock that another session holds', () => {
         expect(await run(database, script, QUICK)).toEqual(['20260302-0900-a, part column: done', '20260302-0900-a, part after: done', 'Done: 2 steps ran.']);
     });
 
-    test('the limits have defaults', async () => {
+    // M4.4-AC-16: PGlite has no timers, so these limits are shown here.
+    test('statement_timeout is the time a statement may take', async () => {
+        const database = await bookshop();
+        const script = await scriptWith({ '20260302-0900-a': ['parts:', '  - slow:', '      native:', '        postgresql: select pg_sleep(5)'] });
+
+        const message = await failure(run(database, script, { statement_timeout: '200ms' }));
+
+        expect(message).toBe('20260302-0900-a, part slow: canceling statement due to statement timeout');
+    });
+
+    test('lock_attempts 0 means no limit', async () => {
+        const database = await bookshop();
+        const lock = await lockedBy(database, 'customer');
         const script = await scriptWith(COLUMN);
 
-        expect(script).toContain("pg_temp.migace_setting('lock_timeout', '5s')");
-        expect(script).toContain("pg_temp.migace_setting('lock_attempts', '3')");
-        expect(script).toContain("pg_temp.migace_setting('lock_wait', '1s')");
+        const running = run(database, script, { lock_timeout: '100ms', lock_wait: '0', lock_attempts: '0' });
+        await sleep(1500);
+        await lock.release();
+        const notices = await running;
+
+        expect(notices[0]).toBe('20260302-0900-a, part column: no lock within 100ms, attempt 1 without a limit. Locked by another session: customer');
+        expect(notices.length).toBeGreaterThan(6);
+        expect(notices.slice(-3)).toEqual(['20260302-0900-a, part column: done', '20260302-0900-a, part after: done', 'Done: 2 steps ran.']);
     });
 });
 
@@ -226,6 +243,27 @@ describe('A session that is used again', () => {
 // M4.2-AC-16, M4.2-AC-17
 describe('A statement outside a transaction on a real server', () => {
     const INDEX = { '20260302-0900-a': ['parts:', '  - index:', '      do: create index concurrently ix_customer_name on customer (name)'] };
+
+    // M4.4-AC-18
+    test('obeys lock_timeout while it waits for an older transaction; the run stops without a further attempt, and the session gets its limit back', async () => {
+        const database = await bookshop();
+        const writer = await connect(database);
+        await writer.query('begin; update customer set name = name where id = 1');
+        const runner = await connect(database);
+        await runner.query("set lock_timeout = '1min'");
+        const script = await scriptWith(INDEX);
+
+        const started = performance.now();
+        const message = await failure(runScript(script, executeOn(runner), { parameters: { ...RUN_PARAMETERS, lock_timeout: '500ms' } }));
+
+        expect(message).toBe('20260302-0900-a, part index: canceling statement due to lock timeout');
+        expect(performance.now() - started).toBeLessThan(3000);
+        expect((await rows(database, 'select state from mig_part_run')).map(row => row.state)).toEqual(['started']);
+        expect((await runner.query("select current_setting('lock_timeout') as limit")).rows).toEqual([{ limit: '1min' }]);
+        await writer.query('commit');
+        expect(await run(database, script)).toEqual(['20260302-0900-a, part index: done', 'Done: 1 steps ran.']);
+        expect(await rows(database, "select indisvalid from pg_index where indexrelid = 'ix_customer_name'::regclass")).toEqual([{ indisvalid: true }]);
+    });
 
     test('PostgreSQL refuses it inside a transaction, and the script sends it on its own', async () => {
         const database = await bookshop();

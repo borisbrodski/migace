@@ -73,3 +73,12 @@ Same computer and server as before, five runs:
 | Second run | 16 to 23 ms, middle value 17 ms | 21 to 52 ms, middle value 27 ms |
 
 The 37 statements added: one more for each of the 29 steps inside a transaction, three more functions of the session, the four statements of the last part, and two more at the start; the release of the lock moved into the last part. The runs are about a quarter slower; every added statement is a round trip.
+
+## Limits (M4.4-AC-16 to 20)
+
+- **A typo in a parameter could not be seen by the script.** A setting such as `migace.lock_timout` is a placeholder; neither `pg_settings` nor `pg_show_all_settings()` lists it, on PGlite and on PostgreSQL 18.7. So the contract changed: after the parameters a runner sends their names as `migace.parameters`. The script refuses a name it does not know, before the lock, with a message that lists the parameters. Cases 02 and 11 have the new statement; both runners send it.
+- **The defaults** are `lock_timeout` 5 s, `lock_attempts` 90, `lock_wait` 5 s and `statement_timeout` 0: fifteen minutes in sum. `0` means no limit for each, also for the number of attempts.
+- **The limits are set for the session** after the lock of the run and set back by the last part of the script. Before, `lock_timeout` was set inside each step only, and a statement outside a transaction had no limit.
+- **`create index concurrently` obeys `lock_timeout`** while it waits for an older transaction, on PostgreSQL 18.7: with an open writing transaction and `lock_timeout` 500 ms it stopped after 520 ms with `canceling statement due to lock timeout`. It leaves an invalid index; the next run marks the try as abandoned, drops the index and builds it. It was not tried on PostgreSQL 15; the nightly job runs the same test there.
+- **PGlite has no timers**: `statement_timeout` never fires there. The test of `statement_timeout` runs on the real server.
+- **A step inside a transaction holds its transaction open while it waits** between attempts, up to fifteen minutes with the defaults. That was so before as well, with three attempts. Moving the pause out of the transaction would need one statement per attempt. Not changed.

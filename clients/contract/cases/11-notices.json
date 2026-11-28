@@ -10,6 +10,7 @@
         "parameter set"
       ]
     },
+    {},
     {
       "notices": [
         "first",
@@ -45,6 +46,7 @@
     "outcome": "failure",
     "sent": [
       "select set_config('migace.schema', 'shop', false)",
+      "select set_config('migace.parameters', 'schema', false)",
       "select 1",
       "select wanted()",
       "select 2",

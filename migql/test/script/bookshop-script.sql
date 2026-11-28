@@ -5,6 +5,19 @@ select set_config('migace.session_search_path', current_setting('search_path'), 
     set_config('migace.session_statement_timeout', current_setting('statement_timeout'), false),
     set_config('migace.session_saved', 'yes', false)
 -- @migace statement
+do $migace$
+declare
+    v_unknown text;
+begin
+    select string_agg(format('"%s"', trim(name)), ', ') into v_unknown
+    from unnest(string_to_array(coalesce(current_setting('migace.parameters', true), ''), ',')) as name
+    where trim(name) <> '' and trim(name) <> all (array['schema', 'other_schemas', 'lock_timeout', 'lock_attempts', 'lock_wait', 'statement_timeout']::text[]);
+    if v_unknown is not null then
+        raise exception 'The parameter % is unknown. The parameters of this script are: schema, other_schemas, lock_timeout, lock_attempts, lock_wait, statement_timeout.', v_unknown;
+    end if;
+end
+$migace$
+-- @migace statement
 select set_config('migace.run_schema', coalesce(nullif(current_setting('migace.schema', true), ''), current_schema()), false)
 -- @migace statement
 select set_config('search_path', (select string_agg(quote_ident(trim(name)), ', ' order by position)
@@ -27,6 +40,10 @@ begin
     end loop;
 end
 $migace$
+-- @migace statement
+select set_config('lock_timeout', lock_limit, false), set_config('statement_timeout', statement_limit, false)
+from (select coalesce(nullif(current_setting('migace.lock_timeout', true), ''), '5s') as lock_limit,
+    coalesce(nullif(current_setting('migace.statement_timeout', true), ''), '0') as statement_limit) as limits
 -- @migace statement
 do $migace_in_schema$
 begin
@@ -254,7 +271,8 @@ create or replace function pg_temp.migace_step(p_uid text, p_snippet text, p_par
 declare
     v_untrue integer;
     v_started timestamptz := clock_timestamp();
-    v_attempts integer := pg_temp.migace_setting('lock_attempts', '3')::integer;
+    v_attempts integer := pg_temp.migace_setting('lock_attempts', '90')::integer;
+    v_attempt integer := 0;
     v_locked text;
     v_code text;
     v_message text;
@@ -264,13 +282,13 @@ begin
     if current_setting('migace.try') = '' then
         return;
     end if;
-    for v_attempt in 1 .. v_attempts loop
+    -- A statement that waits for a lock makes everybody behind it wait too. It gives up after lock_timeout and tries again.
+    loop
+        v_attempt := v_attempt + 1;
         begin
             if p_stop is not null then
                 raise exception using message = p_stop, errcode = 'MA001';
             end if;
-            -- A statement that waits for a lock makes everybody behind it wait too. It gives up after this time.
-            perform set_config('lock_timeout', pg_temp.migace_setting('lock_timeout', '5s'), true);
             execute p_sql;
             if p_step = p_steps then
                 v_untrue := pg_temp.migace_first_untrue(p_after);
@@ -285,8 +303,9 @@ begin
             when lock_not_available then
                 v_detail := pg_temp.migace_blockers();
                 select string_agg(distinct split_part(blocker, ':', 1), ', ') into v_locked from unnest(string_to_array(v_detail, '; ')) as blocker;
-                v_message := format('no lock within %s, attempt %s of %s. Locked by another session: %s',
-                    pg_temp.migace_setting('lock_timeout', '5s'), v_attempt, v_attempts, coalesce(v_locked, 'unknown'));
+                v_message := format('no lock within %s, attempt %s %s. Locked by another session: %s',
+                    current_setting('lock_timeout'), v_attempt, case when v_attempts = 0 then 'without a limit' else 'of ' || v_attempts end,
+                    coalesce(v_locked, 'unknown'));
                 if v_attempt = v_attempts then
                     perform pg_temp.migace_fail(p_uid, p_snippet, p_part, p_checksum, p_step, p_steps, p_sql, v_started, '55P03', v_message, v_detail, null);
                     return;
@@ -294,8 +313,9 @@ begin
                 perform pg_temp.migace_end_try('no lock', '55P03', v_message, v_detail, null);
                 perform pg_temp.migace_log('no lock', p_snippet, p_part, p_step, v_message || coalesce('. ' || v_detail, ''));
                 raise notice '%, part %: %', p_snippet, p_part, v_message;
-                perform pg_sleep(extract(epoch from pg_temp.migace_setting('lock_wait', '1s')::interval));
-                perform pg_temp.migace_log('attempt', p_snippet, p_part, p_step, format('attempt %s of %s', v_attempt + 1, v_attempts));
+                perform pg_sleep(extract(epoch from pg_temp.migace_setting('lock_wait', '5s')::interval));
+                perform pg_temp.migace_log('attempt', p_snippet, p_part, p_step,
+                    format('attempt %s %s', v_attempt + 1, case when v_attempts = 0 then 'without a limit' else 'of ' || v_attempts end));
                 perform pg_temp.migace_start_try(p_uid, p_snippet, p_part, p_checksum, p_step, p_steps, p_sql);
             when others then
                 get stacked diagnostics v_code = returned_sqlstate, v_message = message_text, v_detail = pg_exception_detail, v_context = pg_exception_context;
@@ -821,4 +841,4 @@ begin
 end
 $migace$
 -- @migace statement
-select set_config('migace.' || name, '', false) from unnest(array['schema', 'other_schemas', 'lock_timeout', 'lock_attempts', 'lock_wait', 'run_schema', 'session_saved', 'session_search_path', 'session_lock_timeout', 'session_statement_timeout', 'failed', 'executed', 'skip', 'run', 'try', 'waited_since']::text[]) as name
+select set_config('migace.' || name, '', false) from unnest(array['schema', 'other_schemas', 'lock_timeout', 'lock_attempts', 'lock_wait', 'statement_timeout', 'parameters', 'run_schema', 'session_saved', 'session_search_path', 'session_lock_timeout', 'session_statement_timeout', 'failed', 'executed', 'skip', 'run', 'try', 'waited_since']::text[]) as name

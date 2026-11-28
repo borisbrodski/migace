@@ -195,6 +195,7 @@ class MigAceTest {
 
         MigAce.script(SCRIPT).parameter("schema", "shop").parameter("lock_wait", "2s").onNotice(notices::add).exec(database.connection());
 
-        assertEquals(Arrays.asList("select set_config('migace.schema', 'shop', false)", "select set_config('migace.lock_wait', '2s', false)", "select 1", "select 2"), database.sent);
+        assertEquals(Arrays.asList("select set_config('migace.schema', 'shop', false)", "select set_config('migace.lock_wait', '2s', false)",
+            "select set_config('migace.parameters', 'schema,lock_wait', false)", "select 1", "select 2"), database.sent);
     }
 }

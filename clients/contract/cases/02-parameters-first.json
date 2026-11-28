@@ -1,5 +1,5 @@
 {
-  "description": "The parameters of a run are sent as session settings before the first statement, in the order in which they are given. A quote in a value is doubled.",
+  "description": "The parameters of a run are sent as session settings before the first statement, in the order in which they are given. A quote in a value is doubled. Then the names of all parameters are sent as one more setting, migace.parameters, so that the script can refuse a name it does not know.",
   "script": "-- @migace script format=1\n-- @migace statement\nselect 1\n",
   "parameters": {
     "schema": "book shop",
@@ -10,6 +10,7 @@
     "sent": [
       "select set_config('migace.schema', 'book shop', false)",
       "select set_config('migace.lock_timeout', 'it''s 5s', false)",
+      "select set_config('migace.parameters', 'schema,lock_timeout', false)",
       "select 1"
     ]
   }

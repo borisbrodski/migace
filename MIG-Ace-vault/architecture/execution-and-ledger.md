@@ -64,9 +64,15 @@ Parameters of a run. Their names are provisional. **[direction]**
 |---|---|---|
 | `migace.schema` | The schema of the migration. | the current schema of the session |
 | `migace.other_schemas` | Further schemas that the run sees, separated by commas, for example the schema of an extension. They come after the schema of the migration in the search path. | none |
-| `migace.lock_timeout` | How long a step waits for a lock before it gives up. | `5s` |
-| `migace.lock_attempts` | How often a step is tried when it got no lock. | `3` |
-| `migace.lock_wait` | The pause between two attempts. | `1s` |
+| `migace.lock_timeout` | How long one wait for a lock may take. | `5s` |
+| `migace.lock_attempts` | How often a step is tried when it got no lock. | `90` |
+| `migace.lock_wait` | The pause between two attempts. | `5s` |
+| `migace.statement_timeout` | How long one statement of the script may take. A step inside a transaction is one statement with all its attempts, so its waits for locks count. | `0` |
+
+`0` means no limit, for each of the four limits. The defaults are short in one wait and generous in sum: every statement of the application queues behind a migration that waits for a lock, so one wait stays at seconds; 90 attempts of 5 seconds with a pause of 5 seconds give fifteen minutes. **[decided]** on 2026-11-23 as a rule; the numbers are **[direction]**.
+
+- The limits are set for the session after the lock of the run, so they hold for a statement outside a transaction as well. The last part of the script sets the values of the session back. A statement outside a transaction is not tried again in the same run. On PostgreSQL 18, `create index concurrently` obeys `lock_timeout` while it waits for older transactions (measured in [M4.4](../journal/2026-11-28-m4-4-corrections.md)).
+- A parameter that the script does not know stops the run before it changes anything, and the message lists the parameters. A session cannot list its settings of this kind, so a runner sends the names of the parameters it set as one more setting, `migace.parameters`.
 
 A step that got no lock writes a ledger row with the state `no lock` for every attempt. When the last attempt fails, the run ends with a failure that names the snippet, the part and the tables that other sessions hold locks on. The row of the try and the log also name, for every session that holds such a lock, its process number, its user, the name of its application, the kind of lock and the start of its transaction. The text of its statement is not stored: it can hold data of persons.
 

@@ -2,7 +2,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { describe, expect, test } from 'vitest';
 import { fingerprint } from '@migace/core';
-import { RUN_SETTINGS, ScriptError, writeScript } from '@migace/postgresql';
+import { LIMITS, RUN_SETTINGS, ScriptError, writeScript } from '@migace/postgresql';
 import { projectWith } from '../plan/project-folder.js';
 import { BOOKSHOP_MIGRATIONS, createScriptDatabase, EXTENSIONS, planOf, scriptOf, scriptWith } from './support.js';
 
@@ -232,6 +232,30 @@ describe('Every try is recorded', () => {
             { event: 'failed', snippet_name: '20260302-0900-a', part: 'broken', step: 1, message: 'relation "no_such_table" does not exist' },
             { event: 'run ended', snippet_name: null, part: null, step: null, message: 'failed' },
         ]);
+    });
+});
+
+describe('Limits', () => {
+    const DELETE = { '20260302-0900-a': ['parts:', '  - p:', '      do: delete from customer'] };
+
+    // M4.4-AC-19
+    test('a parameter that the script does not know stops the run before it changes anything, and the message lists the parameters', async () => {
+        await bookshop();
+
+        const { error } = await runFailing(await scriptWith(DELETE), { schema: schema(), other_schemas: EXTENSIONS, lock_timout: '1s' });
+
+        expect(error).toBe('The parameter "lock_timout" is unknown. The parameters of this script are: schema, other_schemas, lock_timeout, lock_attempts, lock_wait, statement_timeout.');
+        expect(await rows("select to_regclass('mig_meta') is null as no_ledger")).toEqual([{ no_ledger: true }]);
+    });
+
+    // M4.4-AC-16, M4.4-AC-17
+    test('every limit has a default: one wait for a lock takes seconds, all attempts together at least fifteen minutes, a statement has no limit', () => {
+        const seconds = (value: string) => Number(value.replace(/s$/, ''));
+
+        expect(Object.keys(LIMITS)).toEqual(['lock_timeout', 'lock_attempts', 'lock_wait', 'statement_timeout']);
+        expect(seconds(LIMITS.lock_timeout)).toBeLessThanOrEqual(10);
+        expect(Number(LIMITS.lock_attempts) * (seconds(LIMITS.lock_timeout) + seconds(LIMITS.lock_wait))).toBeGreaterThanOrEqual(15 * 60);
+        expect(LIMITS.statement_timeout).toBe('0');
     });
 });
 

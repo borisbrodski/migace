@@ -15,6 +15,14 @@ All logic of a migration is in the script: what runs, what is skipped, what is w
    ```
 
    A single quote in the value is doubled. The name is made of letters, digits and underscores.
+
+   After the last parameter it sends the names of all parameters, separated by commas, in the same order:
+
+   ```sql
+   select set_config('migace.parameters', '<name>,<name>', false)
+   ```
+
+   The database cannot list the settings of a session that were set this way, so the script learns from this list which parameters were given, and refuses a name it does not know. Without parameters, this statement is not sent.
 4. It sends the **statements** of the script, one at a time and in order.
 5. Before a statement with a **guard** it sends the guard query. The query returns one row with one value. `true`: the statement is sent. `false`: the statement is not sent, and the runner goes on with the next one. No row, more than one row, or a value that is neither: an error, as if a statement had failed.
 6. At the **first error** it stops sending the statements before the line `-- @migace finally`. It reports the error with the message and the code of the database. If the statement has a label, the label and `: ` stand in front of the message. A failed guard is such an error, and so is a failed parameter.
