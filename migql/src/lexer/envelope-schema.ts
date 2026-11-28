@@ -25,6 +25,11 @@ export interface KeySpec {
      * a text, `true` or `false`, or one name or a list of names.
      */
     yaml?: 'text' | 'boolean' | 'names';
+    /**
+     * A key that is no longer allowed. The lexer still reads it, so that the check can say what to write
+     * instead of "unknown key". The schema for editors leaves it out.
+     */
+    removed?: true;
 }
 
 export interface Context {
@@ -92,6 +97,7 @@ export const partBody: Context = {
         'expect-rows': statement,
         'phase': { value: 'statement', words: ['finish'] },
         'todo': text,
+        'retired': text,
     },
 };
 
@@ -110,7 +116,7 @@ export const snippetContext: Context = {
         'repair': word,
         'uid': word,
         'doc': text,
-        'when': statement,
+        'when': { value: 'statement', removed: true },
         'let': { children: { names: statement } },
         'parts': { children: { names: { children: partBody } }, list: true },
         'testdata': { children: testRow, list: true },

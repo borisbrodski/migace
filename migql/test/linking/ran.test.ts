@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest';
 import { isRanCondition, isWhenEntry } from '../../src/generated/ast.js';
 import { partsOf } from '../../src/model/snippet.js';
-import { createMigql, error, lines } from '../support.js';
+import { createMigql, error, lines, partWhen } from '../support.js';
 
 const ORDER_STATUS = lines(
     'migration: 20260518-1000-order-status',
@@ -18,9 +18,9 @@ describe('Linking: ran <snippet>.<part>', () => {
         const { parse } = createMigql();
         const orderStatus = await parse(ORDER_STATUS);
 
-        const repair = await parse(lines('repair: 20260622-0900-repair-order-status', 'when: ran order-status.link-status from 1.2.0'));
+        const repair = await parse(lines('repair: 20260622-0900-repair-order-status', ...partWhen('ran order-status.link-status from 1.2.0')));
 
-        const condition = repair.parseResult.value.entries.filter(isWhenEntry)[0].condition;
+        const condition = partsOf(repair.parseResult.value)[0].entries.filter(isWhenEntry)[0].condition;
         expect(isRanCondition(condition) && condition.part.ref).toBe(partsOf(orderStatus.parseResult.value)[1]);
     });
 
@@ -28,7 +28,7 @@ describe('Linking: ran <snippet>.<part>', () => {
         const { parse, parseMarked } = createMigql();
         await parse(ORDER_STATUS.replace('20260518-1000', '20260510-0800'));
 
-        const parsed = await parseMarked(lines('repair: 20260622-0900-repair-order-status', 'when: ran order-status.link-status'));
+        const parsed = await parseMarked(lines('repair: 20260622-0900-repair-order-status', ...partWhen('ran order-status.link-status')));
 
         expect(parsed).toHaveNoIssues();
     });
@@ -48,7 +48,7 @@ describe('Linking: ran <snippet>.<part>', () => {
         const { parse, parseMarked } = createMigql();
         await parse(ORDER_STATUS);
 
-        const parsed = await parseMarked(lines('repair: 20260622-0900-repair-order-status', 'when: ran <<{|orders-status.link-status|}>>'));
+        const parsed = await parseMarked(lines('repair: 20260622-0900-repair-order-status', ...partWhen('ran <<{|orders-status.link-status|}>>')));
 
         expect(parsed).toHaveDocumentIssues([
             error('No snippet is named "orders-status". Name the snippet without its date and time, then the part: <snippet>.<part>.', 0),
@@ -59,7 +59,7 @@ describe('Linking: ran <snippet>.<part>', () => {
         const { parse, parseMarked } = createMigql();
         await parse(ORDER_STATUS);
 
-        const parsed = await parseMarked(lines('repair: 20260622-0900-repair-order-status', 'when: ran <<{|order-status.backfill|}>>'));
+        const parsed = await parseMarked(lines('repair: 20260622-0900-repair-order-status', ...partWhen('ran <<{|order-status.backfill|}>>')));
 
         expect(parsed).toHaveDocumentIssues([
             error('The snippet "order-status" has no part "backfill". Its parts: add-status-id, link-status.', 0),

@@ -35,7 +35,7 @@ ChangedEntry:
     'changed:' reason=TEXT EOL;
 
 RetiredEntry:
-    /** The snippet never runs again. Databases that ran it keep their record. */
+    /** The snippet or the part never runs again. Databases that ran it keep their record, and `ran` stays true there. */
     'retired:' reason=TEXT EOL;
 
 RequiresDowntimeEntry:
@@ -43,7 +43,7 @@ RequiresDowntimeEntry:
     'requires-downtime:' (value?='true' | 'false') EOL;
 
 WhenEntry:
-    /** Runs the snippet or the part only if the condition is true. Otherwise it is skipped and looked at again on the next run. */
+    /** Runs the part only if the condition is true. Otherwise it is skipped and looked at again on the next run. It is no key of a snippet. */
     'when:' condition=Expression EOL;
 
 LetEntry:
@@ -62,7 +62,7 @@ Part:
 
 PartEntry:
     DoEntry | ActionEntry | InsertEntry | UpsertEntry | NativeEntry | StopEntry
-    | WhenEntry | VerifyEntry | BatchEntry | ExpectRowsEntry | PhaseEntry | TodoEntry;
+    | WhenEntry | VerifyEntry | BatchEntry | ExpectRowsEntry | PhaseEntry | TodoEntry | RetiredEntry;
 
 DoEntry:
     /** One statement in the statement language. It is checked and then translated for the database. */
@@ -384,7 +384,8 @@ terminal TEXT: 'synthetic:text';
 
 // Tokens of the statement language.
 // PART_REF is only read after `ran`, RELEASE only after `ran … from`. See MigqlTokenBuilder.
-terminal PART_REF: /[A-Za-z0-9][\w-]*\.[A-Za-z0-9][\w-]*/;
+// Without the part, the reference names a whole snippet. The linker says that this is not allowed.
+terminal PART_REF: /[A-Za-z0-9][\w-]*(\.[A-Za-z0-9][\w-]*)?/;
 terminal RELEASE: /[A-Za-z0-9][\w.+-]*/;
 hidden terminal WS: /[ \t\r\n]+/;
 hidden terminal SQL_COMMENT: /--[^\n\r]*/;

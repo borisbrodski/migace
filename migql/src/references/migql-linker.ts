@@ -38,6 +38,10 @@ export class MigqlLinker extends DefaultLinker {
             .filter(description => description.name.startsWith(slug + '.'))
             .map(description => description.name.substring(slug.length + 1))
             .toArray();
+        if (part === undefined && parts.length > 0) {
+            return '"ran" names a part, not a whole snippet: a snippet can have parts that failed or did not run yet. ' +
+                `The parts of "${slug}": ${parts.map(name => `${slug}.${name}`).join(', ')}.`;
+        }
         return parts.length > 0
             ? `The snippet "${slug}" has no part "${part}". Its parts: ${parts.join(', ')}.`
             : `No snippet is named "${slug}". Name the snippet without its date and time, then the part: <snippet>.<part>.`;

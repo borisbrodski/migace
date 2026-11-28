@@ -24,7 +24,6 @@ const MINIMAL_NAME = 'migration: 20260101-0900-example\n';
  * the reason names the spec or the decision. An entry is removed when the syntax is built.
  */
 export const NOT_BUILT_YET: Array<{ contains: string, reason: string }> = [
-    { contains: 'retired: Guessed the status', reason: 'retired on a part, M4.4-AC-40' },
     { contains: 'former-names:', reason: 'former-names, decided on 2026-11-27, no spec yet' },
 ];
 

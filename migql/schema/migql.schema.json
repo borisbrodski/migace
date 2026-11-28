@@ -35,15 +35,6 @@
       "description": "One sentence that says what the snippet is for.",
       "type": "string"
     },
-    "when": {
-      "description": "Runs the snippet or the part only if the condition is true. Otherwise it is skipped and looked at again on the next run.",
-      "type": [
-        "string",
-        "number",
-        "boolean",
-        "null"
-      ]
-    },
     "let": {
       "description": "Names for conditions that are used more than once.",
       "type": "object",
@@ -183,7 +174,7 @@
       "type": "string"
     },
     "retired": {
-      "description": "The snippet never runs again. Databases that ran it keep their record.",
+      "description": "The snippet or the part never runs again. Databases that ran it keep their record, and `ran` stays true there.",
       "type": "string"
     },
     "requires-downtime": {
@@ -478,7 +469,7 @@
           "type": "string"
         },
         "when": {
-          "description": "Runs the snippet or the part only if the condition is true. Otherwise it is skipped and looked at again on the next run.",
+          "description": "Runs the part only if the condition is true. Otherwise it is skipped and looked at again on the next run. It is no key of a snippet.",
           "type": [
             "string",
             "number",
@@ -620,6 +611,10 @@
         },
         "todo": {
           "description": "An open decision. The migration script cannot be built while a todo is left.",
+          "type": "string"
+        },
+        "retired": {
+          "description": "The snippet or the part never runs again. Databases that ran it keep their record, and `ran` stays true there.",
           "type": "string"
         }
       },

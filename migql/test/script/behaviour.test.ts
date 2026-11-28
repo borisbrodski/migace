@@ -450,6 +450,79 @@ describe('A step that fails', () => {
 });
 
 // M4.1-AC-30, M4.1-AC-31, M4.1-AC-32, M4.1-AC-33
+describe('Conditions on parts', () => {
+    // M4.4-AC-40
+    test('a retired part never runs and is recorded once; "ran" stays true where it ran before it was retired', async () => {
+        await bookshop(CUSTOMERS);
+        const before = { '20260302-0900-a': ['parts:', '  - fill:', "      do: update customer set mail = 'none' where mail is null", '  - other:', '      do: alter table customer add column a integer'] };
+        const repair = { '20260303-0900-repair': ['parts:', '  - fix:', '      when: ran a.fill', '      do: alter table customer add column fixed integer'] };
+        await run(await scriptWith(before));
+        const retired = { '20260302-0900-a': [...before['20260302-0900-a'].slice(0, 2), '      retired: The application fills the mail now.', ...before['20260302-0900-a'].slice(2),
+            '  - third:', '      do: alter table customer add column b integer'] };
+        const script = await scriptWith({ ...retired, ...repair });
+
+        expect(await run(script)).toEqual([
+            '20260302-0900-a, part fill: retired, never runs: The application fills the mail now.',
+            '20260302-0900-a, part other: already done',
+            '20260302-0900-a, part third: done',
+            '20260303-0900-repair, part fix: done',
+            'Done: 2 steps ran.',
+        ]);
+        await run(script);
+        expect(await rows("select part, state, error_message from mig_part_run where part = 'fill' order by id")).toEqual([
+            { part: 'fill', state: 'done', error_message: null }, { part: 'fill', state: 'retired', error_message: 'The application fills the mail now.' },
+        ]);
+        expect(await rows('select state from mig_snippet order by name')).toEqual([{ state: 'done' }, { state: 'done' }]);
+    });
+
+    test('a retired part never runs on a new database, and "ran" is false there', async () => {
+        await bookshop(CUSTOMERS);
+        const script = await scriptWith({
+            '20260302-0900-a': ['parts:', '  - fill:', '      retired: Not needed.', "      do: update customer set mail = 'none' where mail is null"],
+            '20260303-0900-repair': ['parts:', '  - fix:', '      when: ran a.fill', '      do: alter table customer add column fixed integer'],
+        });
+
+        expect(await run(script)).toEqual([
+            '20260302-0900-a, part fill: retired, never runs: Not needed.',
+            '20260303-0900-repair, part fix: skipped, because this is not true: ran a.fill',
+            'Nothing to do.',
+        ]);
+        expect(await rows('select count(*)::integer as without_mail from customer where mail is null')).toEqual([{ without_mail: 1 }]);
+    });
+
+    // M4.4-AC-25
+    test('a run in which every part is done or skipped has nothing pending and stores the expected fingerprint', async () => {
+        await bookshop(CUSTOMERS);
+        const script = await scriptWith({ '20260302-0900-a': ['parts:', '  - done:', '      do: alter table customer add column a integer',
+            '  - skipped:', '      when: column customer.no_such_column exists', '      do: delete from customer'] }, { fingerprint: 'abc123' });
+
+        await run(script);
+
+        expect(await rows("select value from mig_meta where key = 'fingerprint'")).toEqual([{ value: 'abc123' }]);
+        expect(await rows('select outcome from mig_run')).toEqual([{ outcome: 'done' }]);
+        expect(await rows("select count(*)::integer as pending from mig_snippet where state = 'pending'")).toEqual([{ pending: 0 }]);
+    });
+
+    // M4.4-AC-26
+    test('the condition of a part that is half done is not decided again: the part ends', async () => {
+        await bookshop(CUSTOMERS);
+        const script = await scriptWith({ '20260302-0900-a': ['parts:', '  - mandatory:', '      when: not exists (select 1 from customer where id = 99)',
+            '      column-set-not-null: { table: customer, column: mail }'] });
+        // The first step is done, then the session ends; as a lost connection leaves it.
+        const [main, last] = script.split(/^-- @migace finally$/m).map(part => part.split(/^-- @migace .*$/m).slice(1).map(text => text.trim()));
+        await session(`select set_config('migace.schema', '${schema()}', false)`);
+        const secondStep = main.findIndex(text => text.startsWith('select pg_temp.migace_begin(') && /, 2, 4,/.test(text));
+        for (const statement of [...main.slice(0, secondStep), ...last]) {
+            await session(statement);
+        }
+        expect(await states()).toEqual(['mandatory 1/4 done']);
+        await exec("update customer set mail = 'none' where mail is null; insert into customer (id, name, mail, created_at) values (99, 'Ann', 'ann@example.org', now())");
+
+        expect(await run(script)).toEqual(['20260302-0900-a, part mandatory: done', 'Done: 3 steps ran.']);
+        expect(await states()).toEqual(['mandatory 1/4 done', 'mandatory 2/4 done', 'mandatory 3/4 done', 'mandatory 4/4 done']);
+    });
+});
+
 describe('Conditions', () => {
     test('a part whose when is false is skipped, decided again on the next run, and runs when the condition has become true', async () => {
         await bookshop(CUSTOMERS);
@@ -469,11 +542,11 @@ describe('Conditions', () => {
         expect(await states()).toEqual(['copy 1/1 skipped', 'other 1/1 done', 'copy 1/1 done']);
     });
 
-    test('when on a snippet holds for all its parts, and names of let work in every condition', async () => {
+    test('names of let work in the condition of every part', async () => {
         await bookshop(CUSTOMERS);
         const script = await scriptWith({ '20260302-0900-a': [
-            'when: has_customers and not has_books', 'let:', '  has_customers: exists (select 1 from customer)', '  has_books: exists (select 1 from book where stock > 0)',
-            'parts:', '  - one:', '      do: alter table customer add column a integer',
+            'let:', '  has_customers: exists (select 1 from customer)', '  has_books: exists (select 1 from book where stock > 0)',
+            'parts:', '  - one:', '      when: has_customers and not has_books', '      do: alter table customer add column a integer',
             '  - two:', '      when: has_books', '      do: alter table customer add column b integer',
             '  - three:', '      when: not has_books', '      do: alter table customer add column c integer',
         ] });
@@ -486,17 +559,13 @@ describe('Conditions', () => {
         ]);
 
         await empty('create table customer (id bigint)', 'create table book (id bigint, stock integer)');
-        expect((await run(script)).slice(0, 3).map(notice => notice.replace(/^.*part /, ''))).toEqual([
-            'one: skipped, because this is not true: has_customers and not has_books',
-            'two: skipped, because this is not true: has_customers and not has_books',
-            'three: skipped, because this is not true: has_customers and not has_books',
-        ]);
+        expect((await run(script))[0]).toBe('20260302-0900-a, part one: skipped, because this is not true: has_customers and not has_books');
     });
 
     test('a condition on the history is true when the part ran with success on this database', async () => {
         await bookshop(CUSTOMERS);
         const first = { '20260302-0900-first': ['parts:', '  - link:', '      when: column customer.mail exists', '      do: alter table customer add column a integer'] };
-        const repair = { '20260303-0900-repair': ['when: ran first.link', 'parts:', '  - fix:', '      do: alter table customer add column fixed integer'] };
+        const repair = { '20260303-0900-repair': ['parts:', '  - fix:', '      when: ran first.link', '      do: alter table customer add column fixed integer'] };
 
         await exec('alter table customer rename column mail to email');
         expect(await run(await scriptWith({ ...first, ...repair }))).toEqual([
@@ -513,18 +582,26 @@ describe('Conditions', () => {
 
     test('a part of several steps that stopped at a later step has not run', async () => {
         await bookshop(CUSTOMERS);
-        const repair = { '20260301-0900-repair': ['when: ran a.mandatory', 'parts:', '  - fix:', '      do: alter table customer add column fixed integer'] };
-        const script = await scriptWith({ ...repair, '20260302-0900-a': ['parts:', '  - mandatory:', '      column-set-not-null: { table: customer, column: mail }'] });
-        await runFailing(script);
-        expect(await states()).toEqual(['fix 1/1 skipped', 'mandatory 1/4 done', 'mandatory 2/4 failed']);
+        // "ran" names only parts that run before, so the script never asks this during a run. The function of the script is asked directly.
+        const script = await scriptWith({ '20260302-0900-a': ['parts:', '  - mandatory:', '      column-set-not-null: { table: customer, column: mail }'] });
+        const [main, last] = script.split(/^-- @migace finally$/m).map(part => part.split(/^-- @migace .*$/m).slice(1).map(text => text.trim()));
+        await session(`select set_config('migace.schema', '${schema()}', false)`);
+        for (const statement of main.slice(0, main.findIndex(text => text.startsWith('select pg_temp.migace_begin(')))) {
+            await session(statement);
+        }
+        const ran = async () => (await session("select pg_temp.migace_ran('UID1', 'mandatory') as ran"))[0].ran;
+        const done = (step: number) => exec(`insert into mig_part_run (run_id, snippet_uid, snippet_name, part, step, steps, state, checksum, started_at)
+            values (1, 'UID1', '20260302-0900-a', 'mandatory', ${step}, 4, 'done', 'v1:x', now())`);
 
-        const { notices } = await runFailing(script);
-
-        expect(notices[0]).toBe('20260301-0900-repair, part fix: skipped, because this is not true: ran a.mandatory');
-
-        await exec("update customer set mail = 'jo@example.org' where mail is null");
-        await run(script);
-        expect(await run(script)).toEqual(['20260301-0900-repair, part fix: done', '20260302-0900-a, part mandatory: already done', 'Done: 1 steps ran.']);
+        await done(1);
+        await done(2);
+        expect(await ran()).toBe(false);
+        await done(3);
+        await done(4);
+        expect(await ran()).toBe(true);
+        for (const statement of last) {
+            await session(statement);
+        }
     });
 });
 

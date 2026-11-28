@@ -90,13 +90,17 @@ function snippetSections(snippet: PlanSnippet): Section[] {
     const parts = snippet.retired ? [] : snippet.parts.flatMap(part => partSections(snippet, part));
     return [
         ...parts,
-        statement(`select pg_temp.migace_snippet(${literal(snippet.uid)}, ${literal(snippet.name)}, ${list(snippet.parts.map(part => part.name))}, ${literal(snippet.retired)})`),
+        // A retired part does not count: the snippet is done when the others are.
+        statement(`select pg_temp.migace_snippet(${literal(snippet.uid)}, ${literal(snippet.name)}, ${list(snippet.parts.filter(part => part.retired === undefined).map(part => part.name))}, ${literal(snippet.retired)})`),
     ];
 }
 
 function partSections(snippet: PlanSnippet, part: PlanPart): Section[] {
-    const when = [snippet.when, part.when].filter((condition): condition is PlanCondition => condition !== undefined);
+    const when = part.when ? [part.when] : [];
     const identity = `${literal(snippet.uid)}, ${literal(snippet.name)}, ${literal(part.name)}, ${literal(part.checksum)}`;
+    if (part.retired !== undefined) {
+        return [statement(`select pg_temp.migace_retired(${identity}, ${literal(part.retired)})`)];
+    }
     const conditions = (checks: PlanCondition[]) => `${list(checks.map(check => check.sql))}, ${list(checks.map(check => check.text))}`;
     const label = `${snippet.name}, part ${part.name}`;
     // A part that stops the run has no statement. It is one step that fails with the message of the author.
@@ -473,6 +477,19 @@ begin
     if p_step = p_steps then
         raise notice '%, part %: done', p_snippet, p_part;
     end if;
+end
+$migace$`,
+        `create or replace function pg_temp.migace_retired(p_uid text, p_snippet text, p_part text, p_checksum text, p_reason text) returns void language plpgsql as $migace$
+begin
+    if current_setting('migace.failed') <> '' then
+        return;
+    end if;
+    -- Recorded once. A database where the part ran before keeps that record, so "ran" stays true there.
+    if not exists (select 1 from ${t('part_run')} r where r.snippet_uid = p_uid and r.part = p_part and r.state = 'retired') then
+        perform pg_temp.migace_record(p_uid, p_snippet, p_part, p_checksum, 0, 0, 'retired', null, clock_timestamp(), null, p_reason, null, null);
+        perform pg_temp.migace_log('retired', p_snippet, p_part, null, p_reason);
+    end if;
+    raise notice '%, part %: retired, never runs: %', p_snippet, p_part, p_reason;
 end
 $migace$`,
         `create or replace function pg_temp.migace_snippet(p_uid text, p_name text, p_parts text[], p_retired text) returns void language plpgsql as $migace$

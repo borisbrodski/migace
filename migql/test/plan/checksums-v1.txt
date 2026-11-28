@@ -84,5 +84,5 @@ bookshop/20260525-1100-orders-ship-by fill-ship-by v1:23943478978aac5c16e4ab745f
 bookshop/20260601-0900-book-price-check price-not-negative v1:3dd5f50446f1af7ba1f67726c307a8c964d5daa494f5fdc5d401171d156ca97d
 bookshop/20260608-1500-book-title-search trigram-extension v1:36b3a14b05a6994a3d0b9922e69f84e6f88dd97dff9c3cabc1298402faf3fe23
 bookshop/20260608-1500-book-title-search title-search-index v1:d311c0f4773936dfabc15494980069cda6a9a7df51cc87646c615f521cf15fc7
-bookshop/20260622-0900-repair-order-status relink v1:ad6a3e4ebc224ccde17d0648b7893eec066960beb21b1eff95207582c2259b12
+bookshop/20260622-0900-repair-order-status relink v1:7d3bbcfc038262e6a766eabdf67b5b8b320500358002a1caca9dcbeb91f847cd
 bookshop/20260907-1000-customer-email rename-mail v1:76730dec37f06625cb2cb36360e05d6c8ce3885b3ad7a9439687b367ba274c83

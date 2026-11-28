@@ -3,7 +3,7 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 import { afterEach, describe, expect, test } from 'vitest';
 import { loadProject } from '../../src/project.js';
-import { lines } from '../support.js';
+import { lines, partWhen } from '../support.js';
 
 const folders: string[] = [];
 
@@ -110,9 +110,9 @@ describe('Checks across a project', () => {
     test('ran is linked to a part in another file; unknown snippets and parts are errors', async () => {
         const project = await loadProject(folderWith({
             '20260518-1000-order-status.migql.yaml': snippet('20260518-1000-order-status', 'parts:', '  - link-status:', '      do: delete from t'),
-            'repairs/20260622-0900-repair.migql.yaml': lines('repair: 20260622-0900-repair', 'when: ran order-status.link-status from 1.2.0'),
-            'repairs/20260623-0900-wrong-part.migql.yaml': lines('repair: 20260623-0900-wrong-part', 'when: ran order-status.backfill'),
-            'repairs/20260624-0900-wrong-snippet.migql.yaml': lines('repair: 20260624-0900-wrong-snippet', 'when: ran orders.link-status'),
+            'repairs/20260622-0900-repair.migql.yaml': lines('repair: 20260622-0900-repair', ...partWhen('ran order-status.link-status from 1.2.0')),
+            'repairs/20260623-0900-wrong-part.migql.yaml': lines('repair: 20260623-0900-wrong-part', ...partWhen('ran order-status.backfill')),
+            'repairs/20260624-0900-wrong-snippet.migql.yaml': lines('repair: 20260624-0900-wrong-snippet', ...partWhen('ran orders.link-status')),
         }));
 
         expect(project.problems.map(problem => `${problem.file} ${problem.message}`)).toEqual([
@@ -136,7 +136,7 @@ describe('Checks across a project', () => {
         const folder = folderWith({
             '20260302-0900-a.migql.yaml': snippet('20260302-0900-a', ...DELETE),
             '20260303-0900-b.migql.yaml': snippet('20260303-0900-b', ...DELETE),
-            '20260304-0900-c.migql.yaml': lines('repair: 20260304-0900-c', 'when: ran b.p'),
+            '20260304-0900-c.migql.yaml': lines('repair: 20260304-0900-c', ...partWhen('ran b.p')),
         });
         const project = await loadProject(folder);
         expect(project.problems).toEqual([]);

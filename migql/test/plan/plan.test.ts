@@ -63,7 +63,7 @@ describe('The plan', () => {
     test('has the steps of every part, and what the script has to know about them', async () => {
         const plan = await planOf({
             '20260302-0900-a': [
-                'when: column customer.mail exists', 'let:', '  has_mail: column customer.mail exists',
+                'let:', '  has_mail: column customer.mail exists',
                 'parts:',
                 '  - mandatory:', '      when: has_mail and not table gone exists', '      column-set-not-null: { table: customer, column: mail }',
                 '  - index:', '      do: create index concurrently ix_customer_mail on customer (mail)',
@@ -75,10 +75,7 @@ describe('The plan', () => {
         });
 
         const [snippet] = plan.snippets;
-        expect(snippet.when).toEqual({
-            text: 'column customer.mail exists',
-            sql: "exists (select 1 from pg_attribute a where a.attrelid = to_regclass('customer') and a.attname = 'mail' and a.attnum > 0 and not a.attisdropped)",
-        });
+        expect(snippet).not.toHaveProperty('when');
         const [mandatory, index, checked, halt] = snippet.parts;
         expect(mandatory.steps.map(step => step.sql)).toEqual([
             'alter table customer add constraint customer_mail_not_null check (mail is not null) not valid',
@@ -108,10 +105,17 @@ describe('The plan', () => {
     test('a condition on the history asks the ledger for the part of the other snippet', async () => {
         const plan = await planOf({
             '20260302-0900-first': ['parts:', '  - link:', '      do: delete from t'],
-            '20260303-0900-repair': ['when: ran first.link', ...DELETE],
+            '20260303-0900-repair': ['parts:', '  - p:', '      when: ran first.link', '      do: delete from t'],
         });
 
-        expect(plan.snippets[1].when).toEqual({ text: 'ran first.link', sql: "pg_temp.migace_ran('UID1', 'link')" });
+        expect(plan.snippets[1].parts[0].when).toEqual({ text: 'ran first.link', sql: "pg_temp.migace_ran('UID1', 'link')" });
+    });
+
+    // M4.4-AC-40
+    test('a retired part is marked with its reason, and keeps its steps', async () => {
+        const plan = await planOf({ '20260302-0900-a': ['parts:', '  - p:', '      retired: The application fills it now.', '      do: delete from t', '  - q:', '      do: delete from u'] });
+
+        expect(plan.snippets[0].parts.map(part => [part.name, part.retired, part.steps.length])).toEqual([['p', 'The application fills it now.', 1], ['q', undefined, 1]]);
     });
 
     test('a retired snippet is marked, and the fingerprint and the prefix of the ledger are options', async () => {
@@ -167,9 +171,9 @@ describe('What cannot be compiled', () => {
     test('a condition on a release, until release files exist', async () => {
         expect(await problemsOf(projectWith({
             '20260302-0900-first': ['parts:', '  - link:', '      do: delete from t'],
-            '20260303-0900-repair': ['when: ran first.link from 1.2.0', ...DELETE],
+            '20260303-0900-repair': ['parts:', '  - p:', '      when: ran first.link from 1.2.0', '      do: delete from t'],
         }))).toEqual([
-            '20260303-0900-repair.migql.yaml: "ran first.link from 1.2.0" needs the checksums of a release file. Release files are not built yet; write the condition without "from".',
+            '20260303-0900-repair.migql.yaml, part "p": "ran first.link from 1.2.0" needs the checksums of a release file. Release files are not built yet; write the condition without "from".',
         ]);
     });
 

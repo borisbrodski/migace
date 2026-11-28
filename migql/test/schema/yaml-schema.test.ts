@@ -49,11 +49,11 @@ describe('YAML schema: what it describes', () => {
 
     test('the keys of a snippet and of a part', () => {
         expect(Object.keys(properties)).toEqual([
-            'migration', 'repair', 'uid', 'doc', 'when', 'let', 'parts', 'testdata', 'testdata-before', 'changed', 'retired', 'requires-downtime',
+            'migration', 'repair', 'uid', 'doc', 'let', 'parts', 'testdata', 'testdata-before', 'changed', 'retired', 'requires-downtime',
         ]);
         expect(Object.keys(partBody)).toEqual([
             'do', ...ACTIONS.map(action => action.name), 'insert', 'upsert', 'native', 'stop', 'when', 'verify-before', 'verify-after',
-            'batch', 'expect-rows', 'phase', 'todo',
+            'batch', 'expect-rows', 'phase', 'todo', 'retired',
         ]);
     });
 

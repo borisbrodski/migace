@@ -358,6 +358,24 @@ $migace$
 -- @migace statement
 do $migace_in_schema$
 begin
+    execute replace($migace_body$create or replace function pg_temp.migace_retired(p_uid text, p_snippet text, p_part text, p_checksum text, p_reason text) returns void language plpgsql as $migace$
+begin
+    if current_setting('migace.failed') <> '' then
+        return;
+    end if;
+    -- Recorded once. A database where the part ran before keeps that record, so "ran" stays true there.
+    if not exists (select 1 from @migace_schema@.mig_part_run r where r.snippet_uid = p_uid and r.part = p_part and r.state = 'retired') then
+        perform pg_temp.migace_record(p_uid, p_snippet, p_part, p_checksum, 0, 0, 'retired', null, clock_timestamp(), null, p_reason, null, null);
+        perform pg_temp.migace_log('retired', p_snippet, p_part, null, p_reason);
+    end if;
+    raise notice '%, part %: retired, never runs: %', p_snippet, p_part, p_reason;
+end
+$migace$$migace_body$, '@migace_schema@', quote_ident(current_setting('migace.run_schema')));
+end
+$migace_in_schema$
+-- @migace statement
+do $migace_in_schema$
+begin
     execute replace($migace_body$create or replace function pg_temp.migace_snippet(p_uid text, p_name text, p_parts text[], p_retired text) returns void language plpgsql as $migace$
 declare
     v_run bigint := nullif(current_setting('migace.run'), '')::bigint;
@@ -778,13 +796,13 @@ using gin (title gin_trgm_ops)',
 -- @migace statement
 select pg_temp.migace_snippet('01JG3N7V4C8Q1S6W9Y2A5E0H3K', '20260608-1500-book-title-search', array['trigram-extension', 'title-search-index']::text[], null)
 -- @migace statement label="20260622-0900-repair-order-status, part relink"
-select pg_temp.migace_begin('01JG8T3B6X9D2F5H7K1M4Q0W8Z', '20260622-0900-repair-order-status', 'relink', 'v1:ad6a3e4ebc224ccde17d0648b7893eec066960beb21b1eff95207582c2259b12', 1, 1,
+select pg_temp.migace_begin('01JG8T3B6X9D2F5H7K1M4Q0W8Z', '20260622-0900-repair-order-status', 'relink', 'v1:7d3bbcfc038262e6a766eabdf67b5b8b320500358002a1caca9dcbeb91f847cd', 1, 1,
     'update orders o set status_id = (select s.id from order_status s where s.code = upper(trim(o.status))) where o.status_id = (select id from order_status where code = ''UNKNOWN'') and exists (select 1 from order_status s where s.code = upper(trim(o.status)))',
     array['pg_temp.migace_ran(''01JG1D5R8Y3B6F9J2L4N7Q0T3W'', ''link-status'')']::text[], array['ran order-status.link-status']::text[],
     null::text[], null::text[],
     null)
 -- @migace statement label="20260622-0900-repair-order-status, part relink"
-select pg_temp.migace_step('01JG8T3B6X9D2F5H7K1M4Q0W8Z', '20260622-0900-repair-order-status', 'relink', 'v1:ad6a3e4ebc224ccde17d0648b7893eec066960beb21b1eff95207582c2259b12', 1, 1,
+select pg_temp.migace_step('01JG8T3B6X9D2F5H7K1M4Q0W8Z', '20260622-0900-repair-order-status', 'relink', 'v1:7d3bbcfc038262e6a766eabdf67b5b8b320500358002a1caca9dcbeb91f847cd', 1, 1,
     'update orders o set status_id = (select s.id from order_status s where s.code = upper(trim(o.status))) where o.status_id = (select id from order_status where code = ''UNKNOWN'') and exists (select 1 from order_status s where s.code = upper(trim(o.status)))',
     null::text[], null::text[],
     null)

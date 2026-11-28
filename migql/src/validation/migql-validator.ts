@@ -2,11 +2,12 @@ import { type AstNode, AstUtils, CstUtils, GrammarUtils, type IndexManager, UriU
 import type { Range } from 'vscode-languageserver-types';
 import type {
     ActionEntry, ColumnValue, DoEntry, Expression, FlowMap, FunctionCall, LetDefinition, MigqlAstType, NameEntry, NameList, NameRef, Part, PartEntry, PartsEntry,
-    Placeholder, RemovedEnsureColumn, RemovedRenameColumn, Snippet, UidEntry, UpsertEntry,
+    Placeholder, RanCondition, RemovedEnsureColumn, RemovedRenameColumn, Snippet, UidEntry, UpsertEntry,
 } from '../generated/ast.js';
 import {
     isActionEntry, isColumnValue, isDoEntry, isFlowMap, isInsertEntry, isIntoEntry, isKeyEntry, isNameEntry, isNameList, isNameRef, isNativeEntry,
-    isNegativeExpression, isNumberLiteral, isPart, isRequiresDowntimeEntry, isRowsEntry, isSnippet, isStopEntry, isTodoEntry, isUpsertEntry,
+    isLetDefinition, isNegativeExpression, isNumberLiteral, isPart, isRequiresDowntimeEntry, isRowsEntry, isSnippet, isStopEntry, isTodoEntry,
+    isUpsertEntry, isWhenEntry,
 } from '../generated/ast.js';
 import { type ParameterKind, parameterList } from '../actions/catalogue.js';
 import { actionForStatement } from '../actions/from-statement.js';
@@ -15,12 +16,13 @@ import { FUNCTIONS } from '../functions.js';
 import type { MigqlServices } from '../migql-module.js';
 import { sameName } from '../model/names.js';
 import { isConditionName } from '../references/names.js';
-import { partsOf, slugOf } from '../model/snippet.js';
+import { nameEntry, partsOf, slugOf } from '../model/snippet.js';
 
 export function registerValidationChecks(services: MigqlServices): void {
     const validator = services.validation.MigqlValidator;
     const checks: ValidationChecks<MigqlAstType> = {
-        Snippet: [validator.checkSnippetHasOneName, validator.checkKeysAppearOnce],
+        Snippet: [validator.checkSnippetHasOneName, validator.checkKeysAppearOnce, validator.checkSnippetHasNoCondition],
+        RanCondition: validator.checkRanNamesAnEarlierPart,
         NameEntry: [validator.checkFormOfName, validator.checkFileName, validator.checkSlugIsUnique],
         UidEntry: validator.checkUidIsUnique,
         PartsEntry: validator.checkPartNamesAreUnique,
@@ -272,6 +274,33 @@ export class MigqlValidator {
         }
     }
 
+    checkSnippetHasNoCondition(snippet: Snippet, accept: ValidationAcceptor): void {
+        for (const entry of snippet.entries.filter(isWhenEntry)) {
+            accept('error', '"when" is no key of a snippet. A condition belongs to a part: put "when" on the parts that need it. ' +
+                'When several parts share a condition, name it under "let" and write "when: <name>" on each part.', { node: entry, range: keyRange(entry) });
+        }
+    }
+
+    /** A part waits only for a part that runs before it. A part that waits for a later one would run out of order on the next run. */
+    checkRanNamesAnEarlierPart(condition: RanCondition, accept: ValidationAcceptor): void {
+        const target = condition.part.ref;
+        const targetSnippet = target && AstUtils.getContainerOfType(target, isSnippet);
+        if (!target || !targetSnippet) {
+            return;
+        }
+        const reference = `"ran ${condition.part.$refText}"`;
+        for (const part of partsThatUse(condition)) {
+            const snippet = AstUtils.getContainerOfType(part, isSnippet)!;
+            const [targetName, name] = [nameEntry(targetSnippet)?.name ?? '', nameEntry(snippet)?.name ?? ''];
+            if (target === part) {
+                accept('error', `${reference} names the part itself. A part can only wait for a part that runs before it.`, { node: condition, property: 'part' });
+            } else if (targetName > name || (targetSnippet === snippet && partsOf(snippet).indexOf(target) > partsOf(snippet).indexOf(part))) {
+                accept('error', `${reference} names a part that runs later: the part "${target.name}" of ${targetName} runs after ` +
+                    `the part "${part.name}" of ${name}. A part can only wait for a part that runs before it.`, { node: condition, property: 'part' });
+            }
+        }
+    }
+
     checkDefinitionDoesNotUseItself(definition: LetDefinition, accept: ValidationAcceptor): void {
         const cycle = findCycle(definition, definition, []);
         if (cycle) {
@@ -279,6 +308,26 @@ export class MigqlValidator {
             accept('error', `The condition "${definition.name}" refers to itself: ${path}.`, { node: cycle[0], property: 'target' });
         }
     }
+}
+
+/** The parts whose conditions contain the given one: the part around it, or every part that uses the name under "let" that holds it. */
+function partsThatUse(node: AstNode): Part[] {
+    const part = AstUtils.getContainerOfType(node, isPart);
+    if (part) {
+        return [part];
+    }
+    const definition = AstUtils.getContainerOfType(node, isLetDefinition);
+    const snippet = definition && AstUtils.getContainerOfType(definition, isSnippet);
+    if (!definition || !snippet) {
+        return [];
+    }
+    // A name that refers to itself is reported by its own check; the visited names keep this search from going round.
+    const uses = (inside: AstNode, visited: Set<AstNode>): boolean => AstUtils.streamAllContents(inside).filter(isNameRef).filter(isConditionName)
+        .some(reference => {
+            const target = reference.target.ref;
+            return target === definition || (target !== undefined && !visited.has(target) && uses(target, new Set([...visited, target])));
+        });
+    return partsOf(snippet).filter(part => uses(part, new Set()));
 }
 
 /** The names used on the way from `current` back to `start`, or nothing if there is no such way. */

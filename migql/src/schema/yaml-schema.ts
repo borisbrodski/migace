@@ -31,7 +31,8 @@ export function yamlSchema(grammar: Grammar): Schema {
         if (definition.keys) {
             return {
                 type: 'object',
-                properties: Object.fromEntries(Object.entries(definition.keys).map(([name, spec]) => [name, key(name, spec, isPartBody)])),
+                properties: Object.fromEntries(Object.entries(definition.keys).filter(([, spec]) => !spec.removed)
+                    .map(([name, spec]) => [name, key(name, spec, isPartBody)])),
                 additionalProperties: false,
                 ...(definition.required ? { required: definition.required } : {}),
             };

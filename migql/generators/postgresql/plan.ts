@@ -62,16 +62,13 @@ function compileSnippet(source: ProjectSnippet, problems: string[]): PlanSnippet
     if (!uid) {
         problems.push(`${source.file}: the snippet has no uid. Every snippet needs one; the ledger knows a snippet by it.`);
     }
-    const when = snippet.entries.find(isWhenEntry);
     const retired = snippet.entries.find(isRetiredEntry)?.reason;
-    const condition = attempt(() => (when ? conditionOf(when.condition) : undefined), problems, source.file);
     const parts = partsOf(snippet).map(part => attempt(() => compilePart(part, source.checksums.get(part.name) ?? ''), problems, `${source.file}, part "${part.name}"`));
     return {
         uid: uid ?? '',
         name: nameEntry(snippet)!.name,
         slug: slugOf(snippet)!,
         ...(retired ? { retired } : {}),
-        ...(condition ? { when: condition } : {}),
         parts: parts.filter((part): part is PlanPart => part !== undefined),
     };
 }
@@ -97,11 +94,13 @@ function compilePart(part: Part, checksum: string): PlanPart {
         }
     }
     const when = part.entries.find(isWhenEntry);
+    const retired = part.entries.find(isRetiredEntry)?.reason;
     const stop = part.entries.find(isStopEntry);
     const checks = (kind: string) => part.entries.filter(isVerifyEntry).filter(entry => entry.kind === kind).flatMap(checksOf);
     return {
         name: part.name,
         checksum,
+        ...(retired ? { retired } : {}),
         ...(when ? { when: conditionOf(when.condition) } : {}),
         verifyBefore: checks('verify-before:'),
         verifyAfter: checks('verify-after:'),

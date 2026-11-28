@@ -66,3 +66,8 @@ export function error(message: string | RegExp, markerId: number): IssueExpectat
 export function lines(...text: string[]): string {
     return text.join('\n') + '\n';
 }
+
+/** The lines of one part `p` whose condition is the given one. A condition belongs to a part. */
+export function partWhen(condition: string): string[] {
+    return ['parts:', '  - p:', `      when: ${condition}`, '      do: delete from t'];
+}

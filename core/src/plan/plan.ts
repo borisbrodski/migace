@@ -20,8 +20,6 @@ export interface PlanSnippet {
     slug: string;
     /** The reason why the snippet never runs again, if it is retired. */
     retired?: string;
-    /** The condition of the whole snippet. */
-    when?: PlanCondition;
     parts: PlanPart[];
 }
 
@@ -29,6 +27,9 @@ export interface PlanPart {
     name: string;
     /** The checksum of the part as the author wrote it, with the version of its rule: `v1:…`. */
     checksum: string;
+    /** The reason why the part never runs again, if it is retired. A database where it ran keeps its record. */
+    retired?: string;
+    /** Decided once, before the first step. A snippet has no condition of its own. */
     when?: PlanCondition;
     verifyBefore: PlanCondition[];
     verifyAfter: PlanCondition[];

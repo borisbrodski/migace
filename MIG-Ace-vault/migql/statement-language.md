@@ -25,7 +25,7 @@ A condition must never restate what the operation already says. **[decided]**
 
 ## Conditions and verification
 
-- `when` decides whether a part or snippet runs. Conditions test the current state where possible (`column orders.legacy_due exists`) and the history where necessary (`ran <slug>.<part> …`, where the slug is the snippet name without its timestamp). **[direction]**
+- `when` decides whether a part runs. A snippet has no `when` since M4.4; a condition that several parts share is named under `let`. Conditions test the current state where possible (`column orders.legacy_due exists`) and the history where necessary (`ran <slug>.<part> …`, where the slug is the snippet name without its timestamp). **[direction]**
 - A snippet or part whose condition is false is recorded as skipped and is evaluated again on the next run. **[direction]**
 - `verify-before` and `verify-after` accept a boolean expression or a list of quantifier checks. **[decided]**
 

@@ -5,7 +5,7 @@ import { describe, expect, test } from 'vitest';
 import { isDoEntry, isUpdate } from '../../src/generated/ast.js';
 import { exactName, sameName } from '../../src/model/names.js';
 import { partsOf } from '../../src/model/snippet.js';
-import { createMigql, error, lines } from '../support.js';
+import { createMigql, error, lines, partWhen } from '../support.js';
 
 const { services, parse, parseMarked } = createMigql();
 
@@ -54,7 +54,7 @@ describe('Names: checks follow the rule', () => {
 // M3.1-AC-03
 describe('Names: names of conditions', () => {
     test('a name in another case is not the definition', async () => {
-        const parsed = await parseMarked(lines(NAME, 'let:', '  buggy: true', 'when: <<{|Buggy|}>>'));
+        const parsed = await parseMarked(lines(NAME, 'let:', '  buggy: true', ...partWhen('<<{|Buggy|}>>')));
 
         expect(parsed).toHaveDocumentIssues([
             error('Unknown condition "Buggy". Define it under "let", or check the spelling. Defined here: buggy.', 0),
@@ -62,7 +62,7 @@ describe('Names: names of conditions', () => {
     });
 
     test('a name in quotes is the same name', async () => {
-        expect(await parseMarked(lines(NAME, 'let:', '  buggy: true', 'when: "buggy"'))).toHaveNoIssues();
+        expect(await parseMarked(lines(NAME, 'let:', '  buggy: true', ...partWhen('"buggy"')))).toHaveNoIssues();
     });
 });
 
@@ -116,7 +116,7 @@ describe('Names: keywords that may be a name without quotes', () => {
 
     test.each(keywords().names)('%s names a table and a column in a condition', async keyword => {
         const parsed = await parseMarked(lines(
-            NAME, `when: column ${keyword}.${keyword} exists and table ${keyword} exists and exists (select ${keyword} from ${keyword} where ${keyword} = 1)`,
+            NAME, ...partWhen(`column ${keyword}.${keyword} exists and table ${keyword} exists and exists (select ${keyword} from ${keyword} where ${keyword} = 1)`),
         ));
 
         expect(parsed).toHaveNoIssues();

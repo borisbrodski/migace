@@ -342,14 +342,14 @@
       "uid": "01JG8T3B6X9D2F5H7K1M4Q0W8Z",
       "name": "20260622-0900-repair-order-status",
       "slug": "repair-order-status",
-      "when": {
-        "text": "ran order-status.link-status",
-        "sql": "pg_temp.migace_ran('01JG1D5R8Y3B6F9J2L4N7Q0T3W', 'link-status')"
-      },
       "parts": [
         {
           "name": "relink",
-          "checksum": "v1:ad6a3e4ebc224ccde17d0648b7893eec066960beb21b1eff95207582c2259b12",
+          "checksum": "v1:7d3bbcfc038262e6a766eabdf67b5b8b320500358002a1caca9dcbeb91f847cd",
+          "when": {
+            "text": "ran order-status.link-status",
+            "sql": "pg_temp.migace_ran('01JG1D5R8Y3B6F9J2L4N7Q0T3W', 'link-status')"
+          },
           "verifyBefore": [],
           "verifyAfter": [],
           "steps": [
